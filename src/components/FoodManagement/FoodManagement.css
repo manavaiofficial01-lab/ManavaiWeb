@@ -1,0 +1,797 @@
+/* FoodManagement.css */
+.food-management {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 24px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Error Message */
+.error-message {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.1);
+  border-left: 4px solid #ef4444;
+}
+
+.error-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.error-icon {
+  font-size: 18px;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  color: #dc2626;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.error-close:hover {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+/* Delete Confirmation Modal */
+.delete-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.delete-confirm-modal {
+  background: white;
+  padding: 32px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  border: 1px solid #e2e8f0;
+}
+
+.delete-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+
+.delete-confirm-modal h3 {
+  color: #1e293b;
+  margin-bottom: 12px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.delete-confirm-modal p {
+  color: #64748b;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.delete-warning {
+  color: #ef4444 !important;
+  font-weight: 600;
+  margin-bottom: 24px !important;
+}
+
+.delete-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.delete-confirm-btn, .delete-cancel-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  font-size: 14px;
+}
+
+.delete-cancel-btn {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.delete-cancel-btn:hover {
+  background: #e2e8f0;
+}
+
+.delete-confirm-btn {
+  background: #ef4444;
+  color: white;
+}
+
+.delete-confirm-btn:hover {
+  background: #dc2626;
+}
+
+.delete-confirm-btn:disabled, .delete-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Management Header */
+.management-header {
+  margin-bottom: 32px;
+}
+
+.management-header h1 {
+  color: #1e293b;
+  font-size: 32px;
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+
+.header-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  padding: 12px 24px;
+  color: #64748b;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+  color: #334155;
+}
+
+.tab-button.active {
+  color: #FFCC00;
+  border-bottom-color: #FFCC00;
+}
+
+/* Section Headers */
+.section-header {
+  margin-bottom: 24px;
+}
+
+.section-header h2 {
+  color: #1e293b;
+  font-size: 24px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.section-header p {
+  color: #64748b;
+  margin: 0;
+  font-size: 14px;
+}
+
+.header-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.back-button {
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.back-button:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.back-arrow {
+  font-size: 16px;
+}
+
+.header-title h2 {
+  color: #1e293b;
+  font-size: 20px;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.header-title p {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Stats */
+.food-stats, .restaurant-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.stat-card {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.stat-value {
+  color: #1e293b;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Search Section */
+.search-section {
+  margin-bottom: 20px;
+}
+
+.search-container {
+  position: relative;
+  max-width: 400px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 40px 10px 36px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #1e293b;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #FFCC00;
+  box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.1);
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.icon-search {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.clear-search:hover {
+  background: #f3f4f6;
+}
+
+/* Tables */
+.restaurants-table-container, .food-items-table-container {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.restaurants-table, .food-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.restaurants-table th, .food-items-table th {
+  background: #f8fafc;
+  color: #475569;
+  padding: 12px 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.restaurants-table td, .food-items-table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #374151;
+}
+
+.restaurants-table tr:last-child td, .food-items-table tr:last-child td {
+  border-bottom: none;
+}
+
+.restaurants-table tr:hover td, .food-items-table tr:hover td {
+  background: #f8fafc;
+}
+
+/* Restaurant Info */
+.restaurant-info {
+  min-width: 200px;
+}
+
+.restaurant-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.restaurant-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.restaurant-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tag-more {
+  background: #e2e8f0;
+  color: #64748b;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Food Info */
+.food-info {
+  min-width: 180px;
+}
+
+.food-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.food-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.prep-time, .calories {
+  color: #64748b;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Badges */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.open {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #dcfce7;
+}
+
+.status-badge.closed {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.veg-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.veg-badge.veg {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #dcfce7;
+}
+
+.veg-badge.non-veg {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+/* Cells */
+.timing-cell, .category-cell, .delivery-cell, .rating-cell {
+  white-space: nowrap;
+}
+
+.timing {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.category {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.delivery-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.delivery-time {
+  color: #1e293b;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.min-order {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stars {
+  color: #FFCC00;
+  font-size: 12px;
+}
+
+.rating-value {
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.reviews {
+  color: #64748b;
+  font-size: 11px;
+}
+
+/* Price Cells */
+.price-cell, .profit-cell {
+  font-weight: 600;
+}
+
+.price-amount, .profit-amount {
+  color: #059669;
+  font-family: 'Courier New', monospace;
+}
+
+.original-price-cell .original-price {
+  color: #9ca3af;
+  text-decoration: line-through;
+  font-size: 12px;
+}
+
+.no-original-price {
+  color: #d1d5db;
+  font-size: 12px;
+}
+
+.position-cell .position {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+/* Toggle Buttons */
+.status-actions {
+  min-width: 120px;
+}
+
+.toggle-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toggle-btn {
+  padding: 4px 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+  background: #e2e8f0;
+}
+
+.toggle-btn.active {
+  background: #FFCC00;
+  color: white;
+  border-color: #FFCC00;
+}
+
+.toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 6px;
+  min-width: 120px;
+}
+
+.manage-btn, .edit-btn, .delete-btn, .save-btn, .cancel-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  min-width: 60px;
+}
+
+.manage-btn {
+  background: #FFCC00;
+  color: white;
+}
+
+.manage-btn:hover {
+  background: #e6b800;
+}
+
+.edit-btn {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #dcfce7;
+}
+
+.edit-btn:hover {
+  background: #dcfce7;
+}
+
+.delete-btn {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.delete-btn:hover {
+  background: #fecaca;
+}
+
+.save-btn {
+  background: #166534;
+  color: white;
+  border: 1px solid #166534;
+}
+
+.save-btn:hover {
+  background: #15803d;
+}
+
+.cancel-btn {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.cancel-btn:hover {
+  background: #f1f5f9;
+}
+
+/* Edit Inputs */
+.edit-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.currency-symbol {
+  position: absolute;
+  left: 8px;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.edit-input, .edit-select {
+  width: 100%;
+  padding: 6px 6px 6px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  color: #1e293b;
+  font-size: 12px;
+}
+
+.edit-input:focus, .edit-select:focus {
+  outline: none;
+  border-color: #FFCC00;
+  box-shadow: 0 0 0 2px rgba(255, 204, 0, 0.1);
+}
+
+/* Loading States */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: #64748b;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f1f5f9;
+  border-top: 3px solid #FFCC00;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Empty States */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  margin-bottom: 8px;
+  font-size: 18px;
+  color: #374151;
+  font-weight: 600;
+}
+
+.empty-state p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 14px;
+}
+
+.no-items .empty-state {
+  padding: 32px 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .food-management {
+    padding: 16px;
+  }
+  
+  .header-top {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .food-stats, .restaurant-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .restaurants-table-container, .food-items-table-container {
+    overflow-x: auto;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .toggle-buttons {
+    flex-direction: row;
+  }
+}

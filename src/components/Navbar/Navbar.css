@@ -1,0 +1,329 @@
+/* Enhanced Color Variables */
+:root {
+  --primary-yellow: #FFCC00;
+  --yellow-light: #FFE066;
+  --yellow-dark: #E6B800;
+  --text-dark: #333333;
+  --text-light: #666666;
+  --white: #FFFFFF;
+  --gray-light: #F5F5F5;
+  --gray-border: #E0E0E0;
+  --gray-hover: #F8F9FA;
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-heavy: 2px 0 8px rgba(0, 0, 0, 0.1);
+  --border-radius: 4px;
+  --transition: all 0.3s ease-in-out;
+}
+
+/* Navbar Styles */
+.navbar {
+  background-color: var(--primary-yellow);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 1000;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.menu-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+  color: var(--text-dark);
+}
+
+.menu-btn:hover {
+  background-color: var(--yellow-dark);
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--text-dark);
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.user-info {
+  text-align: right;
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--text-dark);
+  display: block;
+}
+
+.user-status {
+  font-size: 0.8rem;
+  color: #28a745;
+  font-weight: 500;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -320px;
+  width: 300px;
+  height: 100vh;
+  background-color: var(--white);
+  box-shadow: var(--shadow-heavy);
+  transition: left 0.3s ease-in-out;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-open {
+  left: 0;
+}
+
+.sidebar-header {
+  background-color: var(--primary-yellow);
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--gray-border);
+  min-height: 80px;
+}
+
+.brand-info h2 {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.brand-subtitle {
+  margin: 0.25rem 0 0 0;
+  color: var(--text-light);
+  font-size: 0.85rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+  color: var(--text-dark);
+}
+
+.close-btn:hover {
+  background-color: var(--yellow-dark);
+}
+
+.sidebar-menu {
+  flex: 1;
+  padding: 1rem 0;
+  overflow-y: auto;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  transition: var(--transition);
+  border-left: 4px solid transparent;
+  border-bottom: 1px solid var(--gray-light);
+  outline: none;
+}
+
+.menu-item:hover {
+  background-color: var(--gray-hover);
+  border-left-color: var(--primary-yellow);
+}
+
+.menu-item.active {
+  background-color: var(--yellow-light);
+  border-left-color: var(--primary-yellow);
+  font-weight: 600;
+}
+
+.menu-item:focus {
+  outline: 2px solid var(--primary-yellow);
+  outline-offset: -2px;
+}
+
+.menu-icon {
+  font-size: 1.2rem;
+  margin-right: 1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.menu-text {
+  color: var(--text-dark);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  border-top: 1px solid var(--gray-border);
+  background-color: var(--gray-light);
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--gray-border);
+}
+
+.profile-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: var(--primary-yellow);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: var(--text-dark);
+  margin-right: 1rem;
+}
+
+.profile-info {
+  flex: 1;
+}
+
+.profile-name {
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 0.95rem;
+}
+
+.profile-role {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.logout-item {
+  border-bottom: none;
+}
+
+.logout-item:hover {
+  background-color: #FFE6E6;
+  border-left-color: #FF4444;
+}
+
+/* Overlay */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+/* Scrollbar Styling */
+.sidebar-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-menu::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+  background: var(--primary-yellow);
+  border-radius: 3px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--yellow-dark);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 1rem;
+  }
+  
+  .navbar-brand {
+    font-size: 1.2rem;
+  }
+  
+  .sidebar {
+    width: 280px;
+    left: -280px;
+  }
+  
+  .user-name {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0.75rem 1rem;
+  }
+  
+  .sidebar {
+    width: 100%;
+    left: -100%;
+  }
+  
+  .navbar-brand {
+    font-size: 1.1rem;
+  }
+}
+
+/* Animation for menu items */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.menu-item {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Staggered animation delays for all menu items */
+.menu-item:nth-child(1) { animation-delay: 0.05s; }
+.menu-item:nth-child(2) { animation-delay: 0.1s; }
+.menu-item:nth-child(3) { animation-delay: 0.15s; }
+.menu-item:nth-child(4) { animation-delay: 0.2s; }
+.menu-item:nth-child(5) { animation-delay: 0.25s; }
+.menu-item:nth-child(6) { animation-delay: 0.3s; }
+.menu-item:nth-child(7) { animation-delay: 0.35s; }
+.menu-item:nth-child(8) { animation-delay: 0.4s; }
+.menu-item:nth-child(9) { animation-delay: 0.45s; }
+.menu-item:nth-child(10) { animation-delay: 0.5s; }
+.menu-item:nth-child(11) { animation-delay: 0.55s; }
+
+/* Focus styles for accessibility */
+.menu-btn:focus,
+.close-btn:focus {
+  outline: 2px solid var(--text-dark);
+  outline-offset: 2px;
+}
