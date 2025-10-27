@@ -173,10 +173,10 @@ const DaybyDayRevenue = () => {
       if (error) throw error;
 
       if (orders) {
-        // Filter orders by IST date to handle timezone correctly
+        // Filter orders by IST date to handle timezone correctly and include only delivered orders
         const filteredOrders = orders.filter(order => {
           const istDate = getISTDate(order.created_at);
-          return istDate === selectedDate;
+          return istDate === selectedDate && order.status === 'delivered';
         });
         
         processRevenueData(filteredOrders);
@@ -224,6 +224,7 @@ const DaybyDayRevenue = () => {
       const orderRevenue = orderAmount + deliveryCharges;
       const orderRevenueWithoutDelivery = orderAmount;
 
+      // Only add to revenue totals for delivered orders
       totalRevenue += orderRevenue;
       totalRevenueWithoutDelivery += orderRevenueWithoutDelivery;
       deliveryChargesTotal += deliveryCharges;
@@ -242,6 +243,7 @@ const DaybyDayRevenue = () => {
 
       const items = safeJsonParse(order.items);
       
+      // Only add to restaurant revenue for delivered orders
       if (isFoodOrder && order.restaurant_name) {
         const currentRestaurant = restaurantMap.get(order.restaurant_name) || {
           name: order.restaurant_name,
@@ -259,6 +261,7 @@ const DaybyDayRevenue = () => {
         restaurantMap.set(order.restaurant_name, currentRestaurant);
       }
 
+      // Only add to category revenue for delivered orders
       if (!isFoodOrder && order.category) {
         const currentCategory = categoryMap.get(order.category) || {
           name: order.category,
@@ -276,6 +279,7 @@ const DaybyDayRevenue = () => {
         categoryMap.set(order.category, currentCategory);
       }
 
+      // Only add to category revenue for food items for delivered orders
       items.forEach(item => {
         if (item.category && isFoodOrder) {
           const currentFoodCategory = categoryMap.get(item.category) || {
@@ -385,7 +389,7 @@ const DaybyDayRevenue = () => {
                     alt={item.product_name}
                     className="revenue-modal-item-image"
                     onError={(e) => {
-                      e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zMCAzN0MzMy4zMTM3IDM3IDM2IDM0LjMxMzcgMzYgMzFDMzYgMjcuNjg2MyAzMy4zMTM3IDI1IDMwIDI1QzI2LjY4NjMgMjUgMjQgMjcuNjg2MyAyNCAzMUMyNCAzNC4zMTM3IDI2LjY4NjMgMzcgMzAgMzdaIiBmaWxsPSIjOTRBMUI2Ii8+CjxwYXRoIGQ9Ik0zNi41IDQySDE5LjVDMTguMTE5MyA0MiAxNyA0MC44ODA3IDE3IDM5LjVWMTkuNUMxNyAxOC4xMTkzIDE4LjExOTMgMTcgMTkuNSAxN0g0MC41QzQxLjg4MDcgMTcgNDMgMTguMTE5MyA0MyAxOS41VjM5LjVDNDMgNDAuODgwNyA0MS44ODA3IDQyIDQwLjUgNDJIMzYuNVpNMzkuNSAzOS41VjI0LjI1TDMxLjM2NiAzMi4zODZDMzAuOTg3NSAzMi43NjQ1IDMwLjQxMjUgMzIuNzY0NSAzMC4wMzQgMzIuMzg2TDI2LjI1IDI4LjYwMkwyMC41IDM0LjM1MlYzOS41SDM5LjVaTTI0IDI0LjVDMjQgMjUuODgwNyAyMi44ODA3IDI3IDIxLjUgMjdDMjAuMTE5MyAyNyAxOSAyNS44ODA3IDE5IDI0LjVDMTkgMjMuMTE5MyAyMC4xMTkMyAyMiAyMS41IDIyQzIyLjg4MDcgMjIgMjQgMjMuMTE5MyAyNCAyNC41WiIgZmlsbD0iIzk0QTFCNiIvPgo8L3N2Zz4K';
+                      e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zMCAzN0MzMy4zMTM3IDM3IDM2IDM0LjMxMzcgMzYgMzFDMzYgMjcuNjg2MyAzMy4zMTM3IDI1IDMwIDI1QzI2LjY4NjMgMjUgMjQgMjcuNjg2MyAyNCAzMUMyNCAzNC4zMTM3IDI2LjY4NjMgMzcgMzAgMzdaIiBmaWxsPSIjOTRBMUI2Ii8+CjxwYXRoIGQ9Ik0zNi41IDQySDE5LjVDMTguMTE5MyA0MiAxNyA0MC44ODA3IDE3IDM5LjVWMTkuNUMxNyAxOC4xMTkzIDE4LjExOTMgMTcgMTkuNSAxN0g0MC41QzQxLjg4MDcgMTcgNDMgMTguMTE5MyA0MyAxOS41VjM5LjVDNDMgNDAuODgwNyA0MS44ODA3IDQyIDQwLjUgNDJIMzYuNVpNMzkuNSAzOS41VjI0LjI1TDMxLjM2NiAzMi4zODZDMzAuOTg3NSAzMi43NjQ1IDMwLjQxMjUgMzIuNzY0NSAzMC4wMzQgMzIuMzg2TDI2LjI1IDI4LjYwMkwyMC41IDM0LjM1MlYzOS41SDM5LjVaTTI0IDI0LjVDMjQgMjUuODgwNyAyMi44ODA3IDI3IDIxLjUgMjdDMjAuMTE5MyAyNyAxOSAyNS44ODA3IDE5IDI0LjVDMTkgMjMuMTE5MyAyMC4xMTkzIDIyIDIxLjUgMjJDMjIuODgwNyAyMiAyNCAyMy4xMTkzIDI0IDI0LjVaIiBmaWxsPSIjOTRBMUI2Ii8+Cjwvc3ZnPgo=';
                     }}
                   />
                   <div className="revenue-modal-item-details">
@@ -692,7 +696,7 @@ const DaybyDayRevenue = () => {
             className={`revenue-tab-button ${activeTab === 'orders' ? 'revenue-active' : ''}`}
             onClick={() => setActiveTab('orders')}
           >
-            📋 Order Details
+            📋 Delivered Orders
           </button>
           <button 
             className={`revenue-tab-button ${activeTab === 'restaurants' ? 'revenue-active' : ''}`}
@@ -712,11 +716,11 @@ const DaybyDayRevenue = () => {
         <div className="revenue-tab-content">
           {activeTab === 'orders' && (
             <div className="revenue-orders-section">
-              <h2>Order Details - {getTamilNaduDay(selectedDate)}</h2>
+              <h2>Delivered Orders - {getTamilNaduDay(selectedDate)}</h2>
               
               {revenueData.length === 0 ? (
                 <div className="revenue-no-orders">
-                  <p>No orders found for selected date</p>
+                  <p>No delivered orders found for selected date</p>
                 </div>
               ) : (
                 renderOrdersTable()
@@ -726,11 +730,11 @@ const DaybyDayRevenue = () => {
 
           {activeTab === 'restaurants' && (
             <div className="revenue-section">
-              <h2>Restaurant Revenue - {getTamilNaduDay(selectedDate)}</h2>
+              <h2>Restaurant Revenue (Delivered Orders) - {getTamilNaduDay(selectedDate)}</h2>
               
               {restaurantRevenue.length === 0 ? (
                 <div className="revenue-no-data">
-                  <p>No restaurant data found for selected date</p>
+                  <p>No restaurant data found for delivered orders on selected date</p>
                 </div>
               ) : (
                 renderRestaurantsTable()
@@ -740,11 +744,11 @@ const DaybyDayRevenue = () => {
 
           {activeTab === 'categories' && (
             <div className="revenue-section">
-              <h2>Category Revenue - {getTamilNaduDay(selectedDate)}</h2>
+              <h2>Category Revenue (Delivered Orders) - {getTamilNaduDay(selectedDate)}</h2>
               
               {categoryRevenue.length === 0 ? (
                 <div className="revenue-no-data">
-                  <p>No category data found for selected date</p>
+                  <p>No category data found for delivered orders on selected date</p>
                 </div>
               ) : (
                 renderCategoriesTable()
@@ -756,10 +760,10 @@ const DaybyDayRevenue = () => {
         {/* Summary Section */}
         {revenueData.length > 0 && (
           <div className="revenue-summary-section">
-            <h3>Daily Summary - {getTamilNaduDay(selectedDate)}</h3>
+            <h3>Daily Summary (Delivered Orders) - {getTamilNaduDay(selectedDate)}</h3>
             <div className="revenue-summary-grid">
               <div className="revenue-summary-item">
-                <span>Total Orders:</span>
+                <span>Total Delivered Orders:</span>
                 <strong>{stats.totalOrders}</strong>
               </div>
               <div className="revenue-summary-item">

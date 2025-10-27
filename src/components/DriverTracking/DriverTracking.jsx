@@ -11,7 +11,7 @@ const MANAPPARAI_CENTER = {
   lng: 78.4255
 };
 
-const SERVICE_RADIUS_KM = 20;
+const SERVICE_RADIUS_KM = 10;
 
 const DriverTracking = () => {
   const [drivers, setDrivers] = useState([]);
@@ -426,7 +426,7 @@ const DriverTracking = () => {
         <div className="tracking-header">
           <div className="header-left">
             <h1>Manapparai Driver Tracking</h1>
-            <p className="service-area-info">Service Area: 20km radius around Manapparai</p>
+            <p className="service-area-info">Service Area: 10 km radius around Manapparai</p>
           </div>
           <div className="driver-controls">
             {currentDriver && (
@@ -484,7 +484,7 @@ const DriverTracking = () => {
           <div className="map-overlay">
             <div className="service-area-indicator">
               <div className="area-circle"></div>
-              <span>20km Service Area</span>
+              <span>10km Service Area</span>
             </div>
             <div className="update-status">
               Auto-update: <span className={isAutoUpdating ? 'status-on' : 'status-off'}>
