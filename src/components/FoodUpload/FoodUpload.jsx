@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from "../Navbar/Navbar";
 import { supabase } from "../../../supabase";
 import { storage } from '../../../firebase.config';
@@ -67,8 +67,7 @@ const FoodUpload = () => {
         // Get unique categories from existing food items
         const { data: categoriesData, error: categoriesError } = await supabase
           .from('food_items')
-          .select('category')
-          .order('category', { ascending: true });
+          .select('category');
 
         if (categoriesError) throw categoriesError;
         
@@ -101,33 +100,6 @@ const FoodUpload = () => {
       if (!isNaN(priceValue) && priceValue > 0) {
         const profitValue = (priceValue * 0.2).toFixed(2);
         setFormData(prev => ({ ...prev, profit: profitValue }));
-      }
-    }
-
-    // Auto-calculate discount if original_price is provided
-    if ((name === 'price' || name === 'original_price') && formData.original_price && formData.price) {
-      const original = parseFloat(formData.original_price);
-      const current = parseFloat(formData.price);
-      if (!isNaN(original) && !isNaN(current) && original > current) {
-        const discountPercent = ((original - current) / original * 100).toFixed(0);
-        setMessage({ 
-          type: 'info', 
-          text: `Discount: ${discountPercent}% off (₹${(original - current).toFixed(2)} savings)` 
-        });
-      }
-    }
-  };
-
-  // Handle restaurant selection
-  const handleRestaurantChange = (e) => {
-    const restaurantName = e.target.value;
-    setFormData(prev => ({ ...prev, restaurant_name: restaurantName }));
-
-    // Auto-populate category if restaurant is selected
-    if (restaurantName) {
-      const selectedRestaurant = restaurants.find(r => r.name === restaurantName);
-      if (selectedRestaurant?.category) {
-        setFormData(prev => ({ ...prev, category: selectedRestaurant.category }));
       }
     }
   };
@@ -184,11 +156,6 @@ const FoodUpload = () => {
     // Validate rating range
     if (formData.rating && (parseFloat(formData.rating) < 0 || parseFloat(formData.rating) > 5)) {
       errors.push('Rating must be between 0 and 5');
-    }
-
-    // Validate original price if provided
-    if (formData.original_price && parseFloat(formData.original_price) <= parseFloat(formData.price)) {
-      errors.push('Original price must be greater than current price');
     }
 
     return errors;
@@ -288,17 +255,6 @@ const FoodUpload = () => {
     setMessage({ type: '', text: '' });
   };
 
-  // Get restaurant categories for filtering
-  const getRestaurantCategories = () => {
-    return [...new Set(restaurants.map(r => r.category).filter(Boolean))];
-  };
-
-  // Filter restaurants by category
-  const getFilteredRestaurants = () => {
-    if (!formData.category) return restaurants;
-    return restaurants.filter(r => r.category === formData.category);
-  };
-
   return (
     <>
       <Navbar />
@@ -343,41 +299,35 @@ const FoodUpload = () => {
                   <select 
                     name="restaurant_name" 
                     value={formData.restaurant_name} 
-                    onChange={handleRestaurantChange} 
+                    onChange={handleInputChange} 
                     required
                   >
                     <option value="">Select Restaurant</option>
                     {isLoading ? (
                       <option value="" disabled>Loading restaurants...</option>
                     ) : (
-                      getFilteredRestaurants().map(restaurant => (
+                      restaurants.map(restaurant => (
                         <option key={restaurant.id} value={restaurant.name}>
                           {restaurant.name}
                         </option>
                       ))
                     )}
                   </select>
-                  <div className="field-info">
-                    {formData.category && `Filtered by category: ${formData.category}`}
-                  </div>
                 </div>
 
                 <div className="form-group">
                   <label>Category *</label>
-                  <input 
-                    type="text" 
+                  <select 
                     name="category" 
                     value={formData.category} 
                     onChange={handleInputChange} 
-                    required 
-                    placeholder="Enter category"
-                    list="category-suggestions"
-                  />
-                  <datalist id="category-suggestions">
+                    required
+                  >
+                    <option value="">Select Category</option>
                     {categories.map(category => (
-                      <option key={category} value={category} />
+                      <option key={category} value={category}>{category}</option>
                     ))}
-                  </datalist>
+                  </select>
                 </div>
 
                 <div className="form-group">
