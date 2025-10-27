@@ -38,7 +38,7 @@ const FoodUpload = () => {
     'Chinese', 'Italian', 'Mexican', 'Indian', 'Continental',
     'Biryani', 'Pizza', 'Burger', 'Sandwich', 'Salad',
     'Soup', 'Appetizers', 'Breakfast', 'Lunch', 'Dinner',
-    'Vegetarian', 'Non-Vegetarian', 'Seafood', 'BBQ', 'Fast Food'
+    'Vegetarian', 'Non-Vegetarian', 'Seafood', 'BBQ', 'Fast Food', 'Sweets'
   ];
 
   // Preparation time options
