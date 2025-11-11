@@ -448,7 +448,7 @@ const ProductUpload = () => {
     }
   };
 
-  // Prepare product data
+  // Prepare product data - handle null values properly
   const prepareProductData = (imageUrls) => {
     const productData = {
       name: formData.name.trim(),
@@ -466,7 +466,7 @@ const ProductUpload = () => {
       updated_at: new Date().toISOString()
     };
 
-    // Add colors (only for colors with names)
+    // Add colors (only for colors with names) - handle null properly
     colors.forEach((color, index) => {
       if (color.name.trim()) {
         const colorImages = imageUrls.colorImages[index] || [];
@@ -476,21 +476,34 @@ const ProductUpload = () => {
         productData[`color${index + 1}_image2`] = colorImages[1] || null;
         productData[`color${index + 1}_image3`] = colorImages[2] || null;
         productData[`color${index + 1}_image4`] = colorImages[3] || null;
+      } else {
+        // Explicitly set to null if no color name
+        productData[`color${index + 1}`] = null;
+        productData[`color${index + 1}_code`] = null;
+        productData[`color${index + 1}_image1`] = null;
+        productData[`color${index + 1}_image2`] = null;
+        productData[`color${index + 1}_image3`] = null;
+        productData[`color${index + 1}_image4`] = null;
       }
     });
 
-    // Add sizes (only for non-empty sizes)
+    // Add sizes (only for non-empty sizes) - handle null properly
     sizes.forEach((size, index) => {
       if (size.trim()) {
         productData[`size${index + 1}`] = size.trim();
+      } else {
+        productData[`size${index + 1}`] = null;
       }
     });
 
-    // Add features (only for features with titles)
+    // Add features (only for features with titles) - handle null properly
     features.forEach((feature, index) => {
       if (feature.title.trim()) {
         productData[`feature${index + 1}_title`] = feature.title.trim();
         productData[`feature${index + 1}_desc`] = feature.desc.trim() || null;
+      } else {
+        productData[`feature${index + 1}_title`] = null;
+        productData[`feature${index + 1}_desc`] = null;
       }
     });
 
@@ -677,7 +690,7 @@ const ProductUpload = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Profit (₹) *</label>
+                  <label>Profit (₹)</label>
                   <input 
                     type="number" 
                     step="0.01" 
@@ -685,7 +698,6 @@ const ProductUpload = () => {
                     value={formData.profit} 
                     onChange={handleInputChange} 
                     min="0" 
-                    required
                     placeholder="Auto-calculated"
                   />
                   <div className="field-info">Auto-calculated as 10% of price</div>
