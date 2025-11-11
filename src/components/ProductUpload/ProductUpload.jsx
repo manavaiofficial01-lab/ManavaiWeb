@@ -404,15 +404,7 @@ const ProductUpload = () => {
     if (!formData.price || parseFloat(formData.price) <= 0) errors.push('Valid price is required');
     if (!mainImage) errors.push('Main image is required');
     
-    // Validate at least one color has name
-    const hasColorName = colors.some(color => color.name.trim());
-    if (!hasColorName) errors.push('At least one color name is required');
-    
-    // Validate at least one color has images
-    const hasColorImages = colors.some(color => 
-      color.images.some(img => img !== null)
-    );
-    if (!hasColorImages) errors.push('At least one color image is required');
+    // Removed color name and color image validation
     
     return errors;
   };
@@ -427,7 +419,7 @@ const ProductUpload = () => {
         imageUrls.mainImage = await uploadImage(mainImage, 'products/main');
       }
 
-      // Upload color images
+      // Upload color images (only if they exist)
       for (let colorIndex = 0; colorIndex < colors.length; colorIndex++) {
         const colorImageUrls = [];
         for (let imgIndex = 0; imgIndex < 4; imgIndex++) {
@@ -778,7 +770,7 @@ const ProductUpload = () => {
             <div className="form-section">
               <div className="section-header">
                 <h3>Product Colors & Variants</h3>
-                <span className="section-subtitle">Add up to 4 colors with images</span>
+                <span className="section-subtitle">Optional: Add up to 4 colors with images</span>
               </div>
               {colors.map((color, colorIndex) => (
                 <div key={colorIndex} className="color-section">
@@ -796,13 +788,12 @@ const ProductUpload = () => {
                   </div>
                   <div className="form-grid">
                     <div className="form-group">
-                      <label>Color Name *</label>
+                      <label>Color Name</label>
                       <input 
                         type="text" 
                         value={color.name} 
                         onChange={(e) => handleColorChange(colorIndex, 'name', e.target.value)} 
-                        placeholder="e.g., Black, Red, Blue"
-                        required
+                        placeholder="e.g., Black, Red, Blue (optional)"
                       />
                     </div>
                     <div className="form-group">
@@ -812,7 +803,7 @@ const ProductUpload = () => {
                           type="text" 
                           value={color.code} 
                           onChange={(e) => handleColorChange(colorIndex, 'code', e.target.value)} 
-                          placeholder="#000000"
+                          placeholder="#000000 (optional)"
                         />
                         {color.code && (
                           <div 
@@ -881,7 +872,7 @@ const ProductUpload = () => {
                       type="text" 
                       value={size} 
                       onChange={(e) => handleSizeChange(index, e.target.value)} 
-                      placeholder={`Size ${index + 1}`}
+                      placeholder={`Size ${index + 1} (optional)`}
                       list={formData.category ? `sizes-${formData.category}` : undefined}
                     />
                   </div>
@@ -903,7 +894,7 @@ const ProductUpload = () => {
                 <h3>Product Features</h3>
                 <div className="section-actions">
                   <span className="section-subtitle">
-                    Key features and specifications
+                    Key features and specifications (optional)
                   </span>
                   {formData.category && (
                     <button 
@@ -926,7 +917,7 @@ const ProductUpload = () => {
                         type="text" 
                         value={feature.title} 
                         onChange={(e) => handleFeatureChange(index, 'title', e.target.value)} 
-                        placeholder="Feature title"
+                        placeholder="Feature title (optional)"
                       />
                     </div>
                     <div className="form-group">
@@ -935,7 +926,7 @@ const ProductUpload = () => {
                         type="text" 
                         value={feature.desc} 
                         onChange={(e) => handleFeatureChange(index, 'desc', e.target.value)} 
-                        placeholder="Feature description"
+                        placeholder="Feature description (optional)"
                       />
                     </div>
                   </div>
