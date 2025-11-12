@@ -54,14 +54,19 @@ const FoodUpload = () => {
       try {
         setIsLoading(true);
         
-        // Fetch restaurants
+        // Fetch restaurants - simplified query
         const { data: restaurantsData, error: restaurantsError } = await supabase
           .from('restaurants')
           .select('id, name, category, hotel_status')
           .eq('hotel_status', 'open')
           .order('name', { ascending: true });
 
-        if (restaurantsError) throw restaurantsError;
+        if (restaurantsError) {
+          console.error('Restaurants fetch error:', restaurantsError);
+          throw restaurantsError;
+        }
+
+        console.log('Fetched restaurants:', restaurantsData);
         setRestaurants(restaurantsData || []);
 
         // Get unique categories from existing food items
@@ -69,7 +74,10 @@ const FoodUpload = () => {
           .from('food_items')
           .select('category');
 
-        if (categoriesError) throw categoriesError;
+        if (categoriesError) {
+          console.error('Categories fetch error:', categoriesError);
+          throw categoriesError;
+        }
         
         const uniqueCategories = [...new Set(categoriesData?.map(item => item.category) || [])];
         setCategories([...new Set([...FOOD_CATEGORIES, ...uniqueCategories])]);
@@ -308,11 +316,16 @@ const FoodUpload = () => {
                     ) : (
                       restaurants.map(restaurant => (
                         <option key={restaurant.id} value={restaurant.name}>
-                          {restaurant.name}
+                          {restaurant.name} {restaurant.category ? `(${restaurant.category})` : ''}
                         </option>
                       ))
                     )}
                   </select>
+                  {!isLoading && restaurants.length === 0 && (
+                    <div className="field-info warning">
+                      No restaurants found. Please add restaurants first.
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">
@@ -521,7 +534,7 @@ const FoodUpload = () => {
               <button 
                 type="submit" 
                 className="submit-btn" 
-                disabled={isUploading}
+                disabled={isUploading || restaurants.length === 0}
               >
                 {isUploading ? (
                   <>
@@ -529,7 +542,7 @@ const FoodUpload = () => {
                     Uploading...
                   </>
                 ) : (
-                  'Upload Food Item'
+                  restaurants.length === 0 ? 'No Restaurants Available' : 'Upload Food Item'
                 )}
               </button>
             </div>
