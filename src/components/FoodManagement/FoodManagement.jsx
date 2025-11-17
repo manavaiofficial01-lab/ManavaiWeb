@@ -14,6 +14,11 @@ const FoodManagement = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [activeTab, setActiveTab] = useState('restaurants');
 
+  // Predefined categories
+  const foodCategories = [
+    "Biryani", "Pizza", "Burger", "Fried Chicken", "Mutton","Chicken", "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice", "Naan & Gravy", "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee", "Shakes", "Mojito", "Cake's","Ice Cream","Fresh Juice"
+  ];
+
   // Fetch restaurants
   const fetchRestaurants = async () => {
     try {
@@ -125,7 +130,7 @@ const FoodManagement = () => {
   const handleDeleteClick = async (foodId) => {
     try {
       await deleteFoodItem(foodId);
-      setFoodItems(prevItems => 
+      setFoodItems(prevItems =>
         prevItems.filter(item => item.id !== foodId)
       );
       setDeleteConfirm(null);
@@ -169,10 +174,10 @@ const FoodManagement = () => {
 
     try {
       const updatedFood = await updateFoodItem(editingFood);
-      
+
       if (updatedFood) {
-        setFoodItems(prevItems => 
-          prevItems.map(item => 
+        setFoodItems(prevItems =>
+          prevItems.map(item =>
             item.id === updatedFood.id ? updatedFood : item
           )
         );
@@ -194,10 +199,10 @@ const FoodManagement = () => {
         [field]: field === 'price' || field === 'original_price' || field === 'profit' || field === 'rating'
           ? parseFloat(value) || 0
           : field === 'review_count' || field === 'calories' || field === 'food_position'
-          ? parseInt(value) || 0
-          : field === 'veg' || field === 'popular' || field === 'bestseller'
-          ? Boolean(value)
-          : value
+            ? parseInt(value) || 0
+            : field === 'veg' || field === 'popular' || field === 'bestseller'
+              ? Boolean(value)
+              : value
       }));
     }
   };
@@ -205,13 +210,13 @@ const FoodManagement = () => {
   const toggleFoodStatus = async (foodItem, field) => {
     try {
       setLoading(true);
-      
+
       const updatedFood = { ...foodItem, [field]: !foodItem[field] };
       const result = await updateFoodItem(updatedFood);
-      
+
       if (result) {
-        setFoodItems(prevItems => 
-          prevItems.map(item => 
+        setFoodItems(prevItems =>
+          prevItems.map(item =>
             item.id === result.id ? result : item
           )
         );
@@ -259,14 +264,14 @@ const FoodManagement = () => {
                 <p>Are you sure you want to delete <strong>"{deleteConfirm.name}"</strong>?</p>
                 <p className="delete-warning">This action cannot be undone.</p>
                 <div className="delete-actions">
-                  <button 
+                  <button
                     className="delete-cancel-btn"
                     onClick={cancelDeleteConfirm}
                     disabled={loading}
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     className="delete-confirm-btn"
                     onClick={() => handleDeleteClick(deleteConfirm.id)}
                     disabled={loading}
@@ -281,14 +286,14 @@ const FoodManagement = () => {
           <div className="management-header">
             <h1>Food Management</h1>
             <div className="header-tabs">
-              <button 
+              <button
                 className={`tab-button ${activeTab === 'restaurants' ? 'active' : ''}`}
                 onClick={handleBackToRestaurants}
               >
                 Restaurants
               </button>
               {selectedRestaurant && (
-                <button 
+                <button
                   className={`tab-button ${activeTab === 'foodItems' ? 'active' : ''}`}
                   onClick={() => setActiveTab('foodItems')}
                 >
@@ -378,7 +383,7 @@ const FoodManagement = () => {
                             </div>
                           </td>
                           <td className="action-buttons">
-                            <button 
+                            <button
                               className="manage-btn"
                               onClick={() => handleRestaurantClick(restaurant)}
                               disabled={loading}
@@ -398,7 +403,7 @@ const FoodManagement = () => {
             <div className="food-items-section">
               <div className="section-header">
                 <div className="header-top">
-                  <button 
+                  <button
                     className="back-button"
                     onClick={handleBackToRestaurants}
                   >
@@ -410,7 +415,7 @@ const FoodManagement = () => {
                     <p>Manage food items for this restaurant</p>
                   </div>
                 </div>
-                
+
                 <div className="food-stats">
                   <div className="stat-card">
                     <div className="stat-value">{foodItems.length}</div>
@@ -442,7 +447,7 @@ const FoodManagement = () => {
                     className="search-input"
                   />
                   {searchTerm && (
-                    <button 
+                    <button
                       className="clear-search"
                       onClick={() => setSearchTerm('')}
                     >
@@ -482,8 +487,8 @@ const FoodManagement = () => {
                               <div className="empty-icon">🍕</div>
                               <h3>{searchTerm ? 'No food items found' : 'No food items in this restaurant'}</h3>
                               <p>
-                                {searchTerm 
-                                  ? 'Try adjusting your search terms' 
+                                {searchTerm
+                                  ? 'Try adjusting your search terms'
                                   : 'Add food items to get started'
                                 }
                               </p>
@@ -494,21 +499,48 @@ const FoodManagement = () => {
                         filteredFoodItems.map(item => (
                           <tr key={item.id}>
                             <td className="food-info">
-                              <div className="food-details">
-                                <div className="food-name">{item.name}</div>
-                                {item.prep_time && (
-                                  <div className="prep-time">⏱️ {item.prep_time}</div>
-                                )}
-                                {item.calories && (
-                                  <div className="calories">🔥 {item.calories} cal</div>
-                                )}
-                              </div>
+                              {editingFood?.id === item.id ? (
+                                <div className="edit-input-container">
+                                  <input
+                                    type="text"
+                                    value={editingFood.name}
+                                    onChange={(e) => handleFieldChange('name', e.target.value)}
+                                    className="edit-input"
+                                    placeholder="Food item name"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="food-details">
+                                  <div className="food-name">{item.name}</div>
+                                  {item.prep_time && (
+                                    <div className="prep-time">⏱️ {item.prep_time}</div>
+                                  )}
+                                  {item.calories && (
+                                    <div className="calories">🔥 {item.calories} cal</div>
+                                  )}
+                                </div>
+                              )}
                             </td>
-                            
+
                             <td className="category-cell">
-                              <span className="category">{item.category}</span>
+                              {editingFood?.id === item.id ? (
+                                <select
+                                  value={editingFood.category}
+                                  onChange={(e) => handleFieldChange('category', e.target.value)}
+                                  className="edit-select"
+                                >
+                                  <option value="">Select Category</option>
+                                  {foodCategories.map(category => (
+                                    <option key={category} value={category}>
+                                      {category}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="category">{item.category}</span>
+                              )}
                             </td>
-                            
+
                             {editingFood?.id === item.id ? (
                               <>
                                 <td>
@@ -599,14 +631,14 @@ const FoodManagement = () => {
                                   />
                                 </td>
                                 <td className="action-buttons">
-                                  <button 
+                                  <button
                                     className="save-btn"
                                     onClick={handleSaveClick}
                                     disabled={loading}
                                   >
                                     {loading ? 'Saving...' : 'Save'}
                                   </button>
-                                  <button 
+                                  <button
                                     className="cancel-btn"
                                     onClick={handleCancelClick}
                                     disabled={loading}
@@ -664,14 +696,14 @@ const FoodManagement = () => {
                                   <span className="position">{item.food_position || 0}</span>
                                 </td>
                                 <td className="action-buttons">
-                                  <button 
+                                  <button
                                     className="edit-btn"
                                     onClick={() => handleEditClick(item)}
                                     disabled={loading}
                                   >
                                     Edit
                                   </button>
-                                  <button 
+                                  <button
                                     className="delete-btn"
                                     onClick={() => startDeleteConfirm(item)}
                                     disabled={loading}

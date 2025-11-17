@@ -6,9 +6,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import "./FoodUpload.css";
 
 const FoodUpload = () => {
-  // State for restaurants and categories
+  // State for restaurants
   const [restaurants, setRestaurants] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [formData, setFormData] = useState({
@@ -34,11 +33,9 @@ const FoodUpload = () => {
 
   // Predefined categories for food items
   const FOOD_CATEGORIES = [
-    'Starters', 'Main Course', 'Desserts', 'Beverages', 'Snacks',
-    'Chinese', 'Italian', 'Mexican', 'Indian', 'Continental',
-    'Biryani', 'Pizza', 'Burger', 'Sandwich', 'Salad',
-    'Soup', 'Appetizers', 'Breakfast', 'Lunch', 'Dinner',
-    'Vegetarian', 'Non-Vegetarian', 'Seafood', 'BBQ', 'Fast Food', 'Sweets', 'Drinks','Ice Cream'
+    "Biryani", "Pizza", "Burger", "Fried Chicken", "Mutton", "Chicken", "Fresh Juice", 
+    "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice", "Naan & Gravy", 
+    "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee", "Shakes", "Mojito", "Cake's", "Ice Cream"
   ];
 
   // Preparation time options
@@ -48,9 +45,9 @@ const FoodUpload = () => {
     '45-50 mins', '50-55 mins', '55-60 mins', '60+ mins'
   ];
 
-  // Fetch restaurants and categories from database
+  // Fetch restaurants from database
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchRestaurants = async () => {
       try {
         setIsLoading(true);
         
@@ -69,28 +66,15 @@ const FoodUpload = () => {
         console.log('Fetched restaurants:', restaurantsData);
         setRestaurants(restaurantsData || []);
 
-        // Get unique categories from existing food items
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from('food_items')
-          .select('category');
-
-        if (categoriesError) {
-          console.error('Categories fetch error:', categoriesError);
-          throw categoriesError;
-        }
-        
-        const uniqueCategories = [...new Set(categoriesData?.map(item => item.category) || [])];
-        setCategories([...new Set([...FOOD_CATEGORIES, ...uniqueCategories])]);
-
       } catch (error) {
-        console.error('Error fetching data:', error);
-        setMessage({ type: 'error', text: 'Failed to load restaurants and categories' });
+        console.error('Error fetching restaurants:', error);
+        setMessage({ type: 'error', text: 'Failed to load restaurants' });
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchData();
+    fetchRestaurants();
   }, []);
 
   // Handle input changes
@@ -337,7 +321,7 @@ const FoodUpload = () => {
                     required
                   >
                     <option value="">Select Category</option>
-                    {categories.map(category => (
+                    {FOOD_CATEGORIES.map(category => (
                       <option key={category} value={category}>{category}</option>
                     ))}
                   </select>
