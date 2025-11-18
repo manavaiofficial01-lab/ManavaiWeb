@@ -8,6 +8,8 @@ const FoodManagement = () => {
   const [foodItems, setFoodItems] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchCategory, setSearchCategory] = useState('');
+  const [searchType, setSearchType] = useState('');
   const [editingFood, setEditingFood] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,7 +18,10 @@ const FoodManagement = () => {
 
   // Predefined categories
   const foodCategories = [
-    "Biryani", "Pizza", "Burger", "Fried Chicken", "Mutton","Chicken", "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice", "Naan & Gravy", "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee", "Shakes", "Mojito", "Cake's","Ice Cream","Fresh Juice"
+    "Biryani", "Pizza", "Burger", "Fried Chicken", "Mutton", "Chicken", 
+    "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice", 
+    "Naan & Gravy", "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee", 
+    "Shakes", "Mojito", "Cake's", "Ice Cream", "Fresh Juice"
   ];
 
   // Fetch restaurants
@@ -155,12 +160,18 @@ const FoodManagement = () => {
     setSelectedRestaurant(restaurant);
     fetchFoodItemsByRestaurant(restaurant);
     setActiveTab('foodItems');
+    // Reset filters when switching restaurants
+    setSearchTerm('');
+    setSearchCategory('');
+    setSearchType('');
   };
 
   const handleBackToRestaurants = () => {
     setSelectedRestaurant(null);
     setFoodItems([]);
     setSearchTerm('');
+    setSearchCategory('');
+    setSearchType('');
     setActiveTab('restaurants');
   };
 
@@ -228,10 +239,20 @@ const FoodManagement = () => {
     }
   };
 
-  const filteredFoodItems = foodItems.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Enhanced filter logic
+  const filteredFoodItems = foodItems.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.category.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = !searchCategory || 
+                           item.category.toLowerCase() === searchCategory.toLowerCase();
+    
+    const matchesType = !searchType || 
+                       (searchType === 'veg' && item.veg) ||
+                       (searchType === 'non-veg' && !item.veg);
+    
+    return matchesSearch && matchesCategory && matchesType;
+  });
 
   const getStatusBadge = (status) => {
     return status === 'open' ? 'open' : 'closed';
@@ -436,12 +457,13 @@ const FoodManagement = () => {
                 </div>
               </div>
 
+              {/* Enhanced Search Section */}
               <div className="search-section">
                 <div className="search-container">
                   <i className="icon-search">🔍</i>
                   <input
                     type="text"
-                    placeholder="Search food items by name or category..."
+                    placeholder="Search by food name or category..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="search-input"
@@ -455,7 +477,113 @@ const FoodManagement = () => {
                     </button>
                   )}
                 </div>
+                
+                <div className="filter-controls">
+                  {/* Category Filter */}
+                  <div className="filter-group">
+                    <label>Category:</label>
+                    <select
+                      value={searchCategory}
+                      onChange={(e) => setSearchCategory(e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="">All Categories</option>
+                      {foodCategories.map(category => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                    {searchCategory && (
+                      <button
+                        className="clear-filter"
+                        onClick={() => setSearchCategory('')}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Type Filter (Veg/Non-Veg) */}
+                  <div className="filter-group">
+                    <label>Type:</label>
+                    <select
+                      value={searchType}
+                      onChange={(e) => setSearchType(e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="">All Types</option>
+                      <option value="veg">🟢 Veg Only</option>
+                      <option value="non-veg">🔴 Non-Veg Only</option>
+                    </select>
+                    {searchType && (
+                      <button
+                        className="clear-filter"
+                        onClick={() => setSearchType('')}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Clear All Filters */}
+                  {(searchTerm || searchCategory || searchType) && (
+                    <button
+                      className="clear-all-filters"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setSearchCategory('');
+                        setSearchType('');
+                      }}
+                    >
+                      Clear All Filters
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick Filters */}
+                <div className="quick-filters">
+                  <span className="quick-filter-label">Quick Filters:</span>
+                  <button
+                    className={`quick-filter-chip ${searchType === 'veg' ? 'active' : ''}`}
+                    onClick={() => setSearchType(searchType === 'veg' ? '' : 'veg')}
+                  >
+                    🟢 Veg
+                  </button>
+                  <button
+                    className={`quick-filter-chip ${searchType === 'non-veg' ? 'active' : ''}`}
+                    onClick={() => setSearchType(searchType === 'non-veg' ? '' : 'non-veg')}
+                  >
+                    🔴 Non-Veg
+                  </button>
+                  <button
+                    className={`quick-filter-chip ${searchCategory === 'Biryani' ? 'active' : ''}`}
+                    onClick={() => setSearchCategory(searchCategory === 'Biryani' ? '' : 'Biryani')}
+                  >
+                    🍚 Biryani
+                  </button>
+                  <button
+                    className={`quick-filter-chip ${searchCategory === 'Pizza' ? 'active' : ''}`}
+                    onClick={() => setSearchCategory(searchCategory === 'Pizza' ? '' : 'Pizza')}
+                  >
+                    🍕 Pizza
+                  </button>
+                </div>
               </div>
+
+              {/* Search Results Info */}
+              {(searchTerm || searchCategory || searchType) && (
+                <div className="search-results-info">
+                  <p>
+                    Showing {filteredFoodItems.length} of {foodItems.length} items
+                    <span className="active-filters">
+                      {searchTerm && ` • Search: "${searchTerm}"`}
+                      {searchCategory && ` • Category: ${searchCategory}`}
+                      {searchType && ` • Type: ${searchType === 'veg' ? 'Veg' : 'Non-Veg'}`}
+                    </span>
+                  </p>
+                </div>
+              )}
 
               {loading ? (
                 <div className="loading-state">
@@ -485,10 +613,14 @@ const FoodManagement = () => {
                           <td colSpan="10" className="no-items">
                             <div className="empty-state">
                               <div className="empty-icon">🍕</div>
-                              <h3>{searchTerm ? 'No food items found' : 'No food items in this restaurant'}</h3>
+                              <h3>{
+                                searchTerm || searchCategory || searchType 
+                                  ? 'No food items match your search' 
+                                  : 'No food items in this restaurant'
+                              }</h3>
                               <p>
-                                {searchTerm
-                                  ? 'Try adjusting your search terms'
+                                {searchTerm || searchCategory || searchType
+                                  ? 'Try adjusting your search terms or clear filters'
                                   : 'Add food items to get started'
                                 }
                               </p>
