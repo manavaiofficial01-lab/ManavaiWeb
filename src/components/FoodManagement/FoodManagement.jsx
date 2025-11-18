@@ -15,6 +15,7 @@ const FoodManagement = () => {
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [activeTab, setActiveTab] = useState('restaurants');
+  const [editingCategory, setEditingCategory] = useState(null);
 
   // Predefined categories
   const foodCategories = [
@@ -178,6 +179,7 @@ const FoodManagement = () => {
   const handleEditClick = (foodItem) => {
     setEditingFood({ ...foodItem });
     setDeleteConfirm(null);
+    setEditingCategory(null);
   };
 
   const handleSaveClick = async () => {
@@ -193,6 +195,7 @@ const FoodManagement = () => {
           )
         );
         setEditingFood(null);
+        setEditingCategory(null);
       }
     } catch (error) {
       // Error is handled in updateFoodItem function
@@ -201,6 +204,7 @@ const FoodManagement = () => {
 
   const handleCancelClick = () => {
     setEditingFood(null);
+    setEditingCategory(null);
   };
 
   const handleFieldChange = (field, value) => {
@@ -216,6 +220,34 @@ const FoodManagement = () => {
               : value
       }));
     }
+  };
+
+  // Handle category edit separately
+  const handleCategoryEdit = (foodItem) => {
+    setEditingCategory(foodItem.id);
+    setEditingFood(null); // Close other edit modes
+  };
+
+  const handleCategorySave = async (foodItem, newCategory) => {
+    try {
+      const updatedFood = { ...foodItem, category: newCategory };
+      const result = await updateFoodItem(updatedFood);
+
+      if (result) {
+        setFoodItems(prevItems =>
+          prevItems.map(item =>
+            item.id === result.id ? result : item
+          )
+        );
+        setEditingCategory(null);
+      }
+    } catch (error) {
+      console.error('Error updating category:', error);
+    }
+  };
+
+  const handleCategoryCancel = () => {
+    setEditingCategory(null);
   };
 
   const toggleFoodStatus = async (foodItem, field) => {
@@ -513,8 +545,8 @@ const FoodManagement = () => {
                       className="filter-select"
                     >
                       <option value="">All Types</option>
-                      <option value="veg">🟢 Veg Only</option>
-                      <option value="non-veg">🔴 Non-Veg Only</option>
+                      <option value="veg">Veg Only</option>
+                      <option value="non-veg">Non-Veg Only</option>
                     </select>
                     {searchType && (
                       <button
@@ -548,25 +580,25 @@ const FoodManagement = () => {
                     className={`quick-filter-chip ${searchType === 'veg' ? 'active' : ''}`}
                     onClick={() => setSearchType(searchType === 'veg' ? '' : 'veg')}
                   >
-                    🟢 Veg
+                    Veg
                   </button>
                   <button
                     className={`quick-filter-chip ${searchType === 'non-veg' ? 'active' : ''}`}
                     onClick={() => setSearchType(searchType === 'non-veg' ? '' : 'non-veg')}
                   >
-                    🔴 Non-Veg
+                    Non-Veg
                   </button>
                   <button
                     className={`quick-filter-chip ${searchCategory === 'Biryani' ? 'active' : ''}`}
                     onClick={() => setSearchCategory(searchCategory === 'Biryani' ? '' : 'Biryani')}
                   >
-                    🍚 Biryani
+                    Biryani
                   </button>
                   <button
                     className={`quick-filter-chip ${searchCategory === 'Pizza' ? 'active' : ''}`}
                     onClick={() => setSearchCategory(searchCategory === 'Pizza' ? '' : 'Pizza')}
                   >
-                    🍕 Pizza
+                    Pizza
                   </button>
                 </div>
               </div>
@@ -629,7 +661,7 @@ const FoodManagement = () => {
                         </tr>
                       ) : (
                         filteredFoodItems.map(item => (
-                          <tr key={item.id}>
+                          <tr key={item.id} className={editingFood?.id === item.id || editingCategory === item.id ? 'editing-row' : ''}>
                             <td className="food-info">
                               {editingFood?.id === item.id ? (
                                 <div className="edit-input-container">
@@ -645,31 +677,56 @@ const FoodManagement = () => {
                                 <div className="food-details">
                                   <div className="food-name">{item.name}</div>
                                   {item.prep_time && (
-                                    <div className="prep-time">⏱️ {item.prep_time}</div>
+                                    <div className="prep-time">Prep: {item.prep_time}</div>
                                   )}
                                   {item.calories && (
-                                    <div className="calories">🔥 {item.calories} cal</div>
+                                    <div className="calories">Calories: {item.calories}</div>
                                   )}
                                 </div>
                               )}
                             </td>
 
                             <td className="category-cell">
-                              {editingFood?.id === item.id ? (
-                                <select
-                                  value={editingFood.category}
-                                  onChange={(e) => handleFieldChange('category', e.target.value)}
-                                  className="edit-select"
-                                >
-                                  <option value="">Select Category</option>
-                                  {foodCategories.map(category => (
-                                    <option key={category} value={category}>
-                                      {category}
-                                    </option>
-                                  ))}
-                                </select>
+                              {editingCategory === item.id ? (
+                                <div className="category-edit-container">
+                                  <select
+                                    value={item.category}
+                                    onChange={(e) => handleCategorySave(item, e.target.value)}
+                                    className="category-edit-select"
+                                    autoFocus
+                                  >
+                                    <option value="">Select Category</option>
+                                    {foodCategories.map(category => (
+                                      <option key={category} value={category}>
+                                        {category}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <div className="category-edit-actions">
+                                    <button
+                                      className="category-save-btn"
+                                      onClick={() => setEditingCategory(null)}
+                                    >
+                                      ✓
+                                    </button>
+                                    <button
+                                      className="category-cancel-btn"
+                                      onClick={handleCategoryCancel}
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                </div>
                               ) : (
-                                <span className="category">{item.category}</span>
+                                <div className="category-display">
+                                  <span 
+                                    className="category-value"
+                                    onClick={() => handleCategoryEdit(item)}
+                                    title="Click to edit category"
+                                  >
+                                    {item.category}
+                                  </span>
+                                </div>
                               )}
                             </td>
 
@@ -803,7 +860,7 @@ const FoodManagement = () => {
                                 </td>
                                 <td>
                                   <span className={`veg-badge ${getVegBadge(item.veg)}`}>
-                                    {item.veg ? '🟢 Veg' : '🔴 Non-Veg'}
+                                    {item.veg ? 'Veg' : 'Non-Veg'}
                                   </span>
                                 </td>
                                 <td className="status-actions">
