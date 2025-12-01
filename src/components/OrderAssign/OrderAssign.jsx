@@ -20,6 +20,10 @@ const OrderAssign = () => {
   const [markers, setMarkers] = useState([]);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  const [driverOrders, setDriverOrders] = useState({}); // Track orders per driver
+  const [isMultiAssignModalOpen, setIsMultiAssignModalOpen] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState([]);
+  const [selectedOrdersMap, setSelectedOrdersMap] = useState(new Set());
   
   const audioRef = useRef(null);
   const pollingRef = useRef(null);
@@ -79,9 +83,9 @@ const OrderAssign = () => {
       const driverMarker = new window.google.maps.Marker({
         position: { lat: driver.latitude, lng: driver.longitude },
         map: googleMap,
-        title: `Driver: ${driver.driver_name}`,
+        title: `Driver: ${driver.driver_name} (${getDriverOrderCount(driver.id)} orders)`,
         icon: {
-          url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE5IDdIMTZDMTUgNCAxMiAyIDEyIDJDMTIgMiA5IDQgOCA3SDVDMy45IDcgMyA3LjkgMyA5VjE4QzMgMTkuMSAzLjkgMjAgNSAyMEgxOUMxMC4xIDIwIDIxIDE5LjEgMjEgMThWOUMyMSA3LjkgMjAuMSA3IDE5IDdaTTggMTguNUM3LjIgMTguNSA2LjUgMTcuOCA2LjUgMTdDNi41IDE2LjIgNy4yIDE1LjUgOCAxNS41QzguOCAxNS41IDkuNSAxNi4yIDkuNSAxN0M5LjUgMTcuOCA4LjggMTguNSA4IDE4LjVaTTE1LjUgMTUuNUgxMC41VjE0SDE1LjVWMTUuNVpNMTggMTguNUMxNy4yIDE4LjUgMTYuNSAxNy44IDE2LjUgMTdDMTYuNSAxNi4yIDE3LjIgMTUuNSAxOCAxNS41QzE4LjggMTUuNSAxOS41IDE2LjIgMTkuNSAxN0MxOS41IDE3LjggMTguOCAxOC41IDE4IDE4LjVaIiBmaWxsPSIjMzQ5OEZCIi8+Cjwvc3ZnPgo=',
+          url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE5IDdIMTZDMTUgNCAxMiAyIDEyIDJDMTIgMiA5IDQgOCA3SDVDMy45IDcgMyA3LjkgMyA5VjE4QzMgMTkuMSAzLjkgMjAgNSAyMEgxOUMxMC4xIDIwIDIxIDE5LjEgMjEgMThWOUMyMSA3LjkgMjAuMSA3IDE5IDdaTTggMTguNUM3LjIgMTguNSA2LjUgMTcuOCA2LjUgMTdDNi41IDE2LjIgNy4yIDE1LjUgOCAxNS41QzguOCAxUuNSA5LjUgMTYuMiA5LjUgMTdDOS41IDE3LjggOC44IDE4LjUgOCAxOC41Wk0xNS41IDE1LjVIMTAuNVYxNEgxNS41VjE1LjVaTTE4IDE4LjVDMTcuMiAxOC41IDE2LjUgMTcuOCAxNi41IDE3QzE2LjUgMTYuMiAxNy4yIDE1LjUgMTggMTUuNUMxOC44IDE1LjUgMTkuNSAxNi4yIDE5LjUgMTdDMTkuNSAxNy44IDE4LjggMTguNSAxOCAxOC41WiIgZmlsbD0iIzM0OThGQiIvPgo8L3N2Zz4K',
           scaledSize: new window.google.maps.Size(28, 28),
         }
       });
@@ -257,17 +261,65 @@ const OrderAssign = () => {
 
       const driversWithVehicle = (data || []).map(driver => ({
         ...driver,
-        // Add vehicle type based on your business logic
-        vehicle: 'Bike', // Default to Bike, you can modify this based on your data
+        vehicle: 'Bike', // Default to Bike
         available: driver.status === 'online'
       }));
 
       setDrivers(driversWithVehicle);
+      
+      // Fetch current orders for each driver
+      fetchDriverOrders(data || []);
     } catch (error) {
       console.error('Error fetching drivers:', error);
       setError('Failed to load drivers. Please try again.');
     }
   }, []);
+
+  const fetchDriverOrders = async (driversList) => {
+    try {
+      const ordersByDriver = {};
+      
+      for (const driver of driversList) {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('id, status')
+          .eq('driver_name', driver.driver_name)
+          .in('status', ['processing', 'out_for_delivery', 'delivered'])
+          .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()); // Last 24 hours
+
+        if (!error && data) {
+          ordersByDriver[driver.id] = data;
+        }
+      }
+      
+      setDriverOrders(ordersByDriver);
+    } catch (error) {
+      console.error('Error fetching driver orders:', error);
+    }
+  };
+
+  const getDriverOrderCount = useCallback((driverId) => {
+    return driverOrders[driverId]?.length || 0;
+  }, [driverOrders]);
+
+  const getDriverStatusBadge = useCallback((driver) => {
+    const orderCount = getDriverOrderCount(driver.id);
+    const isProcessing = orderCount > 0;
+    
+    if (driver.status === 'offline') {
+      return { text: 'Offline', className: 'status-offline', icon: '🔴' };
+    }
+    
+    if (isProcessing) {
+      return { 
+        text: `Processing (${orderCount})`, 
+        className: 'status-processing', 
+        icon: '🟡' 
+      };
+    }
+    
+    return { text: 'Available', className: 'status-available', icon: '🟢' };
+  }, [getDriverOrderCount]);
 
   const fetchOrders = useCallback(async (isManualRefresh = false) => {
     try {
@@ -348,40 +400,92 @@ const OrderAssign = () => {
     }, 400);
   }, []);
 
-  const assignDriverToOrder = async () => {
-    if (!selectedOrder || !selectedDriver) return;
+  const toggleOrderSelection = useCallback((orderId) => {
+    setSelectedOrdersMap(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const openMultiAssignModal = useCallback(() => {
+    const selected = Array.from(selectedOrdersMap).map(id => 
+      orders.find(order => order.id === id)
+    ).filter(order => order);
+    
+    if (selected.length === 0) {
+      alert('Please select orders to assign');
+      return;
+    }
+    
+    setSelectedOrders(selected);
+    setIsMultiAssignModalOpen(true);
+  }, [selectedOrdersMap, orders]);
+
+  const assignDriverToOrder = async (orderIds, driverId) => {
+    if (!orderIds || !driverId) return;
 
     try {
       setAssigning(true);
       setError(null);
       
-      validateOrderForAssignment(selectedOrder);
-      
-      const driver = drivers.find(d => d.id === parseInt(selectedDriver));
+      const driver = drivers.find(d => d.id === parseInt(driverId));
       if (!driver) {
         throw new Error('Selected driver not found');
       }
+
+      // Validate all orders
+      const ordersToAssign = orders.filter(order => orderIds.includes(order.id));
+      for (const order of ordersToAssign) {
+        validateOrderForAssignment(order);
+      }
+
+      // Update all orders in a transaction
+      const updates = orderIds.map(orderId => 
+        supabase
+          .from('orders')
+          .update({
+            driver_name: driver.driver_name,
+            driver_mobile: driver.driver_phone,
+            status: 'processing',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderId)
+          .eq('status', orders.find(o => o.id === orderId)?.status)
+          .is('driver_name', null)
+      );
+
+      const results = await Promise.all(updates);
       
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          driver_name: driver.driver_name,
-          driver_mobile: driver.driver_phone,
-          status: 'processing',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedOrder.id)
-        .eq('status', selectedOrder.status)
-        .is('driver_name', null);
+      // Check for errors
+      const hasError = results.some(result => result.error);
+      if (hasError) {
+        throw new Error('Failed to assign some orders');
+      }
 
-      if (error) throw error;
-
-      setOrders(prev => prev.filter(order => order.id !== selectedOrder.id));
-      setIsModalOpen(false);
-      setSelectedOrder(null);
+      // Remove assigned orders from state
+      setOrders(prev => prev.filter(order => !orderIds.includes(order.id)));
+      setSelectedOrdersMap(new Set());
+      
+      // Close modal and reset
+      if (selectedOrder) {
+        setIsModalOpen(false);
+        setSelectedOrder(null);
+      }
+      if (selectedOrders.length > 0) {
+        setIsMultiAssignModalOpen(false);
+        setSelectedOrders([]);
+      }
       setSelectedDriver('');
       
-      alert(`Order #${selectedOrder.id} assigned to ${driver.driver_name} successfully!`);
+      // Update driver orders count
+      fetchDriverOrders(drivers);
+      
+      alert(`Successfully assigned ${orderIds.length} order(s) to ${driver.driver_name}!`);
     } catch (error) {
       console.error('Error assigning driver:', error);
       setError(error.message || 'Failed to assign driver. Please try again.');
@@ -392,6 +496,17 @@ const OrderAssign = () => {
     } finally {
       setAssigning(false);
     }
+  };
+
+  const assignDriverToSingleOrder = async () => {
+    if (!selectedOrder || !selectedDriver) return;
+    await assignDriverToOrder([selectedOrder.id], selectedDriver);
+  };
+
+  const assignDriverToMultipleOrders = async () => {
+    if (!selectedDriver || selectedOrders.length === 0) return;
+    const orderIds = selectedOrders.map(order => order.id);
+    await assignDriverToOrder(orderIds, selectedDriver);
   };
 
   const cancelOrder = async (orderId) => {
@@ -435,6 +550,12 @@ const OrderAssign = () => {
     setIsModalOpen(false);
     setIsItemsModalOpen(false);
     setSelectedOrder(null);
+    setSelectedDriver('');
+  }, []);
+
+  const closeMultiAssignModal = useCallback(() => {
+    setIsMultiAssignModalOpen(false);
+    setSelectedOrders([]);
     setSelectedDriver('');
   }, []);
 
@@ -503,20 +624,36 @@ const OrderAssign = () => {
     });
   }, [orders, searchTerm, activeTab, isScheduledOrder]);
 
+  const allDrivers = useMemo(() => 
+    drivers.map(driver => ({
+      ...driver,
+      orderCount: getDriverOrderCount(driver.id),
+      statusBadge: getDriverStatusBadge(driver)
+    })).sort((a, b) => {
+      // Sort by: online status, then by order count (ascending)
+      if (a.status === 'online' && b.status !== 'online') return -1;
+      if (a.status !== 'online' && b.status === 'online') return 1;
+      return a.orderCount - b.orderCount;
+    }), 
+    [drivers, getDriverOrderCount, getDriverStatusBadge]
+  );
+
   const availableDrivers = useMemo(() => 
-    drivers.filter(driver => driver.status === 'online'), 
-    [drivers]
+    allDrivers.filter(driver => driver.status === 'online'), 
+    [allDrivers]
   );
 
   const stats = useMemo(() => {
     const scheduledOrders = orders.filter(o => isScheduledOrder(o)).length;
+    const selectedCount = selectedOrdersMap.size;
 
     return {
       total: orders.length,
       scheduledOrders,
-      availableDrivers: availableDrivers.length
+      availableDrivers: availableDrivers.length,
+      selectedCount
     };
-  }, [orders, availableDrivers.length, isScheduledOrder]);
+  }, [orders, availableDrivers.length, isScheduledOrder, selectedOrdersMap]);
 
   const formatDate = useCallback((dateString) => {
     return new Date(dateString).toLocaleString('en-IN', {
@@ -555,7 +692,7 @@ const OrderAssign = () => {
 
     pollingRef.current = setInterval(() => {
       fetchOrders();
-      fetchDrivers(); // Also refresh drivers periodically
+      fetchDrivers();
     }, 60000);
 
     return () => {
@@ -583,8 +720,9 @@ const OrderAssign = () => {
     if (e.target === e.currentTarget) {
       closeModal();
       closeLocationModal();
+      closeMultiAssignModal();
     }
-  }, [closeModal, closeLocationModal]);
+  }, [closeModal, closeLocationModal, closeMultiAssignModal]);
 
   return (
     <>
@@ -635,6 +773,15 @@ const OrderAssign = () => {
                 >
                   Test Sound
                 </button>
+                {stats.selectedCount > 0 && (
+                  <button 
+                    className="btn-primary multi-assign-btn"
+                    onClick={openMultiAssignModal}
+                  >
+                    <span className="btn-icon">👥</span>
+                    Assign {stats.selectedCount} Orders
+                  </button>
+                )}
                 <button 
                   className="refresh-btn-primary"
                   onClick={handleManualRefresh}
@@ -651,8 +798,8 @@ const OrderAssign = () => {
               Last checked: {lastChecked.toLocaleTimeString()}
             </span>
             <div className="driver-status">
-              <span className="driver-count">{stats.availableDrivers}</span>
-              <span>Drivers Available</span>
+              <span className="driver-count">{allDrivers.length}</span>
+              <span>Total Drivers ({availableDrivers.length} available)</span>
             </div>
           </div>
         </div>
@@ -684,6 +831,16 @@ const OrderAssign = () => {
                 <p>Ready for assignment</p>
               </div>
             </div>
+            {stats.selectedCount > 0 && (
+              <div className="stat-card selected-orders">
+                <div className="stat-icon">✓</div>
+                <div className="stat-content">
+                  <h3>Selected Orders</h3>
+                  <span className="stat-number">{stats.selectedCount}</span>
+                  <p>Ready for bulk assignment</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -720,6 +877,21 @@ const OrderAssign = () => {
               <table className="orders-table">
                 <thead className="orders-table-header">
                   <tr>
+                    <th style={{ width: '50px' }}>
+                      <input 
+                        type="checkbox"
+                        checked={filteredOrders.length > 0 && filteredOrders.every(order => selectedOrdersMap.has(order.id))}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            const allIds = filteredOrders.map(order => order.id);
+                            setSelectedOrdersMap(new Set(allIds));
+                          } else {
+                            setSelectedOrdersMap(new Set());
+                          }
+                        }}
+                        className="bulk-select-checkbox"
+                      />
+                    </th>
                     <th>Order Info</th>
                     <th>Customer</th>
                     <th>Items</th>
@@ -740,9 +912,18 @@ const OrderAssign = () => {
                     const isScheduled = isScheduledOrder(order);
                     const deliveryTimeDisplay = formatDeliveryTime(order.delivery_time);
                     const timeUntilDelivery = getTimeUntilDelivery(order.delivery_time);
+                    const isSelected = selectedOrdersMap.has(order.id);
                     
                     return (
-                      <tr key={order.id} className={`order-row ${isScheduled ? 'scheduled-order' : ''}`}>
+                      <tr key={order.id} className={`order-row ${isScheduled ? 'scheduled-order' : ''} ${isSelected ? 'selected-row' : ''}`}>
+                        <td className="order-select">
+                          <input 
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleOrderSelection(order.id)}
+                            className="order-checkbox"
+                          />
+                        </td>
                         <td className="order-info">
                           <div className="order-id">#{order.id}</div>
                           <div className="order-receipt">{order.receipt_reference}</div>
@@ -857,12 +1038,12 @@ const OrderAssign = () => {
           </div>
         </div>
 
-        {/* Assign Driver Modal */}
-        {isModalOpen && (
+        {/* Assign Driver Modal (Single Order) */}
+        {isModalOpen && selectedOrder && (
           <div className="modal-overlay" onClick={handleOverlayClick}>
             <div className="modal">
               <div className="modal-header">
-                <h2>Assign Driver</h2>
+                <h2>Assign Driver to Order #{selectedOrder.id}</h2>
                 <button 
                   className="close-btn"
                   onClick={closeModal}
@@ -874,29 +1055,29 @@ const OrderAssign = () => {
               
               <div className="modal-content">
                 <div className="order-summary">
-                  <h4>Order #{selectedOrder?.id}</h4>
+                  <h4>Order #{selectedOrder.id}</h4>
                   {isScheduledOrder(selectedOrder) && (
                     <div className="scheduled-order-alert">
                       <span className="scheduled-icon-large">⏰</span>
                       <div>
                         <strong>Scheduled Order</strong>
-                        <p>Delivery Time: {formatDeliveryTime(selectedOrder?.delivery_time)}</p>
-                        <p>Time Until Delivery: {getTimeUntilDelivery(selectedOrder?.delivery_time)}</p>
+                        <p>Delivery Time: {formatDeliveryTime(selectedOrder.delivery_time)}</p>
+                        <p>Time Until Delivery: {getTimeUntilDelivery(selectedOrder.delivery_time)}</p>
                       </div>
                     </div>
                   )}
                   <div className="summary-grid">
                     <div className="summary-item">
                       <label>Customer</label>
-                      <span>{selectedOrder?.customer_name}</span>
+                      <span>{selectedOrder.customer_name}</span>
                     </div>
                     <div className="summary-item">
                       <label>Phone</label>
-                      <span>{selectedOrder?.customer_phone}</span>
+                      <span>{selectedOrder.customer_phone}</span>
                     </div>
                     <div className="summary-item full-width">
                       <label>Address</label>
-                      <span>{selectedOrder?.delivery_address}</span>
+                      <span>{selectedOrder.delivery_address}</span>
                     </div>
                     
                     <div className="summary-item full-width">
@@ -926,7 +1107,7 @@ const OrderAssign = () => {
 
                     <div className="summary-item">
                       <label>Age</label>
-                      <span>{getOrderAge(selectedOrder?.created_at)} minutes</span>
+                      <span>{getOrderAge(selectedOrder.created_at)} minutes</span>
                     </div>
                   </div>
                 </div>
@@ -940,14 +1121,21 @@ const OrderAssign = () => {
                     disabled={assigning}
                   >
                     <option value="">Choose a driver</option>
-                    {availableDrivers.map(driver => (
-                      <option key={driver.id} value={driver.id}>
-                        {driver.driver_name} ({driver.driver_phone}) - {driver.vehicle}
-                      </option>
-                    ))}
+                    {allDrivers.map(driver => {
+                      const statusBadge = getDriverStatusBadge(driver);
+                      return (
+                        <option key={driver.id} value={driver.id} disabled={driver.status === 'offline'}>
+                          {statusBadge.icon} {driver.driver_name} ({driver.driver_phone}) - 
+                          {statusBadge.text} - {driver.orderCount} orders
+                        </option>
+                      );
+                    })}
                   </select>
                   <div className="available-count">
-                    {availableDrivers.length} drivers available
+                    {availableDrivers.length} drivers available out of {allDrivers.length} total
+                  </div>
+                  <div className="driver-status-info">
+                    🟢 Available | 🟡 Processing | 🔴 Offline
                   </div>
                 </div>
 
@@ -968,10 +1156,113 @@ const OrderAssign = () => {
                 </button>
                 <button
                   className="btn-confirm"
-                  onClick={assignDriverToOrder}
+                  onClick={assignDriverToSingleOrder}
                   disabled={!selectedDriver || assigning}
                 >
                   {assigning ? 'Assigning...' : 'Assign Driver'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Multi-Assign Driver Modal */}
+        {isMultiAssignModalOpen && selectedOrders.length > 0 && (
+          <div className="modal-overlay" onClick={handleOverlayClick}>
+            <div className="modal">
+              <div className="modal-header">
+                <h2>Assign Multiple Orders ({selectedOrders.length})</h2>
+                <button 
+                  className="close-btn"
+                  onClick={closeMultiAssignModal}
+                  disabled={assigning}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="modal-content">
+                <div className="order-summary">
+                  <h4>Selected Orders</h4>
+                  <div className="selected-orders-list">
+                    {selectedOrders.map(order => (
+                      <div key={order.id} className="selected-order-item">
+                        <div className="selected-order-id">Order #{order.id}</div>
+                        <div className="selected-order-info">
+                          <span>{order.customer_name}</span>
+                          <span>₹{getTotalAmount(order).toLocaleString('en-IN')}</span>
+                        </div>
+                        {isScheduledOrder(order) && (
+                          <div className="selected-order-scheduled">
+                            ⏰ {formatDeliveryTime(order.delivery_time)}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="total-amount-summary">
+                    <div className="total-amount-row">
+                      <span>Total Orders:</span>
+                      <span>{selectedOrders.length}</span>
+                    </div>
+                    <div className="total-amount-row">
+                      <span>Total Amount:</span>
+                      <span className="total-amount-final">
+                        ₹{selectedOrders.reduce((sum, order) => sum + getTotalAmount(order), 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="driver-selection">
+                  <label className="selection-label">Select Driver for all {selectedOrders.length} orders</label>
+                  <select
+                    value={selectedDriver}
+                    onChange={(e) => setSelectedDriver(e.target.value)}
+                    className="driver-select"
+                    disabled={assigning}
+                  >
+                    <option value="">Choose a driver</option>
+                    {allDrivers.map(driver => {
+                      const statusBadge = getDriverStatusBadge(driver);
+                      return (
+                        <option key={driver.id} value={driver.id} disabled={driver.status === 'offline'}>
+                          {statusBadge.icon} {driver.driver_name} ({driver.driver_phone}) - 
+                          {statusBadge.text} - {driver.orderCount} orders
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <div className="available-count">
+                    {availableDrivers.length} drivers available out of {allDrivers.length} total
+                  </div>
+                  <div className="driver-status-info">
+                    🟢 Available | 🟡 Processing | 🔴 Offline
+                  </div>
+                </div>
+
+                {availableDrivers.length === 0 && (
+                  <div className="warning-message">
+                    ⚠️ No drivers available at the moment
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  className="btn-cancel"
+                  onClick={closeMultiAssignModal}
+                  disabled={assigning}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-confirm"
+                  onClick={assignDriverToMultipleOrders}
+                  disabled={!selectedDriver || assigning}
+                >
+                  {assigning ? 'Assigning...' : `Assign ${selectedOrders.length} Orders`}
                 </button>
               </div>
             </div>
