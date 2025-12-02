@@ -6,7 +6,7 @@ import { supabase } from '../../../supabase';
 const DriverDetails = () => {
   const [drivers, setDrivers] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState(null);
-  const [driverEarnings, setDriverEarnings] = useState([]);
+  const [driverOrders, setDriverOrders] = useState([]);
   const [dailySettlements, setDailySettlements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,7 +39,7 @@ const DriverDetails = () => {
       setDrivers(data || []);
       if (data && data.length > 0) {
         setSelectedDriver(data[0]);
-        fetchDriverEarnings(data[0].driver_phone);
+        fetchDriverOrders(data[0].driver_phone);
         fetchSettlements(data[0].id);
       }
     } catch (err) {
@@ -49,25 +49,25 @@ const DriverDetails = () => {
     }
   };
 
-  const fetchDriverEarnings = async (driverPhone) => {
+  const fetchDriverOrders = async (driverPhone) => {
     try {
       const { data, error } = await supabase
-        .from('order_earnings')
+        .from('orders')
         .select('*')
         .eq('driver_mobile', driverPhone)
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      setDriverEarnings(data || []);
+      setDriverOrders(data || []);
     } catch (err) {
-      setError('Failed to fetch earnings: ' + err.message);
+      setError('Failed to fetch orders: ' + err.message);
     }
   };
 
   const fetchSettlements = async (driverId) => {
     try {
-      // First check if settlements table exists
       const { data: settlements, error } = await supabase
         .from('driver_settlements')
         .select('*')
@@ -75,41 +75,38 @@ const DriverDetails = () => {
         .order('settlement_date', { ascending: false });
 
       if (error && error.code === '42P01') {
-        // Table doesn't exist, calculate from order_earnings
-        calculateDailySettlementsFromEarnings();
+        // Table doesn't exist, calculate from orders
+        calculateDailySettlementsFromOrders();
         return;
       } else if (error) {
         throw error;
       }
 
-      // If we have settlements data, use it
       if (settlements && settlements.length > 0) {
         setDailySettlements(settlements);
       } else {
-        // Otherwise calculate from earnings
-        calculateDailySettlementsFromEarnings();
+        calculateDailySettlementsFromOrders();
       }
     } catch (err) {
       console.error('Failed to fetch settlements:', err.message);
-      // Fallback to calculating from earnings
-      calculateDailySettlementsFromEarnings();
+      calculateDailySettlementsFromOrders();
     }
   };
 
-  const calculateDailySettlementsFromEarnings = () => {
+  const calculateDailySettlementsFromOrders = () => {
     try {
-      // Calculate settlements from completed and settled earnings
-      const settledEarnings = driverEarnings.filter(earning => 
-        earning.status === 'completed' && earning.is_settled
+      // Get orders that have been settled (is_settled flag)
+      const settledOrders = driverOrders.filter(order => 
+        order.driver_order_earnings && order.driver_order_earnings > 0 && order.is_settled
       );
 
-      if (settledEarnings.length === 0) {
+      if (settledOrders.length === 0) {
         setDailySettlements([]);
         return;
       }
 
-      const dailyData = settledEarnings.reduce((acc, earning) => {
-        const date = new Date(earning.created_at).toLocaleDateString();
+      const dailyData = settledOrders.reduce((acc, order) => {
+        const date = new Date(order.created_at).toLocaleDateString('en-CA'); // YYYY-MM-DD format
         if (!acc[date]) {
           acc[date] = {
             date,
@@ -117,7 +114,7 @@ const DriverDetails = () => {
             deliveries: 0
           };
         }
-        acc[date].totalEarnings += parseFloat(earning.driver_earning || 0);
+        acc[date].totalEarnings += parseFloat(order.driver_order_earnings || 0);
         acc[date].deliveries += 1;
         return acc;
       }, {});
@@ -135,7 +132,7 @@ const DriverDetails = () => {
 
   const handleDriverSelect = (driver) => {
     setSelectedDriver(driver);
-    fetchDriverEarnings(driver.driver_phone);
+    fetchDriverOrders(driver.driver_phone);
     fetchSettlements(driver.id);
     setActiveTab('details');
   };
@@ -143,32 +140,32 @@ const DriverDetails = () => {
   const calculateDriverStats = () => {
     if (!selectedDriver) return {};
     
-    const completedEarnings = driverEarnings.filter(earning => 
-      earning.status === 'completed'
+    // Filter out cancelled orders
+    const validOrders = driverOrders.filter(order => order.status !== 'cancelled');
+    
+    // Calculate total earnings from all orders
+    const totalEarnings = validOrders.reduce((sum, order) => 
+      sum + parseFloat(order.driver_order_earnings || 0), 0
     );
     
-    const totalEarnings = completedEarnings.reduce((sum, earning) => 
-      sum + parseFloat(earning.driver_earning || 0), 0
-    );
-    
-    const totalDeliveries = completedEarnings.length;
+    const totalDeliveries = validOrders.length;
     const avgEarning = totalDeliveries > 0 ? totalEarnings / totalDeliveries : 0;
     
-    const pendingEarnings = driverEarnings
-      .filter(earning => earning.status === 'pending')
-      .reduce((sum, earning) => sum + parseFloat(earning.driver_earning || 0), 0);
-
-    // Calculate unsettled earnings (completed but not settled)
-    const unsettledEarnings = completedEarnings
-      .filter(earning => !earning.is_settled)
-      .reduce((sum, earning) => sum + parseFloat(earning.driver_earning || 0), 0);
+    // Calculate unsettled earnings (orders with earnings but not settled)
+    const unsettledOrders = validOrders.filter(order => 
+      order.driver_order_earnings && order.driver_order_earnings > 0 && !order.is_settled
+    );
+    
+    const unsettledEarnings = unsettledOrders.reduce((sum, order) => 
+      sum + parseFloat(order.driver_order_earnings || 0), 0
+    );
 
     return {
       totalEarnings,
       totalDeliveries,
       avgEarning,
-      pendingEarnings,
-      unsettledEarnings
+      unsettledEarnings,
+      unsettledCount: unsettledOrders.length
     };
   };
 
@@ -203,7 +200,7 @@ const DriverDetails = () => {
       if (data && data.length > 0) {
         setDrivers(prev => [data[0], ...prev]);
         setSelectedDriver(data[0]);
-        fetchDriverEarnings(data[0].driver_phone);
+        fetchDriverOrders(data[0].driver_phone);
         fetchSettlements(data[0].id);
         setNewDriver({ name: '', phone: '', password: '' });
         setShowCreateForm(false);
@@ -235,17 +232,16 @@ const DriverDetails = () => {
 
       if (error) throw error;
 
-      // Update local state
       const updatedDrivers = drivers.filter(driver => driver.id !== driverId);
       setDrivers(updatedDrivers);
       
       if (selectedDriver && selectedDriver.id === driverId) {
         setSelectedDriver(updatedDrivers.length > 0 ? updatedDrivers[0] : null);
         if (updatedDrivers.length > 0) {
-          fetchDriverEarnings(updatedDrivers[0].driver_phone);
+          fetchDriverOrders(updatedDrivers[0].driver_phone);
           fetchSettlements(updatedDrivers[0].id);
         } else {
-          setDriverEarnings([]);
+          setDriverOrders([]);
           setDailySettlements([]);
         }
       }
@@ -264,70 +260,99 @@ const DriverDetails = () => {
       setSettling(true);
       setError('');
 
-      // Get completed but unsettled earnings
-      const unsettledEarnings = driverEarnings.filter(earning => 
-        earning.status === 'completed' && !earning.is_settled
+      // Get orders with earnings that are not settled
+      const unsettledOrders = driverOrders.filter(order => 
+        order.driver_order_earnings && 
+        order.driver_order_earnings > 0 && 
+        !order.is_settled &&
+        order.status !== 'cancelled'
       );
 
-      if (unsettledEarnings.length === 0) {
+      if (unsettledOrders.length === 0) {
         setError('No unsettled earnings found for this driver');
         return;
       }
 
-      // Calculate total amount
-      const totalAmount = unsettledEarnings.reduce((sum, earning) => 
-        sum + parseFloat(earning.driver_earning || 0), 0
+      // Calculate total amount and group by date
+      const earningsByDate = unsettledOrders.reduce((acc, order) => {
+        const date = new Date(order.created_at).toLocaleDateString('en-CA');
+        if (!acc[date]) {
+          acc[date] = {
+            date,
+            totalEarnings: 0,
+            deliveries: 0,
+            orderIds: []
+          };
+        }
+        acc[date].totalEarnings += parseFloat(order.driver_order_earnings || 0);
+        acc[date].deliveries += 1;
+        acc[date].orderIds.push(order.id);
+        return acc;
+      }, {});
+
+      const totalAmount = Object.values(earningsByDate).reduce(
+        (sum, day) => sum + day.totalEarnings, 0
       );
 
-      // Create settlement record
-      const settlementDate = new Date().toISOString().split('T')[0];
-      
-      const { data: settlement, error: settlementError } = await supabase
-        .from('driver_settlements')
-        .insert([{
-          driver_id: driverId,
-          settlement_date: settlementDate,
-          total_earnings: totalAmount,
-          total_deliveries: unsettledEarnings.length,
-          status: 'processed'
-        }])
-        .select()
-        .single();
+      const totalDeliveries = Object.values(earningsByDate).reduce(
+        (sum, day) => sum + day.deliveries, 0
+      );
 
-      if (settlementError && settlementError.code !== '42P01') {
-        // Only throw error if it's not "table doesn't exist"
-        throw settlementError;
-      }
+      // Create settlement records for each day
+      const settlementPromises = Object.values(earningsByDate).map(async (dayData) => {
+        const { data: settlement, error: settlementError } = await supabase
+          .from('driver_settlements')
+          .insert([{
+            driver_id: driverId,
+            settlement_date: dayData.date,
+            total_earnings: dayData.totalEarnings,
+            total_deliveries: dayData.deliveries,
+            status: 'processed',
+            processed_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
 
-      // Mark earnings as settled in order_earnings table
+        if (settlementError && settlementError.code !== '42P01') {
+          throw settlementError;
+        }
+        return settlement;
+      });
+
+      // Wait for all settlements to be created
+      await Promise.all(settlementPromises);
+
+      // Mark orders as settled
+      const orderIds = unsettledOrders.map(order => order.id);
       const { error: updateError } = await supabase
-        .from('order_earnings')
+        .from('orders')
         .update({ is_settled: true })
-        .in('id', unsettledEarnings.map(e => e.id));
+        .in('id', orderIds);
 
       if (updateError) throw updateError;
 
       // Refresh data
-      fetchDriverEarnings(selectedDriver.driver_phone);
+      fetchDriverOrders(selectedDriver.driver_phone);
       fetchSettlements(driverId);
 
-      setSuccess(`Successfully settled ₹${totalAmount.toFixed(2)} for ${unsettledEarnings.length} deliveries!`);
+      setSuccess(`Successfully settled ₹${totalAmount.toFixed(2)} for ${totalDeliveries} deliveries!`);
       setTimeout(() => setSuccess(''), 5000);
 
     } catch (err) {
       if (err.code === '42P01') {
-        // Table doesn't exist, just mark earnings as settled
+        // Table doesn't exist, just mark orders as settled
+        const orderIds = unsettledOrders.map(order => order.id);
         const { error: updateError } = await supabase
-          .from('order_earnings')
+          .from('orders')
           .update({ is_settled: true })
-          .in('id', unsettledEarnings.map(e => e.id));
+          .in('id', orderIds);
 
         if (updateError) throw updateError;
 
-        fetchDriverEarnings(selectedDriver.driver_phone);
+        fetchDriverOrders(selectedDriver.driver_phone);
         fetchSettlements(driverId);
 
-        setSuccess(`Successfully settled ₹${totalAmount.toFixed(2)} for ${unsettledEarnings.length} deliveries!`);
+        setSuccess(`Successfully settled ₹${totalAmount.toFixed(2)} for ${totalDeliveries} deliveries!`);
         setTimeout(() => setSuccess(''), 5000);
       } else {
         setError('Failed to process settlement: ' + err.message);
@@ -337,22 +362,32 @@ const DriverDetails = () => {
     }
   };
 
-  // Check if driver has unsettled earnings
   const hasUnsettledEarnings = () => {
-    return driverEarnings.some(earning => 
-      earning.status === 'completed' && !earning.is_settled
+    return driverOrders.some(order => 
+      order.driver_order_earnings && 
+      order.driver_order_earnings > 0 && 
+      !order.is_settled &&
+      order.status !== 'cancelled'
     );
   };
 
   const getUnsettledAmount = () => {
-    return driverEarnings
-      .filter(earning => earning.status === 'completed' && !earning.is_settled)
-      .reduce((sum, earning) => sum + parseFloat(earning.driver_earning || 0), 0);
+    return driverOrders
+      .filter(order => 
+        order.driver_order_earnings && 
+        order.driver_order_earnings > 0 && 
+        !order.is_settled &&
+        order.status !== 'cancelled'
+      )
+      .reduce((sum, order) => sum + parseFloat(order.driver_order_earnings || 0), 0);
   };
 
   const getUnsettledCount = () => {
-    return driverEarnings.filter(earning => 
-      earning.status === 'completed' && !earning.is_settled
+    return driverOrders.filter(order => 
+      order.driver_order_earnings && 
+      order.driver_order_earnings > 0 && 
+      !order.is_settled &&
+      order.status !== 'cancelled'
     ).length;
   };
 
@@ -361,17 +396,15 @@ const DriverDetails = () => {
     createDriverAccount(newDriver);
   };
 
-  // Safe function to get total earnings with fallback
+  // Safe functions for data access
   const getTotalEarnings = (day) => {
     return day?.total_earnings || day?.totalEarnings || 0;
   };
 
-  // Safe function to get deliveries count with fallback
   const getDeliveriesCount = (day) => {
     return day?.total_deliveries || day?.deliveries || 0;
   };
 
-  // Safe function to get date with fallback
   const getDate = (day) => {
     return day?.settlement_date || day?.date || 'Unknown Date';
   };
@@ -478,7 +511,7 @@ const DriverDetails = () => {
                 className={`tab-btn ${activeTab === 'earnings' ? 'active' : ''}`}
                 onClick={() => setActiveTab('earnings')}
               >
-                Earnings History
+                Order History
               </button>
               <button 
                 className={`tab-btn ${activeTab === 'settlements' ? 'active' : ''}`}
@@ -527,11 +560,11 @@ const DriverDetails = () => {
               </div>
               <div className="stat-card">
                 <div className="stat-value">{stats.totalDeliveries}</div>
-                <div className="stat-label">Completed Deliveries</div>
+                <div className="stat-label">Completed Orders</div>
               </div>
               <div className="stat-card">
                 <div className="stat-value">₹{stats.avgEarning.toFixed(2)}</div>
-                <div className="stat-label">Avg per Delivery</div>
+                <div className="stat-label">Avg per Order</div>
               </div>
               <div className="stat-card">
                 <div className="stat-value">₹{stats.unsettledEarnings.toFixed(2)}</div>
@@ -615,15 +648,15 @@ const DriverDetails = () => {
                     <div className="settlement-alert">
                       <h4>Ready for Settlement</h4>
                       <p>
-                        {getUnsettledCount()} completed deliveries ready for settlement. Total: ₹{getUnsettledAmount().toFixed(2)}
+                        {getUnsettledCount()} orders ready for settlement. Total: ₹{getUnsettledAmount().toFixed(2)}
                       </p>
                     </div>
                   )}
                 </div>
 
                 <div className="section-card">
-                  <h3>Recent Earnings</h3>
-                  {driverEarnings.length > 0 ? (
+                  <h3>Recent Orders</h3>
+                  {driverOrders.length > 0 ? (
                     <table className="earnings-table">
                       <thead>
                         <tr>
@@ -635,29 +668,29 @@ const DriverDetails = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {driverEarnings.slice(0, 5).map(earning => (
-                          <tr key={earning.id}>
-                            <td className="order-id">#{earning.order_id}</td>
+                        {driverOrders.slice(0, 5).map(order => (
+                          <tr key={order.id}>
+                            <td className="order-id">#{order.id}</td>
                             <td className="amount-positive">
-                              ₹{parseFloat(earning.driver_earning || 0).toFixed(2)}
+                              ₹{parseFloat(order.driver_order_earnings || 0).toFixed(2)}
                             </td>
                             <td>
-                              <span className={`status-badge status-${earning.status}`}>
-                                {earning.status}
+                              <span className={`status-badge status-${order.status}`}>
+                                {order.status}
                               </span>
                             </td>
                             <td>
-                              <span className={`status-badge ${earning.is_settled ? 'status-completed' : 'status-pending'}`}>
-                                {earning.is_settled ? 'Settled' : 'Pending'}
+                              <span className={`status-badge ${order.is_settled ? 'status-completed' : 'status-pending'}`}>
+                                {order.is_settled ? 'Settled' : 'Pending'}
                               </span>
                             </td>
-                            <td>{new Date(earning.created_at).toLocaleDateString()}</td>
+                            <td>{new Date(order.created_at).toLocaleDateString()}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   ) : (
-                    <div className="no-data">No earnings data found</div>
+                    <div className="no-data">No order data found</div>
                   )}
                 </div>
               </div>
@@ -665,17 +698,17 @@ const DriverDetails = () => {
 
             {activeTab === 'earnings' && (
               <div className="section-card">
-                <h3>Earnings History - {selectedDriver.driver_name}</h3>
-                {driverEarnings.length > 0 ? (
+                <h3>Order History - {selectedDriver.driver_name}</h3>
+                {driverOrders.length > 0 ? (
                   <div className="table-container">
                     <table className="earnings-table full-table">
                       <thead>
                         <tr>
                           <th>Order ID</th>
-                          <th>Restaurant</th>
-                          <th>Distance</th>
-                          <th>Delivery Fee</th>
+                          <th>Customer</th>
+                          <th>Total Amount</th>
                           <th>Driver Earning</th>
+                          <th>Delivery Address</th>
                           <th>Payment Method</th>
                           <th>Status</th>
                           <th>Settled</th>
@@ -683,38 +716,38 @@ const DriverDetails = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {driverEarnings.map(earning => (
-                          <tr key={earning.id}>
-                            <td className="order-id">#{earning.order_id}</td>
-                            <td>{earning.restaurant_name || 'N/A'}</td>
-                            <td>{earning.delivery_distance_km ? `${earning.delivery_distance_km} km` : 'N/A'}</td>
-                            <td>₹{parseFloat(earning.delivery_charges || 0).toFixed(2)}</td>
+                        {driverOrders.map(order => (
+                          <tr key={order.id}>
+                            <td className="order-id">#{order.id}</td>
+                            <td>{order.customer_name}</td>
+                            <td>₹{parseFloat(order.total_amount || 0).toFixed(2)}</td>
                             <td className="amount-positive">
-                              ₹{parseFloat(earning.driver_earning || 0).toFixed(2)}
+                              ₹{parseFloat(order.driver_order_earnings || 0).toFixed(2)}
                             </td>
+                            <td>{order.delivery_address}</td>
                             <td>
-                              <span className={`payment-method ${earning.payment_method}`}>
-                                {earning.payment_method}
+                              <span className={`payment-method ${order.payment_method}`}>
+                                {order.payment_method}
                               </span>
                             </td>
                             <td>
-                              <span className={`status-badge status-${earning.status}`}>
-                                {earning.status}
+                              <span className={`status-badge status-${order.status}`}>
+                                {order.status}
                               </span>
                             </td>
                             <td>
-                              <span className={`status-badge ${earning.is_settled ? 'status-completed' : 'status-pending'}`}>
-                                {earning.is_settled ? 'Settled' : 'Pending'}
+                              <span className={`status-badge ${order.is_settled ? 'status-completed' : 'status-pending'}`}>
+                                {order.is_settled ? 'Settled' : 'Pending'}
                               </span>
                             </td>
-                            <td>{new Date(earning.created_at).toLocaleString()}</td>
+                            <td>{new Date(order.created_at).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <div className="no-data">No earnings history found</div>
+                  <div className="no-data">No order history found</div>
                 )}
               </div>
             )}
@@ -728,9 +761,9 @@ const DriverDetails = () => {
                       <thead>
                         <tr>
                           <th>Date</th>
-                          <th>Total Deliveries</th>
+                          <th>Total Orders</th>
                           <th>Total Earnings</th>
-                          <th>Average per Delivery</th>
+                          <th>Average per Order</th>
                           <th>Status</th>
                         </tr>
                       </thead>

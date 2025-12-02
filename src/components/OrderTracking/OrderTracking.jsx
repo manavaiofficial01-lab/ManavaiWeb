@@ -12,6 +12,50 @@ const normalizeStatus = (status) => {
   return statusMap[status.toLowerCase()] || 'processing';
 };
 
+// Helper function to format driver status
+const formatDriverStatus = (driverStatus) => {
+  if (!driverStatus) return 'Order Placed';
+  
+  const statusMap = {
+    'order_placed': 'Order Placed',
+    'partner_accepted': 'Partner Accepted',
+    'reached_pickup_location': 'Reached Pickup',
+    'pickup_completed': 'Pickup Completed',
+    'item_not_available': 'Item Not Available',
+    'restaurant_closed': 'Restaurant Closed',
+    'reached_customer_location': 'Reached Customer',
+    'cash_collected': 'Cash Collected',
+    'paid_by_qr': 'Paid by QR',
+    'already_paid': 'Already Paid',
+    'order_completed': 'Order Completed',
+    'cancelled': 'Cancelled'
+  };
+  
+  return statusMap[driverStatus] || driverStatus.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
+// Helper function to get driver status badge class
+const getDriverStatusClass = (driverStatus) => {
+  if (!driverStatus) return 'driver-status-default';
+  
+  const classMap = {
+    'order_placed': 'driver-status-order-placed',
+    'partner_accepted': 'driver-status-partner-accepted',
+    'reached_pickup_location': 'driver-status-pickup-location',
+    'pickup_completed': 'driver-status-pickup-completed',
+    'item_not_available': 'driver-status-item-unavailable',
+    'restaurant_closed': 'driver-status-restaurant-closed',
+    'reached_customer_location': 'driver-status-customer-location',
+    'cash_collected': 'driver-status-cash-collected',
+    'paid_by_qr': 'driver-status-paid-qr',
+    'already_paid': 'driver-status-already-paid',
+    'order_completed': 'driver-status-order-completed',
+    'cancelled': 'driver-status-cancelled'
+  };
+  
+  return classMap[driverStatus] || 'driver-status-default';
+};
+
 const safeParseItems = (itemsData) => {
   if (Array.isArray(itemsData)) return itemsData;
   if (typeof itemsData === 'string') {
@@ -281,6 +325,11 @@ const DriverAssignmentModal = ({ order, onClose, onDriverAssign, availableDriver
               <p><strong>Customer:</strong> {order.customer_name}</p>
               <p><strong>Restaurant:</strong> {order.restaurant_name || 'N/A'}</p>
               <p><strong>Delivery Address:</strong> {order.delivery_address}</p>
+              <p><strong>Driver Status:</strong> 
+                <span className={`driver-status-badge ${getDriverStatusClass(order.driver_status)}`}>
+                  {formatDriverStatus(order.driver_status)}
+                </span>
+              </p>
               {order.delivery_distance_km && (
                 <p><strong>Distance:</strong> {order.delivery_distance_km} km</p>
               )}
@@ -430,6 +479,13 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
                 
                 {/* Driver Information Section */}
                 <div className="driver-info-section">
+                  <div className="order-tracking-info-item">
+                    <strong>Driver Status:</strong> 
+                    <span className={`driver-status-badge ${getDriverStatusClass(order.driver_status)}`}>
+                      {formatDriverStatus(order.driver_status)}
+                    </span>
+                  </div>
+                  
                   {order.driver_name ? (
                     <>
                       <div className="order-tracking-info-item">
@@ -474,6 +530,74 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
               </div>
             </div>
 
+            {/* Driver Status Timeline */}
+            {(order.driver_status && order.driver_status !== 'order_placed') && (
+              <div className="order-tracking-driver-timeline">
+                <h3>Driver Activity Timeline</h3>
+                <div className="driver-timeline-steps">
+                  {order.partner_accepted_at && (
+                    <div className={`timeline-step ${order.driver_status === 'partner_accepted' ? 'active' : 'completed'}`}>
+                      <div className="timeline-step-icon">✓</div>
+                      <div className="timeline-step-content">
+                        <strong>Partner Accepted</strong>
+                        <span>{formatDate(order.partner_accepted_at)}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {order.reached_pickup_at && (
+                    <div className={`timeline-step ${order.driver_status === 'reached_pickup_location' ? 'active' : 'completed'}`}>
+                      <div className="timeline-step-icon">✓</div>
+                      <div className="timeline-step-content">
+                        <strong>Reached Pickup Location</strong>
+                        <span>{formatDate(order.reached_pickup_at)}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {order.pickup_completed_at && (
+                    <div className={`timeline-step ${order.driver_status === 'pickup_completed' ? 'active' : 'completed'}`}>
+                      <div className="timeline-step-icon">✓</div>
+                      <div className="timeline-step-content">
+                        <strong>Pickup Completed</strong>
+                        <span>{formatDate(order.pickup_completed_at)}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {order.reached_customer_at && (
+                    <div className={`timeline-step ${order.driver_status === 'reached_customer_location' ? 'active' : 'completed'}`}>
+                      <div className="timeline-step-icon">✓</div>
+                      <div className="timeline-step-content">
+                        <strong>Reached Customer Location</strong>
+                        <span>{formatDate(order.reached_customer_at)}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {order.cash_collected_at && (
+                    <div className={`timeline-step ${order.driver_status === 'cash_collected' ? 'active' : 'completed'}`}>
+                      <div className="timeline-step-icon">✓</div>
+                      <div className="timeline-step-content">
+                        <strong>Cash Collected</strong>
+                        <span>{formatDate(order.cash_collected_at)}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {order.order_completed_at && (
+                    <div className={`timeline-step ${order.driver_status === 'order_completed' ? 'active' : 'completed'}`}>
+                      <div className="timeline-step-icon">✓</div>
+                      <div className="timeline-step-content">
+                        <strong>Order Completed</strong>
+                        <span>{formatDate(order.order_completed_at)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Order Items */}
             <div className="order-tracking-items-section">
               <h3>Order Items ({order.items?.length || 0})</h3>
@@ -515,6 +639,12 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
                 <div className="order-tracking-info-item">
                   <strong>Method:</strong> {order.payment_method}
                 </div>
+                {order.cash_collected && (
+                  <div className="order-tracking-info-item order-tracking-cash-collected">
+                    <strong>Cash Collected:</strong> ₹{order.cash_collected_amount || order.total_amount}
+                    {order.cash_collected_at && ` at ${formatDate(order.cash_collected_at)}`}
+                  </div>
+                )}
                 {order.payment_completed_at && (
                   <div className="order-tracking-info-item">
                     <strong>Paid at:</strong> {formatDate(order.payment_completed_at)}
@@ -537,6 +667,18 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
                   <div className="order-tracking-summary-row">
                     <span>Delivery Charges:</span>
                     <span>₹{order.delivery_charges}</span>
+                  </div>
+                )}
+                {order.driver_order_earnings && (
+                  <div className="order-tracking-summary-row">
+                    <span>Driver Earnings:</span>
+                    <span>{formatCurrency(order.driver_order_earnings)}</span>
+                  </div>
+                )}
+                {order.restaurant_earnings && (
+                  <div className="order-tracking-summary-row">
+                    <span>Restaurant Earnings:</span>
+                    <span>{formatCurrency(order.restaurant_earnings)}</span>
                   </div>
                 )}
                 <div className="order-tracking-summary-row order-tracking-total">
@@ -611,6 +753,7 @@ const OrderTracking = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [restaurantFilter, setRestaurantFilter] = useState('all');
+  const [driverStatusFilter, setDriverStatusFilter] = useState('all');
   const [showCalendar, setShowCalendar] = useState(false);
 
   // Initialize selectedDate with current IST date FIRST, then fetch orders
@@ -654,6 +797,25 @@ const OrderTracking = () => {
   const restaurants = useMemo(() => {
     const uniqueRestaurants = [...new Set(orders.map(order => order.restaurant_name).filter(Boolean))];
     return uniqueRestaurants.sort();
+  }, [orders]);
+
+  // Get unique driver statuses for filter
+  const driverStatuses = useMemo(() => {
+    const uniqueStatuses = [...new Set(orders
+      .map(order => order.driver_status)
+      .filter(Boolean)
+      .map(status => ({
+        value: status,
+        label: formatDriverStatus(status)
+      }))
+    )];
+    
+    // Sort by frequency
+    return uniqueStatuses.sort((a, b) => {
+      const countA = orders.filter(o => o.driver_status === a.value).length;
+      const countB = orders.filter(o => o.driver_status === b.value).length;
+      return countB - countA;
+    });
   }, [orders]);
 
   // Get available drivers (online and not busy)
@@ -749,12 +911,13 @@ const OrderTracking = () => {
         throw new Error('Driver not found');
       }
 
-      // Update the order with driver information directly
+      // Update the order with driver information
       const { error } = await supabase
         .from('orders')
         .update({ 
           driver_name: driver.driver_name,
           driver_mobile: driver.driver_phone,
+          driver_status: 'partner_accepted',
           updated_at: new Date().toISOString()
         })
         .eq('id', orderId);
@@ -767,7 +930,8 @@ const OrderTracking = () => {
           order.id === orderId ? { 
             ...order, 
             driver_name: driver.driver_name,
-            driver_mobile: driver.driver_phone
+            driver_mobile: driver.driver_phone,
+            driver_status: 'partner_accepted'
           } : order
         )
       );
@@ -851,8 +1015,13 @@ const OrderTracking = () => {
       filtered = filtered.filter(order => order.restaurant_name === restaurantFilter);
     }
     
+    // Apply driver status filter
+    if (driverStatusFilter !== 'all') {
+      filtered = filtered.filter(order => order.driver_status === driverStatusFilter);
+    }
+    
     return filtered;
-  }, [viewMode, orders, selectedDate, searchTerm, statusFilter, restaurantFilter]);
+  }, [viewMode, orders, selectedDate, searchTerm, statusFilter, restaurantFilter, driverStatusFilter]);
 
   const DateNavigation = () => {
     if (!selectedDate) return null;
@@ -992,6 +1161,18 @@ const OrderTracking = () => {
                 <option key={restaurant} value={restaurant}>{restaurant}</option>
               ))}
             </select>
+            
+            <select 
+              value={driverStatusFilter} 
+              onChange={(e) => setDriverStatusFilter(e.target.value)}
+              className="order-tracking-filter-select"
+            >
+              <option value="all">All Driver Status</option>
+              <option value="">Not Assigned</option>
+              {driverStatuses.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -1042,6 +1223,7 @@ const OrderTracking = () => {
                 <th>Customer</th>
                 <th>Restaurant</th>
                 <th>Driver</th>
+                <th>Driver Status</th>
                 <th>Items</th>
                 <th>Amount</th>
                 <th>Status</th>
@@ -1083,6 +1265,22 @@ const OrderTracking = () => {
                         </>
                       ) : (
                         <span className="order-tracking-no-driver">Not assigned</span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="order-tracking-driver-status-info">
+                      {order.driver_status ? (
+                        <span className={`driver-status-badge ${getDriverStatusClass(order.driver_status)}`}>
+                          {formatDriverStatus(order.driver_status)}
+                        </span>
+                      ) : (
+                        <span className="driver-status-badge driver-status-default">Order Placed</span>
+                      )}
+                      {order.driver_order_earnings && (
+                        <div className="order-tracking-driver-earnings">
+                          ₹{order.driver_order_earnings}
+                        </div>
                       )}
                     </div>
                   </td>
@@ -1147,12 +1345,13 @@ const OrderTracking = () => {
                   : 'No orders found'
                 }
               </p>
-              {(searchTerm || statusFilter !== 'all' || restaurantFilter !== 'all') && (
+              {(searchTerm || statusFilter !== 'all' || restaurantFilter !== 'all' || driverStatusFilter !== 'all') && (
                 <button 
                   onClick={() => {
                     setSearchTerm('');
                     setStatusFilter('all');
                     setRestaurantFilter('all');
+                    setDriverStatusFilter('all');
                   }}
                   className="order-tracking-clear-filters-btn"
                 >

@@ -20,7 +20,7 @@ const OrderAssign = () => {
   const [markers, setMarkers] = useState([]);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
-  const [driverOrders, setDriverOrders] = useState({}); // Track orders per driver
+  const [driverOrders, setDriverOrders] = useState({});
   const [isMultiAssignModalOpen, setIsMultiAssignModalOpen] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [selectedOrdersMap, setSelectedOrdersMap] = useState(new Set());
@@ -71,7 +71,7 @@ const OrderAssign = () => {
       map: googleMap,
       title: `Order #${order.id} - ${order.customer_name}`,
       icon: {
-        url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDNy41ODYgMiA0IDUuNTg2IDQgMTBDNCAxNC40MTQgNy41ODYgMTggMTIgMThDMTYuNDE0IDE4IDIwIDE0LjQxNCAyMCAxMEMyMCA1LjU4NiAxNi40MTQgMiAxMiAyWk0xMiAxMkMxMC44OTcgMTIgMTAgMTEuMTAzIDEwIDEwQzEwIDguODk3IDEwLjg5NyA4IDEyIDhDMTMuMTAzIDggMTQgOC44OTcgMTQgMTBDMTQgMTEuMTAzIDEzLjEwMyAxMiAxMiAxMloiIGZpbGw9IiNGRjBDMDAiLz4KPHBhdGggZD0iTTEyIDIyQzE2LjQxNCAyMiAyMCAxOC40MTQgMjAgMTRDMTQgMTQgMTIgMjIgMTIgMjJaIiBmaWxsPSIjRkYwQzAwIiBmaWxsLW9wYWNpdHk9IjAuNiIvPgo8L3N2Zz4K',
+        url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDNy41ODYgMiA0IDUuNTg2IDQgMTBDNCAxNC40MTQgNy41ODYgMTggMTIgMThDMTYuNDE0IDE4IDIwIDE0LjQxNCAyMCAxMEMyMCA1LjU4NiAxNi40MTQgMiAxMiAyWk0xMiAxMkMxMC44OTcgMTIgMTAgMTEuMTAzIDEwIDEwQzEwIDguODk3IDEwLjg5NyA4IDEyIDhDMTMuMTAzIDggMTQgOC44OTcgMTQgMTBDMTQgMTEuMTAzIDEzLjEwMyAxMiAxMiAxMloiIGZpbGw9IiNGRkNDMDAiLz4KPHBhdGggZD0iTTEyIDIyQzE2LjQxNCAyMiAyMCAxOC40MTQgMjAgMTRDMTQgMTQgMTIgMjIgMTIgMjJaIiBmaWxsPSIjRkZDQzAwIiBmaWxsLW9wYWNpdHk9IjAuNiIvPgo8L3N2Zz4K',
         scaledSize: new window.google.maps.Size(32, 32),
       }
     });
@@ -261,13 +261,12 @@ const OrderAssign = () => {
 
       const driversWithVehicle = (data || []).map(driver => ({
         ...driver,
-        vehicle: 'Bike', // Default to Bike
+        vehicle: 'Bike',
         available: driver.status === 'online'
       }));
 
       setDrivers(driversWithVehicle);
       
-      // Fetch current orders for each driver
       fetchDriverOrders(data || []);
     } catch (error) {
       console.error('Error fetching drivers:', error);
@@ -285,7 +284,7 @@ const OrderAssign = () => {
           .select('id, status')
           .eq('driver_name', driver.driver_name)
           .in('status', ['processing', 'out_for_delivery', 'delivered'])
-          .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()); // Last 24 hours
+          .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
         if (!error && data) {
           ordersByDriver[driver.id] = data;
@@ -320,6 +319,15 @@ const OrderAssign = () => {
     
     return { text: 'Available', className: 'status-available', icon: '🟢' };
   }, [getDriverOrderCount]);
+
+  const getPaymentMethodBadge = useCallback((paymentMethod) => {
+    if (paymentMethod === 'Online Payment') {
+      return { text: 'Online', className: 'payment-online', icon: '💳' };
+    } else if (paymentMethod === 'Cash on Delivery') {
+      return { text: 'COD', className: 'payment-cod', icon: '💰' };
+    }
+    return { text: paymentMethod || 'Unknown', className: 'payment-other', icon: '❓' };
+  }, []);
 
   const fetchOrders = useCallback(async (isManualRefresh = false) => {
     try {
@@ -438,13 +446,11 @@ const OrderAssign = () => {
         throw new Error('Selected driver not found');
       }
 
-      // Validate all orders
       const ordersToAssign = orders.filter(order => orderIds.includes(order.id));
       for (const order of ordersToAssign) {
         validateOrderForAssignment(order);
       }
 
-      // Update all orders in a transaction
       const updates = orderIds.map(orderId => 
         supabase
           .from('orders')
@@ -461,17 +467,14 @@ const OrderAssign = () => {
 
       const results = await Promise.all(updates);
       
-      // Check for errors
       const hasError = results.some(result => result.error);
       if (hasError) {
         throw new Error('Failed to assign some orders');
       }
 
-      // Remove assigned orders from state
       setOrders(prev => prev.filter(order => !orderIds.includes(order.id)));
       setSelectedOrdersMap(new Set());
       
-      // Close modal and reset
       if (selectedOrder) {
         setIsModalOpen(false);
         setSelectedOrder(null);
@@ -482,7 +485,6 @@ const OrderAssign = () => {
       }
       setSelectedDriver('');
       
-      // Update driver orders count
       fetchDriverOrders(drivers);
       
       alert(`Successfully assigned ${orderIds.length} order(s) to ${driver.driver_name}!`);
@@ -606,7 +608,8 @@ const OrderAssign = () => {
           order.customer_name?.toLowerCase().includes(searchLower) ||
           order.customer_phone?.includes(searchTerm) ||
           order.id?.toString().includes(searchTerm) ||
-          order.delivery_address?.toLowerCase().includes(searchLower)
+          order.delivery_address?.toLowerCase().includes(searchLower) ||
+          order.payment_method?.toLowerCase().includes(searchLower)
         );
       });
     }
@@ -630,7 +633,6 @@ const OrderAssign = () => {
       orderCount: getDriverOrderCount(driver.id),
       statusBadge: getDriverStatusBadge(driver)
     })).sort((a, b) => {
-      // Sort by: online status, then by order count (ascending)
       if (a.status === 'online' && b.status !== 'online') return -1;
       if (a.status !== 'online' && b.status === 'online') return 1;
       return a.orderCount - b.orderCount;
@@ -646,12 +648,16 @@ const OrderAssign = () => {
   const stats = useMemo(() => {
     const scheduledOrders = orders.filter(o => isScheduledOrder(o)).length;
     const selectedCount = selectedOrdersMap.size;
+    const onlinePayments = orders.filter(o => o.payment_method === 'Online Payment').length;
+    const codPayments = orders.filter(o => o.payment_method === 'Cash on Delivery').length;
 
     return {
       total: orders.length,
       scheduledOrders,
       availableDrivers: availableDrivers.length,
-      selectedCount
+      selectedCount,
+      onlinePayments,
+      codPayments
     };
   }, [orders, availableDrivers.length, isScheduledOrder, selectedOrdersMap]);
 
@@ -667,19 +673,29 @@ const OrderAssign = () => {
   const OrderStatusBadge = ({ status, paymentMethod }) => {
     const getStatusDisplay = () => {
       if (status === 'paid' && paymentMethod === 'Online Payment') {
-        return { text: 'Paid Online', className: 'status-paid-online' };
+        return { text: 'Paid Online', className: 'status-paid-online', icon: '💳' };
       }
       if (status === 'confirmed') {
-        return { text: 'Confirmed', className: 'status-confirmed' };
+        return { text: 'Confirmed', className: 'status-confirmed', icon: '✅' };
       }
-      return { text: status, className: `status-${status}` };
+      return { text: status, className: `status-${status}`, icon: '📦' };
     };
 
     const statusInfo = getStatusDisplay();
     
     return (
       <span className={`status-badge ${statusInfo.className}`}>
-        {statusInfo.text}
+        {statusInfo.icon} {statusInfo.text}
+      </span>
+    );
+  };
+
+  const PaymentMethodBadge = ({ paymentMethod }) => {
+    const paymentInfo = getPaymentMethodBadge(paymentMethod);
+    
+    return (
+      <span className={`payment-badge ${paymentInfo.className}`}>
+        {paymentInfo.icon} {paymentInfo.text}
       </span>
     );
   };
@@ -831,6 +847,22 @@ const OrderAssign = () => {
                 <p>Ready for assignment</p>
               </div>
             </div>
+            <div className="stat-card">
+              <div className="stat-icon">💳</div>
+              <div className="stat-content">
+                <h3>Online Payments</h3>
+                <span className="stat-number">{stats.onlinePayments}</span>
+                <p>Prepaid orders</p>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">💰</div>
+              <div className="stat-content">
+                <h3>COD Orders</h3>
+                <span className="stat-number">{stats.codPayments}</span>
+                <p>Cash on delivery</p>
+              </div>
+            </div>
             {stats.selectedCount > 0 && (
               <div className="stat-card selected-orders">
                 <div className="stat-icon">✓</div>
@@ -897,6 +929,7 @@ const OrderAssign = () => {
                     <th>Items</th>
                     <th>Amount</th>
                     <th>Status</th>
+                    <th>Payment</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -994,6 +1027,10 @@ const OrderAssign = () => {
                             </div>
                           )}
                         </td>
+
+                        <td className="payment-method">
+                          <PaymentMethodBadge paymentMethod={order.payment_method} />
+                        </td>
                         
                         <td className="order-actions">
                           <button
@@ -1055,7 +1092,17 @@ const OrderAssign = () => {
               
               <div className="modal-content">
                 <div className="order-summary">
-                  <h4>Order #{selectedOrder.id}</h4>
+                  <div className="order-header-info">
+                    <h4>Order #{selectedOrder.id}</h4>
+                    <div className="header-badges">
+                      <OrderStatusBadge 
+                        status={selectedOrder.status} 
+                        paymentMethod={selectedOrder.payment_method} 
+                      />
+                      <PaymentMethodBadge paymentMethod={selectedOrder.payment_method} />
+                    </div>
+                  </div>
+                  
                   {isScheduledOrder(selectedOrder) && (
                     <div className="scheduled-order-alert">
                       <span className="scheduled-icon-large">⏰</span>
@@ -1066,6 +1113,7 @@ const OrderAssign = () => {
                       </div>
                     </div>
                   )}
+                  
                   <div className="summary-grid">
                     <div className="summary-item">
                       <label>Customer</label>
@@ -1074,6 +1122,14 @@ const OrderAssign = () => {
                     <div className="summary-item">
                       <label>Phone</label>
                       <span>{selectedOrder.customer_phone}</span>
+                    </div>
+                    <div className="summary-item">
+                      <label>Payment</label>
+                      <PaymentMethodBadge paymentMethod={selectedOrder.payment_method} />
+                    </div>
+                    <div className="summary-item">
+                      <label>Age</label>
+                      <span>{getOrderAge(selectedOrder.created_at)} minutes</span>
                     </div>
                     <div className="summary-item full-width">
                       <label>Address</label>
@@ -1103,11 +1159,6 @@ const OrderAssign = () => {
                           </span>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="summary-item">
-                      <label>Age</label>
-                      <span>{getOrderAge(selectedOrder.created_at)} minutes</span>
                     </div>
                   </div>
                 </div>
@@ -1187,7 +1238,16 @@ const OrderAssign = () => {
                   <div className="selected-orders-list">
                     {selectedOrders.map(order => (
                       <div key={order.id} className="selected-order-item">
-                        <div className="selected-order-id">Order #{order.id}</div>
+                        <div className="selected-order-header">
+                          <div className="selected-order-id">Order #{order.id}</div>
+                          <div className="selected-order-badges">
+                            <OrderStatusBadge 
+                              status={order.status} 
+                              paymentMethod={order.payment_method} 
+                            />
+                            <PaymentMethodBadge paymentMethod={order.payment_method} />
+                          </div>
+                        </div>
                         <div className="selected-order-info">
                           <span>{order.customer_name}</span>
                           <span>₹{getTotalAmount(order).toLocaleString('en-IN')}</span>
@@ -1207,6 +1267,14 @@ const OrderAssign = () => {
                       <span>{selectedOrders.length}</span>
                     </div>
                     <div className="total-amount-row">
+                      <span>Online Payments:</span>
+                      <span>{selectedOrders.filter(o => o.payment_method === 'Online Payment').length}</span>
+                    </div>
+                    <div className="total-amount-row">
+                      <span>COD Orders:</span>
+                      <span>{selectedOrders.filter(o => o.payment_method === 'Cash on Delivery').length}</span>
+                    </div>
+                    <div className="total-amount-row total-row">
                       <span>Total Amount:</span>
                       <span className="total-amount-final">
                         ₹{selectedOrders.reduce((sum, order) => sum + getTotalAmount(order), 0).toLocaleString('en-IN')}
@@ -1285,7 +1353,17 @@ const OrderAssign = () => {
               
               <div className="modal-content">
                 <div className="order-summary">
-                  <h4>Order Total: ₹{getTotalAmount(selectedOrder).toLocaleString('en-IN')}</h4>
+                  <div className="order-header-info">
+                    <h4>Order Total: ₹{getTotalAmount(selectedOrder).toLocaleString('en-IN')}</h4>
+                    <div className="header-badges">
+                      <OrderStatusBadge 
+                        status={selectedOrder.status} 
+                        paymentMethod={selectedOrder.payment_method} 
+                      />
+                      <PaymentMethodBadge paymentMethod={selectedOrder.payment_method} />
+                    </div>
+                  </div>
+                  
                   {isScheduledOrder(selectedOrder) && (
                     <div className="scheduled-order-alert">
                       <span className="scheduled-icon-large">⏰</span>
@@ -1388,6 +1466,7 @@ const OrderAssign = () => {
                   <h4>Customer Location</h4>
                   <p><strong>Name:</strong> {selectedOrder.customer_name}</p>
                   <p><strong>Address:</strong> {selectedOrder.delivery_address}</p>
+                  <p><strong>Payment:</strong> <PaymentMethodBadge paymentMethod={selectedOrder.payment_method} /></p>
                   {isScheduledOrder(selectedOrder) && (
                     <>
                       <p><strong>Delivery Time:</strong> {formatDeliveryTime(selectedOrder.delivery_time)}</p>
