@@ -19,11 +19,13 @@ const OrderAssign = () => {
   const [map, setMap] = useState(null);
   const [markers, setMarkers] = useState([]);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [activeTab, setActiveTab] = useState('all'); // 'all', 'normal', 'scheduled'
+  const [activeTab, setActiveTab] = useState('normal'); // 'normal', 'scheduled'
   const [driverOrders, setDriverOrders] = useState({});
   const [isMultiAssignModalOpen, setIsMultiAssignModalOpen] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [selectedOrdersMap, setSelectedOrdersMap] = useState(new Set());
+  const [pollingStatus, setPollingStatus] = useState('Active');
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
   
   const audioRef = useRef(null);
   const pollingRef = useRef(null);
@@ -31,6 +33,7 @@ const OrderAssign = () => {
   const soundTimeoutRef = useRef(null);
   const mapRef = useRef(null);
   const searchTimeoutRef = useRef(null);
+  const notificationRef = useRef(null);
 
   const GOOGLE_MAPS_API_KEY = "AIzaSyCwunFlQtMKPeJ2chyXPm1AKF07SvvqUX0";
 
@@ -148,6 +151,32 @@ const OrderAssign = () => {
       console.log('Audio error:', error);
     }
   }, [isAudioEnabled]);
+
+  const showNotification = useCallback((count) => {
+    if (!('Notification' in window)) {
+      console.log('This browser does not support desktop notification');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      notificationRef.current = new Notification(`🆕 ${count} New Order${count > 1 ? 's' : ''} Arrived!`, {
+        body: `${count} new order${count > 1 ? 's' : ''} waiting for assignment`,
+        icon: '/favicon.ico',
+        tag: 'new-orders',
+        requireInteraction: true
+      });
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          notificationRef.current = new Notification(`🆕 ${count} New Order${count > 1 ? 's' : ''} Arrived!`, {
+            body: `${count} new order${count > 1 ? 's' : ''} waiting for assignment`,
+            icon: '/favicon.ico',
+            tag: 'new-orders'
+          });
+        }
+      });
+    }
+  }, []);
 
   const parseItems = useCallback((items) => {
     try {
@@ -355,9 +384,9 @@ const OrderAssign = () => {
     return { text: paymentMethod || 'Unknown', className: 'payment-other', icon: '❓' };
   }, []);
 
-  const fetchOrders = useCallback(async (isManualRefresh = false) => {
+  const fetchOrders = useCallback(async (isManualRefresh = false, isPolling = false) => {
     try {
-      if (isManualRefresh) {
+      if (isManualRefresh && !isPolling) {
         setLoading(true);
       }
       
@@ -369,6 +398,7 @@ const OrderAssign = () => {
         .in('status', ['confirmed', 'paid'])
         .or('driver_name.is.null,driver_name.eq.""')
         .or('driver_mobile.is.null,driver_mobile.eq.""')
+        .order('id', { ascending: false }) // Changed to order by ID in descending order
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -393,8 +423,24 @@ const OrderAssign = () => {
         const newOrders = filteredData.filter(order => !previousOrderIds.has(order.id));
         
         if (newOrders.length > 0 && !isFirstLoadRef.current && !isManualRefresh) {
-          console.log(`New orders: ${newOrders.length}`);
-          playNotificationSound(Math.min(newOrders.length, 2));
+          console.log(`🆕 New orders detected: ${newOrders.length} orders`);
+          setNewOrdersCount(newOrders.length);
+          
+          // Play sound notification
+          playNotificationSound(Math.min(newOrders.length, 3));
+          
+          // Show desktop notification
+          showNotification(newOrders.length);
+          
+          // Show browser tab notification
+          document.title = `(${newOrders.length}) New Orders - Order Assignment`;
+          
+          // Reset title after 5 seconds
+          setTimeout(() => {
+            if (document.title.includes('New Orders')) {
+              document.title = 'Order Assignment';
+            }
+          }, 5000);
         }
         
         if (isFirstLoadRef.current) {
@@ -405,15 +451,63 @@ const OrderAssign = () => {
       });
 
       setLastChecked(new Date());
+      
+      if (isPolling) {
+        setPollingStatus('Active');
+      }
+      
     } catch (error) {
       console.error('Error fetching orders:', error);
       setError('Failed to load orders. Please try again.');
+      if (isPolling) {
+        setPollingStatus('Error - Retrying...');
+      }
     } finally {
-      if (isManualRefresh) {
+      if (isManualRefresh && !isPolling) {
         setLoading(false);
       }
     }
-  }, [shouldShowOrder, playNotificationSound]);
+  }, [shouldShowOrder, playNotificationSound, showNotification]);
+
+  const startPolling = useCallback(() => {
+    console.log('🔄 Starting 10-second polling...');
+    
+    // Clear existing interval
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+    }
+    
+    // Initial fetch
+    fetchOrders(false, true);
+    
+    // Set up 10-second polling interval
+    pollingRef.current = setInterval(() => {
+      console.log('🔄 Polling for new orders...');
+      fetchOrders(false, true);
+    }, 10000); // 10 seconds
+    
+    // Poll drivers every 30 seconds
+    setInterval(() => {
+      fetchDrivers();
+    }, 30000);
+  }, [fetchOrders, fetchDrivers]);
+
+  const stopPolling = useCallback(() => {
+    console.log('⏸️ Stopping polling...');
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+      setPollingStatus('Paused');
+    }
+  }, []);
+
+  const togglePolling = useCallback(() => {
+    if (pollingRef.current) {
+      stopPolling();
+    } else {
+      startPolling();
+    }
+  }, [startPolling, stopPolling]);
 
   const testSound = useCallback(() => {
     if (!isAudioEnabled) return;
@@ -623,13 +717,12 @@ const OrderAssign = () => {
   const filteredOrders = useMemo(() => {
     let filtered = orders;
     
-    // Apply tab filter
+    // Apply tab filter - ONLY Normal or Scheduled
     if (activeTab === 'normal') {
       filtered = filtered.filter(order => isNormalOrder(order));
     } else if (activeTab === 'scheduled') {
       filtered = filtered.filter(order => isScheduledOrder(order));
     }
-    // 'all' shows all orders
 
     // Apply search filter
     if (searchTerm.trim()) {
@@ -645,17 +738,27 @@ const OrderAssign = () => {
       });
     }
 
-    // Sort orders
+    // Sort orders primarily by ID (descending), then by scheduled status
     return filtered.sort((a, b) => {
-      if (isScheduledOrder(a) && isScheduledOrder(b)) {
-        return new Date(a.delivery_time) - new Date(b.delivery_time);
-      } else if (isScheduledOrder(a)) {
-        return -1;
-      } else if (isScheduledOrder(b)) {
-        return 1;
-      } else {
-        return new Date(a.created_at) - new Date(b.created_at);
+      // First sort by ID (descending - newest first)
+      if (b.id !== a.id) {
+        return b.id - a.id;
       }
+      
+      // Then handle scheduled orders
+      const aScheduled = isScheduledOrder(a);
+      const bScheduled = isScheduledOrder(b);
+      
+      if (aScheduled && bScheduled) {
+        return new Date(a.delivery_time) - new Date(b.delivery_time);
+      } else if (aScheduled) {
+        return -1;
+      } else if (bScheduled) {
+        return 1;
+      }
+      
+      // Finally sort by creation date
+      return new Date(a.created_at) - new Date(b.created_at);
     });
   }, [orders, searchTerm, activeTab, isScheduledOrder, isNormalOrder]);
 
@@ -737,25 +840,29 @@ const OrderAssign = () => {
   useEffect(() => {
     console.log('🚀 INITIALIZING ORDER ASSIGN COMPONENT');
     
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    
     fetchDrivers();
     fetchOrders();
 
-    pollingRef.current = setInterval(() => {
-      fetchOrders();
-      fetchDrivers();
-    }, 60000);
+    // Start 10-second polling
+    startPolling();
 
     return () => {
       console.log('🧹 CLEANING UP ORDER ASSIGN COMPONENT');
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
+      stopPolling();
+      
       if (soundTimeoutRef.current) {
         clearTimeout(soundTimeoutRef.current);
       }
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
+      }
+      if (notificationRef.current) {
+        notificationRef.current.close();
       }
       cleanupMap();
     };
@@ -823,6 +930,13 @@ const OrderAssign = () => {
                 >
                   Test Sound
                 </button>
+                <button 
+                  className={`polling-toggle-btn ${pollingRef.current ? 'active' : 'paused'}`}
+                  onClick={togglePolling}
+                  title={pollingRef.current ? 'Stop auto-refresh (10s)' : 'Start auto-refresh (10s)'}
+                >
+                  {pollingRef.current ? '⏸️' : '▶️'}
+                </button>
                 {stats.selectedCount > 0 && (
                   <button 
                     className="btn-primary multi-assign-btn"
@@ -838,15 +952,23 @@ const OrderAssign = () => {
                   disabled={loading}
                 >
                   <span className="refresh-icon">🔄</span>
-                  {loading ? 'Refreshing...' : 'Refresh'}
+                  {loading ? 'Refreshing...' : 'Refresh Now'}
                 </button>
               </div>
             </div>
           </div>
           <div className="header-footer">
-            <span className="last-checked">
-              Last checked: {lastChecked.toLocaleTimeString()}
-            </span>
+            <div className="polling-status">
+              <span className={`status-indicator ${pollingRef.current ? 'active' : 'paused'}`}>
+                ●
+              </span>
+              <span className="status-text">
+                {pollingRef.current ? `Auto-refresh: Every 10s (${pollingStatus})` : 'Auto-refresh: Paused'}
+              </span>
+              <span className="last-checked">
+                Last checked: {lastChecked.toLocaleTimeString()}
+              </span>
+            </div>
             <div className="driver-status">
               <span className="driver-count">{allDrivers.length}</span>
               <span>Total Drivers ({availableDrivers.length} available)</span>
@@ -857,14 +979,6 @@ const OrderAssign = () => {
         {/* Stats Section */}
         <div className="stats-section">
           <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-icon">📦</div>
-              <div className="stat-content">
-                <h3>All Orders</h3>
-                <span className="stat-number">{stats.total}</span>
-                <p>All pending orders</p>
-              </div>
-            </div>
             <div className="stat-card">
               <div className="stat-icon">🚚</div>
               <div className="stat-content">
@@ -918,15 +1032,27 @@ const OrderAssign = () => {
           </div>
         </div>
 
+        {/* New Orders Notification */}
+        {newOrdersCount > 0 && (
+          <div className="new-orders-notification">
+            <div className="notification-content">
+              <span className="notification-icon">🆕</span>
+              <span className="notification-text">
+                {newOrdersCount} new order{newOrdersCount > 1 ? 's' : ''} arrived!
+              </span>
+              <button 
+                className="notification-close"
+                onClick={() => setNewOrdersCount(0)}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Main Orders Table Section */}
         <div className="orders-main-section">
           <div className="section-tabs">
-            <button 
-              className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-              onClick={() => setActiveTab('all')}
-            >
-              All Orders ({stats.total})
-            </button>
             <button 
               className={`tab-btn ${activeTab === 'normal' ? 'active' : ''}`}
               onClick={() => setActiveTab('normal')}
@@ -937,7 +1063,7 @@ const OrderAssign = () => {
               className={`tab-btn ${activeTab === 'scheduled' ? 'active' : ''}`}
               onClick={() => setActiveTab('scheduled')}
             >
-              Scheduled ({stats.scheduledOrders})
+              Scheduled Orders ({stats.scheduledOrders})
             </button>
           </div>
 
@@ -952,6 +1078,10 @@ const OrderAssign = () => {
                 <div className="empty-icon">📦</div>
                 <h3>No orders found</h3>
                 <p>New confirmed orders will appear here automatically.</p>
+                <p className="polling-info">
+                  Auto-refresh is {pollingRef.current ? 'active' : 'paused'} 
+                  {pollingRef.current && ' - checking every 10 seconds'}
+                </p>
               </div>
             ) : (
               <table className="orders-table">
