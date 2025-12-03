@@ -9,6 +9,12 @@ const ProductUpload = () => {
   // State for categories from database
   const [categories, setCategories] = useState([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  
+  // State for warehouses and zones from database
+  const [warehouses, setWarehouses] = useState([]);
+  const [zones, setZones] = useState([]);
+  const [isLoadingWarehouses, setIsLoadingWarehouses] = useState(true);
+  const [isLoadingZones, setIsLoadingZones] = useState(true);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -20,12 +26,19 @@ const ProductUpload = () => {
     rating: '0',
     reviews: '0',
     stock: '0',
-    profit: '0'
+    profit: '0',
+    warehouse: '',
+    zone: ''
   });
 
-  const [colors, setColors] = useState([{ name: '', code: '', images: Array(4).fill(null) }]);
-  const [sizes, setSizes] = useState(Array(4).fill(''));
-  const [features, setFeatures] = useState(Array(4).fill({ title: '', desc: '' }));
+  const [colors, setColors] = useState([{ 
+    name: '', 
+    code: '', 
+    price: '',
+    images: Array(4).fill(null) 
+  }]);
+  
+  const [sizes, setSizes] = useState(Array(4).fill({ size: '', price: '' }));
   const [mainImage, setMainImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -64,154 +77,6 @@ const ProductUpload = () => {
     'Fertilizer': ['1kg', '5kg', '10kg', '25kg']
   };
 
-  // Feature templates for all categories
-  const FEATURE_TEMPLATES = {
-    'Electronics': [
-      { title: 'Warranty', desc: '1 Year Manufacturer Warranty' },
-      { title: 'Tech Support', desc: '24/7 technical assistance' },
-      { title: 'Battery Life', desc: 'Long-lasting battery backup' },
-      { title: 'Connectivity', desc: 'Multiple connectivity options' }
-    ],
-    'Womens': [
-      { title: 'Fabric', desc: 'Premium quality fabric' },
-      { title: 'Fit', desc: 'Comfortable regular fit' },
-      { title: 'Care', desc: 'Machine washable' },
-      { title: 'Material', desc: 'High-quality material' }
-    ],
-    'Furniture': [
-      { title: 'Material', desc: 'Solid wood with premium finish' },
-      { title: 'Assembly', desc: 'Easy to assemble' },
-      { title: 'Warranty', desc: '2 years structural warranty' },
-      { title: 'Delivery', desc: 'Professional installation available' }
-    ],
-    'Snacks': [
-      { title: 'Quality', desc: 'Premium quality guaranteed' },
-      { title: 'Ingredients', desc: 'Natural ingredients used' },
-      { title: 'Shelf Life', desc: 'Long shelf life' },
-      { title: 'Packaging', desc: 'Hygienic packaging' }
-    ],
-    'Home Appliances': [
-      { title: 'Warranty', desc: 'Comprehensive warranty' },
-      { title: 'Energy Saving', desc: 'Energy efficient' },
-      { title: 'Safety', desc: 'Multiple safety features' },
-      { title: 'Performance', desc: 'High performance' }
-    ],
-    'Flowers': [
-      { title: 'Freshness', desc: 'Fresh flowers guaranteed' },
-      { title: 'Delivery', desc: 'Same day delivery available' },
-      { title: 'Packaging', desc: 'Beautiful packaging' },
-      { title: 'Quality', desc: 'Premium quality flowers' }
-    ],
-    'Daily Utilities': [
-      { title: 'Quality', desc: 'Premium quality guaranteed' },
-      { title: 'Durability', desc: 'Long-lasting performance' },
-      { title: 'Usage', desc: 'Daily essential product' },
-      { title: 'Value', desc: 'Great value for money' }
-    ],
-    'Grocery': [
-      { title: 'Quality', desc: 'Premium quality guaranteed' },
-      { title: 'Freshness', desc: 'Fresh products' },
-      { title: 'Packaging', desc: 'Hygienic packaging' },
-      { title: 'Origin', desc: 'Quality sourced products' }
-    ],
-    'Vegetables': [
-      { title: 'Freshness', desc: 'Farm fresh vegetables' },
-      { title: 'Organic', desc: 'Organically grown' },
-      { title: 'Quality', desc: 'Premium quality' },
-      { title: 'Nutrition', desc: 'Rich in nutrients' }
-    ],
-    'Fruits': [
-      { title: 'Freshness', desc: 'Fresh seasonal fruits' },
-      { title: 'Organic', desc: 'Organically grown' },
-      { title: 'Quality', desc: 'Premium quality' },
-      { title: 'Nutrition', desc: 'Rich in vitamins' }
-    ],
-    'Drinks': [
-      { title: 'Quality', desc: 'Premium quality beverage' },
-      { title: 'Ingredients', desc: 'Natural ingredients' },
-      { title: 'Refreshment', desc: 'Refreshing taste' },
-      { title: 'Packaging', desc: 'Hygienic packaging' }
-    ],
-    'Pharmacy': [
-      { title: 'Quality', desc: 'Authentic medicines' },
-      { title: 'Expiry', desc: 'Long expiry date' },
-      { title: 'Safety', desc: 'Properly stored' },
-      { title: 'Usage', desc: 'Follow doctor advice' }
-    ],
-    'Meat & Flesh': [
-      { title: 'Freshness', desc: 'Fresh meat products' },
-      { title: 'Quality', desc: 'Premium quality' },
-      { title: 'Hygiene', desc: 'Hygienically processed' },
-      { title: 'Packaging', desc: 'Vacuum sealed packaging' }
-    ],
-    'Gifts': [
-      { title: 'Quality', desc: 'Premium gift item' },
-      { title: 'Packaging', desc: 'Beautiful gift wrapping' },
-      { title: 'Delivery', desc: 'Special delivery available' },
-      { title: 'Occasion', desc: 'Perfect for all occasions' }
-    ],
-    'Accessories': [
-      { title: 'Material', desc: 'High-quality material' },
-      { title: 'Design', desc: 'Trendy design' },
-      { title: 'Durability', desc: 'Long-lasting' },
-      { title: 'Style', desc: 'Fashionable accessory' }
-    ],
-    'Mens': [
-      { title: 'Fabric', desc: 'Premium quality fabric' },
-      { title: 'Fit', desc: 'Comfortable regular fit' },
-      { title: 'Care', desc: 'Machine washable' },
-      { title: 'Material', desc: 'High-quality material' }
-    ],
-    'Kids': [
-      { title: 'Material', desc: 'Child-safe materials' },
-      { title: 'Comfort', desc: 'Comfortable for kids' },
-      { title: 'Safety', desc: 'Safe for children' },
-      { title: 'Quality', desc: 'Premium quality' }
-    ],
-    'Baby': [
-      { title: 'Safety', desc: 'Baby-safe materials' },
-      { title: 'Comfort', desc: 'Soft and comfortable' },
-      { title: 'Quality', desc: 'Premium quality' },
-      { title: 'Hygiene', desc: 'Hygienic and clean' }
-    ],
-    'Toys': [
-      { title: 'Safety', desc: 'Child-safe materials' },
-      { title: 'Educational', desc: 'Educational value' },
-      { title: 'Durability', desc: 'Long-lasting' },
-      { title: 'Age Group', desc: 'Age-appropriate' }
-    ],
-    'Mobile Accessories': [
-      { title: 'Compatibility', desc: 'Universal compatibility' },
-      { title: 'Quality', desc: 'Premium quality' },
-      { title: 'Durability', desc: 'Long-lasting' },
-      { title: 'Warranty', desc: '1 year warranty' }
-    ],
-    'Jewellery': [
-      { title: 'Material', desc: 'Genuine materials' },
-      { title: 'Quality', desc: 'Premium craftsmanship' },
-      { title: 'Design', desc: 'Elegant design' },
-      { title: 'Packaging', desc: 'Beautiful presentation box' }
-    ],
-    'Stationery': [
-      { title: 'Quality', desc: 'Premium quality' },
-      { title: 'Durability', desc: 'Long-lasting' },
-      { title: 'Usage', desc: 'Smooth performance' },
-      { title: 'Value', desc: 'Great value for money' }
-    ],
-    'Household Items': [
-      { title: 'Quality', desc: 'Premium quality' },
-      { title: 'Durability', desc: 'Long-lasting' },
-      { title: 'Usage', desc: 'Daily household use' },
-      { title: 'Value', desc: 'Great value for money' }
-    ],
-    'Fertilizer': [
-      { title: 'Quality', desc: 'Premium quality fertilizer' },
-      { title: 'Effectiveness', desc: 'Highly effective' },
-      { title: 'Usage', desc: 'Easy to use' },
-      { title: 'Results', desc: 'Visible growth results' }
-    ]
-  };
-
   // Fetch categories from database
   useEffect(() => {
     const fetchCategories = async () => {
@@ -248,20 +113,74 @@ const ProductUpload = () => {
     fetchCategories();
   }, []);
 
+  // Fetch warehouses from database
+  useEffect(() => {
+    const fetchWarehouses = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('warehouse')
+          .select('id, name, zone')
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching warehouses:', error);
+        } else {
+          setWarehouses(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching warehouses:', error);
+      } finally {
+        setIsLoadingWarehouses(false);
+      }
+    };
+
+    fetchWarehouses();
+  }, []);
+
+  // Fetch zones from database
+  useEffect(() => {
+    const fetchZones = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('app_zone')
+          .select('id, zone_name')
+          .order('zone_name', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching zones:', error);
+        } else {
+          setZones(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching zones:', error);
+      } finally {
+        setIsLoadingZones(false);
+      }
+    };
+
+    fetchZones();
+  }, []);
+
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Auto-populate features when category changes
+    // Auto-populate sizes when category changes
     if (name === 'category' && value) {
-      const template = FEATURE_TEMPLATES[value] || Array(4).fill({ title: '', desc: '' });
-      setFeatures(template);
-      
       // Auto-populate sizes based on category
       const categorySizes = COMMON_SIZES[value] || ['Standard'];
-      const newSizes = [...categorySizes, ...Array(4 - categorySizes.length).fill('')].slice(0, 4);
-      setSizes(newSizes);
+      const newSizes = categorySizes.map((size, index) => ({
+        size: size,
+        price: index === 0 ? formData.price : ''
+      }));
+      
+      // Fill remaining slots with empty values
+      while (newSizes.length < 4) {
+        newSizes.push({ size: '', price: '' });
+      }
+      
+      setSizes(newSizes.slice(0, 4));
     }
     
     // Auto-calculate profit if price changes (10% by default)
@@ -270,6 +189,13 @@ const ProductUpload = () => {
       if (!isNaN(priceValue) && priceValue > 0) {
         const profitValue = (priceValue * 0.1).toFixed(2);
         setFormData(prev => ({ ...prev, profit: profitValue }));
+        
+        // Update first size price if it exists and matches the main price
+        if (sizes[0] && sizes[0].size) {
+          setSizes(prev => prev.map((sizeItem, index) => 
+            index === 0 ? { ...sizeItem, price: value } : sizeItem
+          ));
+        }
       }
     }
 
@@ -310,7 +236,12 @@ const ProductUpload = () => {
   // Add/remove colors
   const addColor = () => {
     if (colors.length < 4) {
-      setColors(prev => [...prev, { name: '', code: '', images: Array(4).fill(null) }]);
+      setColors(prev => [...prev, { 
+        name: '', 
+        code: '', 
+        price: '',
+        images: Array(4).fill(null) 
+      }]);
     }
   };
 
@@ -321,26 +252,10 @@ const ProductUpload = () => {
   };
 
   // Handle size changes
-  const handleSizeChange = (index, value) => {
-    setSizes(prev => prev.map((size, i) => i === index ? value : size));
-  };
-
-  // Handle feature changes
-  const handleFeatureChange = (index, field, value) => {
-    setFeatures(prev => prev.map((feature, i) => 
-      i === index ? { ...feature, [field]: value } : feature
+  const handleSizeChange = (index, field, value) => {
+    setSizes(prev => prev.map((sizeItem, i) => 
+      i === index ? { ...sizeItem, [field]: value } : sizeItem
     ));
-  };
-
-  // Apply feature template
-  const applyFeatureTemplate = () => {
-    if (formData.category) {
-      const template = FEATURE_TEMPLATES[formData.category];
-      if (template) {
-        setFeatures(template);
-        setMessage({ type: 'success', text: `Applied ${formData.category} feature template` });
-      }
-    }
   };
 
   // Image upload function
@@ -404,8 +319,6 @@ const ProductUpload = () => {
     if (!formData.price || parseFloat(formData.price) <= 0) errors.push('Valid price is required');
     if (!mainImage) errors.push('Main image is required');
     
-    // Removed color name and color image validation
-    
     return errors;
   };
 
@@ -440,7 +353,7 @@ const ProductUpload = () => {
     }
   };
 
-  // Prepare product data - handle null values properly
+  // Prepare product data
   const prepareProductData = (imageUrls) => {
     const productData = {
       name: formData.name.trim(),
@@ -454,16 +367,19 @@ const ProductUpload = () => {
       stock: parseInt(formData.stock) || 0,
       main_image_url: imageUrls.mainImage,
       profit: parseFloat(formData.profit) || 0,
+      warehouse: formData.warehouse.trim() || null,
+      zone: formData.zone.trim() || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 
-    // Add colors (only for colors with names) - handle null properly
+    // Add colors with their prices
     colors.forEach((color, index) => {
       if (color.name.trim()) {
         const colorImages = imageUrls.colorImages[index] || [];
         productData[`color${index + 1}`] = color.name.trim();
         productData[`color${index + 1}_code`] = color.code.trim() || null;
+        productData[`color${index + 1}_price`] = color.price ? parseFloat(color.price) : null;
         productData[`color${index + 1}_image1`] = colorImages[0] || null;
         productData[`color${index + 1}_image2`] = colorImages[1] || null;
         productData[`color${index + 1}_image3`] = colorImages[2] || null;
@@ -472,6 +388,7 @@ const ProductUpload = () => {
         // Explicitly set to null if no color name
         productData[`color${index + 1}`] = null;
         productData[`color${index + 1}_code`] = null;
+        productData[`color${index + 1}_price`] = null;
         productData[`color${index + 1}_image1`] = null;
         productData[`color${index + 1}_image2`] = null;
         productData[`color${index + 1}_image3`] = null;
@@ -479,23 +396,14 @@ const ProductUpload = () => {
       }
     });
 
-    // Add sizes (only for non-empty sizes) - handle null properly
-    sizes.forEach((size, index) => {
-      if (size.trim()) {
-        productData[`size${index + 1}`] = size.trim();
+    // Add sizes with their prices
+    sizes.forEach((sizeItem, index) => {
+      if (sizeItem.size.trim()) {
+        productData[`size${index + 1}`] = sizeItem.size.trim();
+        productData[`size${index + 1}_price`] = sizeItem.price ? parseFloat(sizeItem.price) : null;
       } else {
         productData[`size${index + 1}`] = null;
-      }
-    });
-
-    // Add features (only for features with titles) - handle null properly
-    features.forEach((feature, index) => {
-      if (feature.title.trim()) {
-        productData[`feature${index + 1}_title`] = feature.title.trim();
-        productData[`feature${index + 1}_desc`] = feature.desc.trim() || null;
-      } else {
-        productData[`feature${index + 1}_title`] = null;
-        productData[`feature${index + 1}_desc`] = null;
+        productData[`size${index + 1}_price`] = null;
       }
     });
 
@@ -537,7 +445,7 @@ const ProductUpload = () => {
       setMessage({ type: 'success', text: 'Product uploaded successfully!' });
       
       // Show alert after successful upload
-      alert('✅ Product uploaded successfully!\n\nProduct Details:\n• Name: ' + formData.name + '\n• Category: ' + formData.category + '\n• Price: ₹' + formData.price + '\n• Profit: ₹' + formData.profit);
+      alert('✅ Product uploaded successfully!\n\nProduct Details:\n• Name: ' + formData.name + '\n• Category: ' + formData.category + '\n• Price: ₹' + formData.price + '\n• Profit: ₹' + formData.profit + '\n• Warehouse: ' + (formData.warehouse || 'Not specified') + '\n• Zone: ' + (formData.zone || 'Not specified'));
       
       resetForm();
 
@@ -554,11 +462,15 @@ const ProductUpload = () => {
   const resetForm = () => {
     setFormData({
       name: '', category: '', price: '', brand: '', description: '', discount: '',
-      rating: '0', reviews: '0', stock: '0', profit: '0'
+      rating: '0', reviews: '0', stock: '0', profit: '0', warehouse: '', zone: ''
     });
-    setColors([{ name: '', code: '', images: Array(4).fill(null) }]);
-    setSizes(Array(4).fill(''));
-    setFeatures(Array(4).fill({ title: '', desc: '' }));
+    setColors([{ 
+      name: '', 
+      code: '', 
+      price: '',
+      images: Array(4).fill(null) 
+    }]);
+    setSizes(Array(4).fill({ size: '', price: '' }));
     setMainImage(null);
     document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
     setMessage({ type: '', text: '' });
@@ -671,6 +583,50 @@ const ProductUpload = () => {
                   </div>
                 </div>
                 <div className="form-group">
+                  <label>Warehouse</label>
+                  <select 
+                    name="warehouse" 
+                    value={formData.warehouse} 
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Select Warehouse (Optional)</option>
+                    {isLoadingWarehouses ? (
+                      <option value="" disabled>Loading warehouses...</option>
+                    ) : (
+                      warehouses.map(warehouse => (
+                        <option key={warehouse.id} value={warehouse.name}>
+                          {warehouse.name} ({warehouse.zone})
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <div className="field-info">
+                    Select the warehouse where this product is stored
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Zone</label>
+                  <select 
+                    name="zone" 
+                    value={formData.zone} 
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Select Zone (Optional)</option>
+                    {isLoadingZones ? (
+                      <option value="" disabled>Loading zones...</option>
+                    ) : (
+                      zones.map(zone => (
+                        <option key={zone.id} value={zone.zone_name}>
+                          {zone.zone_name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <div className="field-info">
+                    Select the delivery zone for this product
+                  </div>
+                </div>
+                <div className="form-group">
                   <label>Stock Quantity</label>
                   <input 
                     type="number" 
@@ -770,7 +726,7 @@ const ProductUpload = () => {
             <div className="form-section">
               <div className="section-header">
                 <h3>Product Colors & Variants</h3>
-                <span className="section-subtitle">Optional: Add up to 4 colors with images</span>
+                <span className="section-subtitle">Optional: Add up to 4 colors with images and prices</span>
               </div>
               {colors.map((color, colorIndex) => (
                 <div key={colorIndex} className="color-section">
@@ -814,6 +770,17 @@ const ProductUpload = () => {
                         )}
                       </div>
                     </div>
+                    <div className="form-group">
+                      <label>Color Price (₹)</label>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        min="0" 
+                        value={color.price} 
+                        onChange={(e) => handleColorChange(colorIndex, 'price', e.target.value)} 
+                        placeholder="Optional color-specific price"
+                      />
+                    </div>
                   </div>
                   <div className="images-grid">
                     {[0, 1, 2, 3].map(imgIndex => (
@@ -844,7 +811,7 @@ const ProductUpload = () => {
             {/* Sizes */}
             <div className="form-section">
               <div className="section-header">
-                <h3>Available Sizes</h3>
+                <h3>Available Sizes with Prices</h3>
                 <div className="section-actions">
                   <span className="section-subtitle">
                     {formData.category ? `Common sizes for ${formData.category}` : 'Select category first'}
@@ -854,8 +821,17 @@ const ProductUpload = () => {
                       type="button" 
                       onClick={() => {
                         const categorySizes = COMMON_SIZES[formData.category] || ['Standard'];
-                        const newSizes = [...categorySizes, ...Array(4 - categorySizes.length).fill('')].slice(0, 4);
-                        setSizes(newSizes);
+                        const newSizes = categorySizes.map((size, index) => ({
+                          size: size,
+                          price: index === 0 ? formData.price : ''
+                        }));
+                        
+                        // Fill remaining slots with empty values
+                        while (newSizes.length < 4) {
+                          newSizes.push({ size: '', price: '' });
+                        }
+                        
+                        setSizes(newSizes.slice(0, 4));
                       }}
                       className="template-btn"
                     >
@@ -865,16 +841,29 @@ const ProductUpload = () => {
                 </div>
               </div>
               <div className="form-grid">
-                {sizes.map((size, index) => (
-                  <div key={index} className="form-group">
-                    <label>Size {index + 1}</label>
-                    <input 
-                      type="text" 
-                      value={size} 
-                      onChange={(e) => handleSizeChange(index, e.target.value)} 
-                      placeholder={`Size ${index + 1} (optional)`}
-                      list={formData.category ? `sizes-${formData.category}` : undefined}
-                    />
+                {sizes.map((sizeItem, index) => (
+                  <div key={index} className="size-group">
+                    <div className="form-group">
+                      <label>Size {index + 1}</label>
+                      <input 
+                        type="text" 
+                        value={sizeItem.size} 
+                        onChange={(e) => handleSizeChange(index, 'size', e.target.value)} 
+                        placeholder={`Size ${index + 1} (optional)`}
+                        list={formData.category ? `sizes-${formData.category}` : undefined}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Price for Size {index + 1} (₹)</label>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        min="0" 
+                        value={sizeItem.price} 
+                        onChange={(e) => handleSizeChange(index, 'price', e.target.value)} 
+                        placeholder="Optional size-specific price"
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -886,52 +875,6 @@ const ProductUpload = () => {
                   ))}
                 </datalist>
               )}
-            </div>
-
-            {/* Features */}
-            <div className="form-section">
-              <div className="section-header">
-                <h3>Product Features</h3>
-                <div className="section-actions">
-                  <span className="section-subtitle">
-                    Key features and specifications (optional)
-                  </span>
-                  {formData.category && (
-                    <button 
-                      type="button" 
-                      onClick={applyFeatureTemplate}
-                      className="template-btn"
-                    >
-                      Apply Template
-                    </button>
-                  )}
-                </div>
-              </div>
-              {features.map((feature, index) => (
-                <div key={index} className="feature-section">
-                  <h4>Feature {index + 1}</h4>
-                  <div className="form-grid">
-                    <div className="form-group">
-                      <label>Title</label>
-                      <input 
-                        type="text" 
-                        value={feature.title} 
-                        onChange={(e) => handleFeatureChange(index, 'title', e.target.value)} 
-                        placeholder="Feature title (optional)"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Description</label>
-                      <input 
-                        type="text" 
-                        value={feature.desc} 
-                        onChange={(e) => handleFeatureChange(index, 'desc', e.target.value)} 
-                        placeholder="Feature description (optional)"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
 
             <div className="form-actions">

@@ -19,7 +19,7 @@ const OrderAssign = () => {
   const [map, setMap] = useState(null);
   const [markers, setMarkers] = useState([]);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('all'); // 'all', 'normal', 'scheduled'
   const [driverOrders, setDriverOrders] = useState({});
   const [isMultiAssignModalOpen, setIsMultiAssignModalOpen] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState([]);
@@ -85,7 +85,7 @@ const OrderAssign = () => {
         map: googleMap,
         title: `Driver: ${driver.driver_name} (${getDriverOrderCount(driver.id)} orders)`,
         icon: {
-          url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE5IDdIMTZDMTUgNCAxMiAyIDEyIDJDMTIgMiA5IDQgOCA3SDVDMy45IDcgMyA3LjkgMyA5VjE4QzMgMTkuMSAzLjkgMjAgNSAyMEgxOUMxMC4xIDIwIDIxIDE5LjEgMjEgMThWOUMyMSA3LjkgMjAuMSA3IDE5IDdaTTggMTguNUM3LjIgMTguNSA2LjUgMTcuOCA2LjUgMTdDNi41IDE2LjIgNy4yIDE1LjUgOCAxNS41QzguOCAxUuNSA5LjUgMTYuMiA5LjUgMTdDOS41IDE3LjggOC44IDE4LjUgOCAxOC41Wk0xNS41IDE1LjVIMTAuNVYxNEgxNS41VjE1LjVaTTE4IDE4LjVDMTcuMiAxOC41IDE2LjUgMTcuOCAxNi41IDE3QzE2LjUgMTYuMiAxNy4yIDE1LjUgMTggMTUuNUMxOC44IDE1LjUgMTkuNSAxNi4yIDE5LjUgMTdDMTkuNSAxNy44IDE4LjggMTguNSAxOCAxOC41WiIgZmlsbD0iIzM0OThGQiIvPgo8L3N2Zz4K',
+          url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE5IDdIMTZDMTUgNCAxMiAyIDEyIDJDMTIgMiA5IDQgOCA3SDVDMy45IDcgMyA3LjkgMyA5VjE4QzMgMTkuMSAzLjkgMjAgNSAyMEgxOUMxMC4xIDIwIDIxIDE5LjEgMjEgMThWOUMyMSA3LjkgMjAuMSA3IDE5IDdaTTggMTguNUM3LjIgMTguNSA2LjUgMTcuOCA2LjUgMTdDNi41IDE2LjIgNy4yIDE1LjUgOCAxNS41QzguOCAxUy41IDkuNSAxNi4yIDkuNSAxN0M5LjUgMTcuOCA4LjggMTguNSA4IDE4LjVaTTE1LjUgMTUuNUgxMC41VjE0SDE1LjVWMTUuNVpNMTggMTguNUMxNy4yIDE4LjUgMTYuNSAxNy44IDE2LjUgMTdDMTYuNSAxNi4yIDE3LjIgMTUuNSAxOCAxNS41QzE4LjggMTUuNSAxOS41IDE2LjIgMTkuNSAxN0MxOS41IDE3LjggMTguOCAxOC41IDE4IDE4LjVaIiBmaWxsPSIjMzQ5OEZCIi8+Cjwvc3ZnPgo=',
           scaledSize: new window.google.maps.Size(28, 28),
         }
       });
@@ -210,6 +210,10 @@ const OrderAssign = () => {
     return order.delivery_time && new Date(order.delivery_time) > new Date();
   }, []);
 
+  const isNormalOrder = useCallback((order) => {
+    return !isScheduledOrder(order);
+  }, [isScheduledOrder]);
+
   const formatDeliveryTime = useCallback((deliveryTime) => {
     if (!deliveryTime) return null;
     
@@ -248,6 +252,28 @@ const OrderAssign = () => {
     } else {
       return `${diffMinutes}m`;
     }
+  }, []);
+
+  const makeCall = useCallback((phoneNumber) => {
+    if (!phoneNumber) {
+      alert('Phone number not available');
+      return;
+    }
+    
+    const confirmed = window.confirm(`Call ${phoneNumber}?`);
+    if (confirmed) {
+      window.location.href = `tel:${phoneNumber}`;
+    }
+  }, []);
+
+  const sendSMS = useCallback((phoneNumber) => {
+    if (!phoneNumber) {
+      alert('Phone number not available');
+      return;
+    }
+    
+    const message = encodeURIComponent(`Your order has been confirmed. We will deliver it soon.`);
+    window.location.href = `sms:${phoneNumber}?body=${message}`;
   }, []);
 
   const fetchDrivers = useCallback(async () => {
@@ -597,10 +623,15 @@ const OrderAssign = () => {
   const filteredOrders = useMemo(() => {
     let filtered = orders;
     
-    if (activeTab === 'scheduled') {
+    // Apply tab filter
+    if (activeTab === 'normal') {
+      filtered = filtered.filter(order => isNormalOrder(order));
+    } else if (activeTab === 'scheduled') {
       filtered = filtered.filter(order => isScheduledOrder(order));
     }
+    // 'all' shows all orders
 
+    // Apply search filter
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(order => {
@@ -614,6 +645,7 @@ const OrderAssign = () => {
       });
     }
 
+    // Sort orders
     return filtered.sort((a, b) => {
       if (isScheduledOrder(a) && isScheduledOrder(b)) {
         return new Date(a.delivery_time) - new Date(b.delivery_time);
@@ -625,7 +657,7 @@ const OrderAssign = () => {
         return new Date(a.created_at) - new Date(b.created_at);
       }
     });
-  }, [orders, searchTerm, activeTab, isScheduledOrder]);
+  }, [orders, searchTerm, activeTab, isScheduledOrder, isNormalOrder]);
 
   const allDrivers = useMemo(() => 
     drivers.map(driver => ({
@@ -647,19 +679,21 @@ const OrderAssign = () => {
 
   const stats = useMemo(() => {
     const scheduledOrders = orders.filter(o => isScheduledOrder(o)).length;
+    const normalOrders = orders.filter(o => isNormalOrder(o)).length;
     const selectedCount = selectedOrdersMap.size;
     const onlinePayments = orders.filter(o => o.payment_method === 'Online Payment').length;
     const codPayments = orders.filter(o => o.payment_method === 'Cash on Delivery').length;
 
     return {
       total: orders.length,
+      normalOrders,
       scheduledOrders,
       availableDrivers: availableDrivers.length,
       selectedCount,
       onlinePayments,
       codPayments
     };
-  }, [orders, availableDrivers.length, isScheduledOrder, selectedOrdersMap]);
+  }, [orders, availableDrivers.length, isScheduledOrder, isNormalOrder, selectedOrdersMap]);
 
   const formatDate = useCallback((dateString) => {
     return new Date(dateString).toLocaleString('en-IN', {
@@ -826,9 +860,17 @@ const OrderAssign = () => {
             <div className="stat-card">
               <div className="stat-icon">📦</div>
               <div className="stat-content">
-                <h3>Total Orders</h3>
+                <h3>All Orders</h3>
                 <span className="stat-number">{stats.total}</span>
-                <p>Waiting for assignment</p>
+                <p>All pending orders</p>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">🚚</div>
+              <div className="stat-content">
+                <h3>Normal Orders</h3>
+                <span className="stat-number">{stats.normalOrders}</span>
+                <p>Immediate delivery</p>
               </div>
             </div>
             <div className="stat-card">
@@ -886,6 +928,12 @@ const OrderAssign = () => {
               All Orders ({stats.total})
             </button>
             <button 
+              className={`tab-btn ${activeTab === 'normal' ? 'active' : ''}`}
+              onClick={() => setActiveTab('normal')}
+            >
+              Normal Orders ({stats.normalOrders})
+            </button>
+            <button 
               className={`tab-btn ${activeTab === 'scheduled' ? 'active' : ''}`}
               onClick={() => setActiveTab('scheduled')}
             >
@@ -926,6 +974,7 @@ const OrderAssign = () => {
                     </th>
                     <th>Order Info</th>
                     <th>Customer</th>
+                    <th>Contact</th>
                     <th>Items</th>
                     <th>Amount</th>
                     <th>Status</th>
@@ -971,7 +1020,6 @@ const OrderAssign = () => {
                         
                         <td className="customer-info">
                           <div className="customer-name">{order.customer_name}</div>
-                          <div className="customer-phone">{order.customer_phone}</div>
                           <div className="customer-address">{order.delivery_address}</div>
                           {isScheduled && deliveryTimeDisplay && (
                             <div className="delivery-time-info">
@@ -985,6 +1033,28 @@ const OrderAssign = () => {
                               )}
                             </div>
                           )}
+                        </td>
+                        
+                        <td className="customer-contact">
+                          <div className="contact-buttons">
+                            <button 
+                              className="btn-call"
+                              onClick={() => makeCall(order.customer_phone)}
+                              title="Call customer"
+                            >
+                              📞 Call
+                            </button>
+                            <button 
+                              className="btn-sms"
+                              onClick={() => sendSMS(order.customer_phone)}
+                              title="Send SMS"
+                            >
+                              💬 SMS
+                            </button>
+                            <div className="phone-display">
+                              {order.customer_phone}
+                            </div>
+                          </div>
                         </td>
                         
                         <td className="order-items">
@@ -1103,6 +1173,24 @@ const OrderAssign = () => {
                     </div>
                   </div>
                   
+                  <div className="customer-contact-modal">
+                    <button 
+                      className="btn-call-modal"
+                      onClick={() => makeCall(selectedOrder.customer_phone)}
+                    >
+                      📞 Call Customer
+                    </button>
+                    <button 
+                      className="btn-sms-modal"
+                      onClick={() => sendSMS(selectedOrder.customer_phone)}
+                    >
+                      💬 Send SMS
+                    </button>
+                    <span className="customer-phone-modal">
+                      {selectedOrder.customer_phone}
+                    </span>
+                  </div>
+                  
                   {isScheduledOrder(selectedOrder) && (
                     <div className="scheduled-order-alert">
                       <span className="scheduled-icon-large">⏰</span>
@@ -1118,10 +1206,6 @@ const OrderAssign = () => {
                     <div className="summary-item">
                       <label>Customer</label>
                       <span>{selectedOrder.customer_name}</span>
-                    </div>
-                    <div className="summary-item">
-                      <label>Phone</label>
-                      <span>{selectedOrder.customer_phone}</span>
                     </div>
                     <div className="summary-item">
                       <label>Payment</label>
@@ -1250,6 +1334,7 @@ const OrderAssign = () => {
                         </div>
                         <div className="selected-order-info">
                           <span>{order.customer_name}</span>
+                          <span className="customer-phone-small">{order.customer_phone}</span>
                           <span>₹{getTotalAmount(order).toLocaleString('en-IN')}</span>
                         </div>
                         {isScheduledOrder(order) && (
@@ -1265,6 +1350,14 @@ const OrderAssign = () => {
                     <div className="total-amount-row">
                       <span>Total Orders:</span>
                       <span>{selectedOrders.length}</span>
+                    </div>
+                    <div className="total-amount-row">
+                      <span>Normal Orders:</span>
+                      <span>{selectedOrders.filter(o => isNormalOrder(o)).length}</span>
+                    </div>
+                    <div className="total-amount-row">
+                      <span>Scheduled Orders:</span>
+                      <span>{selectedOrders.filter(o => isScheduledOrder(o)).length}</span>
                     </div>
                     <div className="total-amount-row">
                       <span>Online Payments:</span>
@@ -1362,6 +1455,24 @@ const OrderAssign = () => {
                       />
                       <PaymentMethodBadge paymentMethod={selectedOrder.payment_method} />
                     </div>
+                  </div>
+                  
+                  <div className="customer-contact-modal">
+                    <button 
+                      className="btn-call-modal"
+                      onClick={() => makeCall(selectedOrder.customer_phone)}
+                    >
+                      📞 Call Customer
+                    </button>
+                    <button 
+                      className="btn-sms-modal"
+                      onClick={() => sendSMS(selectedOrder.customer_phone)}
+                    >
+                      💬 Send SMS
+                    </button>
+                    <span className="customer-phone-modal">
+                      {selectedOrder.customer_phone}
+                    </span>
                   </div>
                   
                   {isScheduledOrder(selectedOrder) && (
@@ -1464,6 +1575,23 @@ const OrderAssign = () => {
 
                 <div className="location-details">
                   <h4>Customer Location</h4>
+                  <div className="customer-contact-modal">
+                    <button 
+                      className="btn-call-modal"
+                      onClick={() => makeCall(selectedOrder.customer_phone)}
+                    >
+                      📞 Call Customer
+                    </button>
+                    <button 
+                      className="btn-sms-modal"
+                      onClick={() => sendSMS(selectedOrder.customer_phone)}
+                    >
+                      💬 Send SMS
+                    </button>
+                    <span className="customer-phone-modal">
+                      {selectedOrder.customer_phone}
+                    </span>
+                  </div>
                   <p><strong>Name:</strong> {selectedOrder.customer_name}</p>
                   <p><strong>Address:</strong> {selectedOrder.delivery_address}</p>
                   <p><strong>Payment:</strong> <PaymentMethodBadge paymentMethod={selectedOrder.payment_method} /></p>
