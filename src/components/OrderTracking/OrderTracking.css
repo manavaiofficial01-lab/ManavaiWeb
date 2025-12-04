@@ -1,25 +1,27 @@
+/* OrderTracking.css */
+
+/* Main Container */
 .order-tracking {
   padding: 20px;
-  max-width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
-  background: #f8f9fa;
-  min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
 }
 
+/* Header */
 .order-tracking-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .order-tracking-header-title {
-  font-size: 1.8em;
+  font-size: 28px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #2c3e50;
   margin: 0;
 }
 
@@ -27,39 +29,115 @@
   display: flex;
   gap: 12px;
   align-items: center;
-  flex-wrap: wrap;
 }
 
+/* View Toggle */
 .order-tracking-view-toggle {
   display: flex;
-  background: white;
+  background: #f5f7fa;
+  border-radius: 8px;
   padding: 4px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .order-tracking-toggle-btn {
   padding: 8px 16px;
   border: none;
-  border-radius: 8px;
-  background: transparent;
+  background: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
   cursor: pointer;
-  font-weight: 600;
-  font-size: 13px;
   transition: all 0.2s ease;
 }
 
-.order-tracking-toggle-btn.order-tracking-active {
-  background: #FFCC00;
-  color: #333;
+.order-tracking-toggle-btn:hover {
+  background: #e2e8f0;
+  color: #475569;
 }
 
+.order-tracking-toggle-btn.order-tracking-active {
+  background: #ffffff;
+  color: #3b82f6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.order-tracking-today-btn {
+  background: #3b82f6;
+  color: white !important;
+}
+
+.order-tracking-today-btn:hover {
+  background: #2563eb;
+}
+
+/* Filters Section */
+.order-tracking-filters-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.order-tracking-search-box {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.order-tracking-search-input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.order-tracking-search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.order-tracking-search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.order-tracking-filter-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.order-tracking-filter-select {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  color: #334155;
+  cursor: pointer;
+}
+
+.order-tracking-filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+/* Date Navigation */
 .order-tracking-date-navigation {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .order-tracking-date-nav-header {
@@ -70,87 +148,145 @@
 }
 
 .order-tracking-nav-btn {
-  background: #FFCC00;
-  border: none;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   width: 40px;
   height: 40px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 18px;
+  transition: all 0.2s ease;
 }
 
-.order-tracking-selected-date {
-  font-size: 1.1em;
-  font-weight: 600;
-  color: #333;
-}
-
-.order-tracking-today-badge {
-  background: #27ae60;
+.order-tracking-nav-btn:hover {
+  background: #3b82f6;
+  border-color: #3b82f6;
   color: white;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
 }
 
-.order-tracking-date-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+.order-tracking-date-display {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
-.order-tracking-date-stat {
-  text-align: center;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
+.order-tracking-selected-date {
+  font-size: 18px;
   font-weight: 600;
-  font-size: 13px;
+  color: #1e293b;
 }
 
+.order-tracking-today-badge {
+  background: #10b981;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 12px;
+}
+
+.order-tracking-calendar-btn {
+  background: #f1f5f9;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.order-tracking-calendar-btn:hover {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.order-tracking-date-stats {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.order-tracking-date-stat {
+  padding: 8px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.order-tracking-date-stat:nth-child(1) { border-left: 4px solid #3b82f6; }
+.order-tracking-date-stat:nth-child(2) { border-left: 4px solid #10b981; }
+.order-tracking-date-stat:nth-child(3) { border-left: 4px solid #8b5cf6; }
+.order-tracking-date-stat:nth-child(4) { border-left: 4px solid #06b6d4; }
+.order-tracking-date-stat:nth-child(5) { border-left: 4px solid #ef4444; }
+
+/* Stats Grid */
 .order-tracking-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
 
 .order-tracking-stat-card {
   background: white;
-  padding: 20px;
   border-radius: 12px;
+  padding: 24px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  border-left: 4px solid #FFCC00;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.order-tracking-stat-card.order-tracking-delivered { border-left-color: #27ae60; }
-.order-tracking-stat-card.order-tracking-shipped { border-left-color: #3498db; }
-.order-tracking-stat-card.order-tracking-cancelled { border-left-color: #e74c3c; }
-
 .order-tracking-stat-number {
-  font-size: 1.8em;
-  font-weight: 800;
-  color: #1a1a1a;
-  margin-bottom: 4px;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 8px;
 }
 
 .order-tracking-stat-label {
-  font-size: 12px;
-  color: #666;
-  font-weight: 600;
+  font-size: 14px;
+  color: #64748b;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
+.order-tracking-total .order-tracking-stat-number { color: #3b82f6; }
+.order-tracking-processing .order-tracking-stat-number { color: #10b981; }
+.order-tracking-shipped .order-tracking-stat-number { color: #8b5cf6; }
+.order-tracking-delivered .order-tracking-stat-number { color: #06b6d4; }
+.order-tracking-cancelled .order-tracking-stat-number { color: #ef4444; }
+
+/* Orders Table */
 .order-tracking-orders-table-container {
   background: white;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.order-tracking-table-header {
+  padding: 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.order-tracking-table-header h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 18px;
+}
+
+.order-tracking-orders-count {
+  color: #64748b;
+  font-weight: normal;
 }
 
 .order-tracking-orders-table {
@@ -158,132 +294,265 @@
   border-collapse: collapse;
 }
 
+.order-tracking-orders-table thead {
+  background: #f8fafc;
+}
+
 .order-tracking-orders-table th {
-  background: #f8f9fa;
-  padding: 16px 12px;
+  padding: 16px;
   text-align: left;
+  font-size: 12px;
   font-weight: 600;
-  font-size: 13px;
-  color: #333;
-  border-bottom: 1px solid #e0e0e0;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .order-tracking-orders-table td {
-  padding: 16px 12px;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 13px;
+  padding: 16px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.order-tracking-orders-table tr:hover {
-  background: #f8f9fa;
+.order-tracking-order-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
-.order-tracking-orders-table tr:last-child td {
-  border-bottom: none;
+.order-tracking-order-row:hover {
+  background: #f8fafc;
 }
 
-.order-tracking-status-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  display: inline-block;
-}
-
-.order-tracking-status-processing { background: #fff3cd; color: #856404; }
-.order-tracking-status-shipped { background: #cce7ff; color: #004085; }
-.order-tracking-status-delivered { background: #d4edda; color: #155724; }
-.order-tracking-status-cancelled { background: #f8d7da; color: #721c24; }
-
-.order-tracking-customer-info {
+/* Table Cells */
+.order-tracking-customer-info,
+.order-tracking-restaurant-info,
+.order-tracking-driver-info {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.order-tracking-customer-name {
-  font-weight: 600;
-  color: #333;
+.order-tracking-customer-name,
+.order-tracking-restaurant-name,
+.order-tracking-driver-name {
+  font-weight: 500;
+  color: #1e293b;
 }
 
-.order-tracking-customer-phone {
-  color: #666;
+.order-tracking-customer-phone,
+.order-tracking-driver-phone {
   font-size: 12px;
+  color: #64748b;
 }
 
+.order-tracking-no-driver {
+  color: #ef4444;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.order-tracking-distance {
+  font-size: 12px;
+  color: #8b5cf6;
+  background: #f5f3ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* Driver Status */
+.driver-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.driver-status-default { background: #94a3b8; }
+.driver-status-order-placed { background: #3b82f6; }
+.driver-status-partner-accepted { background: #10b981; }
+.driver-status-pickup-location { background: #f59e0b; }
+.driver-status-pickup-completed { background: #8b5cf6; }
+.driver-status-item-unavailable { background: #ef4444; }
+.driver-status-restaurant-closed { background: #dc2626; }
+.driver-status-customer-location { background: #06b6d4; }
+.driver-status-cash-collected { background: #059669; }
+.driver-status-paid-qr { background: #7c3aed; }
+.driver-status-already-paid { background: #7c3aed; }
+.driver-status-order-completed { background: #10b981; }
+.driver-status-cancelled { background: #dc2626; }
+
+.order-tracking-driver-earnings {
+  font-size: 12px;
+  color: #059669;
+  margin-top: 4px;
+}
+
+/* Items Preview */
 .order-tracking-items-preview {
-  max-width: 200px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
 }
 
 .order-tracking-item-chip {
-  display: inline-block;
-  background: #f8f9fa;
+  background: #f1f5f9;
   padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  margin: 2px;
-  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #475569;
 }
 
 .order-tracking-more-items {
   font-size: 11px;
-  color: #666;
+  color: #94a3b8;
   font-style: italic;
 }
 
+/* Amount */
+.order-tracking-amount {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.order-tracking-delivery-charge {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Status Badges */
+.order-tracking-status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+}
+
+.order-tracking-status-processing { background: #10b981; }
+.order-tracking-status-shipped { background: #8b5cf6; }
+.order-tracking-status-delivered { background: #06b6d4; }
+.order-tracking-status-cancelled { background: #ef4444; }
+
+.order-tracking-otp-badge {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.order-tracking-delivery-time {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Actions */
 .order-tracking-order-actions {
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 
 .order-tracking-action-btn {
-  width: 32px;
-  height: 32px;
+  padding: 8px;
   border: none;
   border-radius: 6px;
+  background: #f1f5f9;
+  color: #64748b;
   cursor: pointer;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  transition: all 0.2s ease;
+  font-size: 14px;
 }
 
 .order-tracking-action-btn:hover {
-  transform: scale(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.order-tracking-action-btn.order-tracking-ship { background: #3498db; color: white; }
-.order-tracking-action-btn.order-tracking-deliver { background: #27ae60; color: white; }
-.order-tracking-action-btn.order-tracking-cancel { background: #e74c3c; color: white; }
+.order-tracking-update { background: #ff9800 !important; color: white !important; }
+.order-tracking-update:hover { background: #f57c00 !important; }
 
-.order-tracking-amount {
-  font-weight: 700;
-  color: #333;
+.order-tracking-cancel { background: #ef4444 !important; color: white !important; }
+.order-tracking-cancel:hover { background: #dc2626 !important; }
+
+.order-tracking-details { background: #3b82f6 !important; color: white !important; }
+.order-tracking-details:hover { background: #2563eb !important; }
+
+/* No Orders */
+.order-tracking-no-orders {
+  padding: 60px 20px;
+  text-align: center;
+  color: #64748b;
 }
 
+.order-tracking-no-orders-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.order-tracking-no-orders p {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+}
+
+.order-tracking-clear-filters-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.order-tracking-clear-filters-btn:hover {
+  background: #2563eb;
+}
+
+/* Loading */
 .order-tracking-loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 60vh;
-  gap: 16px;
+  min-height: 400px;
 }
 
 .order-tracking-loading-spinner {
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #FFCC00;
+  border-top: 3px solid #3b82f6;
   border-radius: 50%;
-  animation: order-tracking-spin 1s linear infinite;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
 }
 
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error Banner */
 .order-tracking-error-banner {
-  background: #e74c3c;
-  color: white;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 20px;
@@ -295,149 +564,21 @@
 .order-tracking-close-error {
   background: none;
   border: none;
-  color: white;
+  color: #dc2626;
+  font-size: 20px;
   cursor: pointer;
-  font-size: 16px;
+  padding: 0;
+  width: 24px;
+  height: 24px;
 }
 
-.order-tracking-no-orders {
-  text-align: center;
-  padding: 60px 20px;
-  color: #666;
-}
-
-.order-tracking-no-orders-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-/* Enhanced Filters */
-.order-tracking-filters-section {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.order-tracking-search-box {
-  position: relative;
-  flex: 1;
-  min-width: 250px;
-}
-
-.order-tracking-search-input {
-  width: 100%;
-  padding: 12px 16px 12px 40px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 14px;
-  background: #f8f9fa;
-}
-
-.order-tracking-search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #666;
-}
-
-.order-tracking-filter-controls {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.order-tracking-filter-select {
-  padding: 12px 16px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  background: white;
-  font-size: 14px;
-  min-width: 150px;
-}
-
-/* Enhanced Table Rows */
-.order-tracking-order-row {
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.order-tracking-order-row:hover {
-  background: #f0f7ff !important;
-  transform: translateY(-1px);
-}
-
-.order-tracking-order-meta {
-  margin-top: 4px;
-}
-
-.order-tracking-payment-method {
-  background: #f8f9fa;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  color: #666;
-}
-
-.order-tracking-driver-info, .order-tracking-distance {
-  font-size: 11px;
-  color: #666;
-  margin-top: 2px;
-}
-
-.order-tracking-delivery-charge {
-  font-size: 11px;
-  color: #27ae60;
-  margin-top: 2px;
-}
-
-.order-tracking-otp-badge {
-  background: #FFCC00;
-  color: #333;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  margin-top: 4px;
-  display: inline-block;
-}
-
-.order-tracking-delivery-time {
-  font-size: 11px;
-  color: #666;
-  margin-top: 4px;
-}
-
-.order-tracking-restaurant-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.order-tracking-clear-filters-btn {
-  background: #FFCC00;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 12px;
-}
-
-/* Modal Styles */
+/* Modals */
 .order-tracking-modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -449,11 +590,11 @@
 .order-tracking-modal-content {
   background: white;
   border-radius: 12px;
-  max-width: 800px;
+  max-width: 900px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .order-tracking-modal-header {
@@ -461,112 +602,197 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #f8f9fa;
-  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .order-tracking-modal-header h2 {
   margin: 0;
-  color: #1a1a1a;
+  color: #1e293b;
+  font-size: 20px;
 }
 
 .order-tracking-close-btn {
   background: none;
   border: none;
   font-size: 24px;
+  color: #64748b;
   cursor: pointer;
-  color: #666;
+  padding: 0;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 4px;
 }
 
 .order-tracking-close-btn:hover {
-  background: #e0e0e0;
+  background: #f1f5f9;
+  color: #ef4444;
 }
 
 .order-tracking-modal-body {
   padding: 20px;
 }
 
+/* Order Details Modal */
 .order-tracking-order-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.order-tracking-order-id {
+  display: flex;
+  align-items: center;
   gap: 12px;
+}
+
+.order-tracking-order-meta {
+  text-align: right;
+  color: #64748b;
+  font-size: 14px;
 }
 
 .order-tracking-info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 20px;
+  margin-bottom: 24px;
 }
 
 .order-tracking-info-card {
-  background: #f8f9fa;
-  padding: 16px;
+  background: #f8fafc;
   border-radius: 8px;
-  border-left: 4px solid #FFCC00;
+  padding: 20px;
 }
 
 .order-tracking-info-card h3 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: #333;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  margin: 0 0 16px 0;
+  color: #1e293b;
+  font-size: 16px;
 }
 
 .order-tracking-info-item {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  color: #475569;
   font-size: 14px;
 }
 
+.order-tracking-info-item:last-child {
+  margin-bottom: 0;
+}
+
+.order-tracking-info-item strong {
+  color: #1e293b;
+  margin-right: 8px;
+}
+
 .order-tracking-otp-highlight {
-  background: #FFCC00;
+  background: #fef3c7;
   padding: 8px;
-  border-radius: 4px;
-  font-weight: 700;
-  margin-top: 8px;
+  border-radius: 6px;
+  color: #92400e;
 }
 
-.order-tracking-items-section {
-  margin-bottom: 20px;
+.order-tracking-driver-timeline {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
 }
 
-.order-tracking-items-section h3 {
-  margin-bottom: 12px;
-  color: #333;
+.order-tracking-driver-timeline h3 {
+  margin: 0 0 16px 0;
+  color: #1e293b;
+  font-size: 16px;
 }
 
-.order-tracking-items-list {
+.driver-timeline-steps {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
-.order-tracking-item-card {
+.timeline-step {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px;
   background: white;
-  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  border-left: 4px solid #e2e8f0;
+}
+
+.timeline-step.active {
+  border-left-color: #3b82f6;
+}
+
+.timeline-step.completed {
+  border-left-color: #10b981;
+}
+
+.timeline-step-icon {
+  width: 24px;
+  height: 24px;
+  background: #10b981;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.timeline-step-content {
+  flex: 1;
+}
+
+.timeline-step-content strong {
+  display: block;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.timeline-step-content span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.order-tracking-items-section {
+  margin-bottom: 24px;
+}
+
+.order-tracking-items-section h3 {
+  margin: 0 0 16px 0;
+  color: #1e293b;
+  font-size: 16px;
+}
+
+.order-tracking-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.order-tracking-item-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
+  align-items: center;
 }
 
 .order-tracking-item-image {
   width: 60px;
   height: 60px;
-  border-radius: 6px;
   object-fit: cover;
+  border-radius: 6px;
 }
 
 .order-tracking-item-details {
@@ -574,48 +800,58 @@
 }
 
 .order-tracking-item-name {
-  font-weight: 600;
+  font-weight: 500;
+  color: #1e293b;
   margin-bottom: 4px;
 }
 
 .order-tracking-item-meta {
   display: flex;
-  gap: 12px;
-  font-size: 12px;
-  color: #666;
+  gap: 16px;
+  font-size: 14px;
+  color: #64748b;
 }
 
 .order-tracking-item-discount {
+  display: flex;
+  gap: 8px;
+  align-items: center;
   margin-top: 4px;
 }
 
 .order-tracking-original-price {
+  font-size: 12px;
+  color: #94a3b8;
   text-decoration: line-through;
-  color: #999;
-  font-size: 11px;
-  margin-right: 8px;
 }
 
 .order-tracking-discount-badge {
-  background: #27ae60;
+  background: #10b981;
   color: white;
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 11px;
 }
 
 .order-tracking-summary-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 20px;
+  margin-bottom: 24px;
 }
 
-.order-tracking-payment-info, .order-tracking-order-summary {
-  background: #f8f9fa;
-  padding: 16px;
+.order-tracking-payment-info,
+.order-tracking-order-summary {
+  background: #f8fafc;
   border-radius: 8px;
+  padding: 20px;
+}
+
+.order-tracking-cash-collected {
+  background: #d1fae5;
+  padding: 8px;
+  border-radius: 6px;
+  color: #065f46;
 }
 
 .order-tracking-summary-row {
@@ -623,14 +859,19 @@
   justify-content: space-between;
   margin-bottom: 8px;
   font-size: 14px;
+  color: #475569;
 }
 
-.order-tracking-summary-row.order-tracking-total {
-  border-top: 1px solid #e0e0e0;
-  padding-top: 8px;
-  font-weight: 700;
+.order-tracking-summary-row:last-child {
+  margin-bottom: 0;
+}
+
+.order-tracking-total {
+  font-weight: 600;
+  color: #1e293b;
   font-size: 16px;
-  color: #1a1a1a;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
 }
 
 .order-tracking-modal-actions {
@@ -638,133 +879,187 @@
   gap: 12px;
   flex-wrap: wrap;
   padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #e2e8f0;
 }
 
-.order-tracking-action-btn.order-tracking-primary {
-  background: #3498db;
-  color: white;
-  border: none;
-  padding: 12px 20px;
+.order-tracking-primary {
+  background: #3b82f6 !important;
+  color: white !important;
+  padding: 10px 20px !important;
+}
+
+.order-tracking-secondary {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  padding: 10px 20px !important;
+}
+
+.order-tracking-danger {
+  background: #ef4444 !important;
+  color: white !important;
+  padding: 10px 20px !important;
+}
+
+.order-tracking-warning {
+  background: #f59e0b !important;
+  color: white !important;
+  padding: 10px 20px !important;
+}
+
+.order-tracking-primary:hover { background: #2563eb !important; }
+.order-tracking-secondary:hover { background: #e2e8f0 !important; }
+.order-tracking-danger:hover { background: #dc2626 !important; }
+.order-tracking-warning:hover { background: #d97706 !important; }
+
+/* Status Update Modal */
+.status-update-modal {
+  max-width: 800px;
+}
+
+.status-update-info {
+  background: #f8f9fa;
   border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  flex: 1;
+  padding: 20px;
+  margin-bottom: 24px;
 }
 
-.order-tracking-action-btn.order-tracking-success {
-  background: #27ae60;
+.status-update-info h3 {
+  margin: 0 0 16px 0;
+  color: #1e293b;
+  font-size: 16px;
+}
+
+.status-update-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.current-status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
   color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  cursor: pointer;
   font-weight: 600;
-  flex: 1;
+  font-size: 12px;
+  margin-left: 8px;
 }
 
-.order-tracking-action-btn.order-tracking-danger {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 12px 20px;
+.status-selection-section h3 {
+  margin: 0 0 16px 0;
+  color: #1e293b;
+  font-size: 16px;
+}
+
+.status-options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.status-option-card {
+  border: 2px solid;
   border-radius: 8px;
+  padding: 16px;
   cursor: pointer;
-  font-weight: 600;
-  flex: 1;
+  transition: all 0.2s ease;
 }
 
-.order-tracking-action-btn.order-tracking-secondary {
-  background: #95a5a6;
-  color: white;
-  border: none;
-  padding: 12px 20px;
+.status-option-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.status-option-selected {
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+}
+
+.status-option-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.status-option-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-option-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.status-option-description {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.status-notes-section {
+  margin-bottom: 24px;
+}
+
+.status-notes-section h3 {
+  margin: 0 0 8px 0;
+  color: #1e293b;
+  font-size: 16px;
+}
+
+.status-notes-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e2e8f0;
   border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  flex: 1;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  transition: all 0.2s ease;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .order-tracking {
-    padding: 12px;
-  }
-  
-  .order-tracking-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .order-tracking-header-controls {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .order-tracking-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .order-tracking-orders-table-container {
-    overflow-x: auto;
-  }
-  
-  .order-tracking-orders-table {
-    min-width: 800px;
-  }
-  
-  .order-tracking-filters-section {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .order-tracking-search-box {
-    min-width: auto;
-  }
-  
-  .order-tracking-filter-controls {
-    width: 100%;
-  }
-  
-  .order-tracking-filter-select {
-    flex: 1;
-  }
-  
-  .order-tracking-info-grid,
-  .order-tracking-summary-section {
-    grid-template-columns: 1fr;
-  }
-  
-  .order-tracking-modal-content {
-    margin: 10px;
-    max-height: calc(100vh - 20px);
-  }
-  
-  .order-tracking-order-header {
-    flex-direction: column;
-  }
-  
-  .order-tracking-modal-actions {
-    flex-direction: column;
-  }
+.status-notes-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-@keyframes order-tracking-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-
-
-  
+.status-update-warning {
+  display: flex;
+  align-items: flex-start;
+  background: #fffbeb;
+  border: 2px solid #fde68a;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
 }
 
+.warning-icon {
+  font-size: 20px;
+  margin-right: 12px;
+  flex-shrink: 0;
+  color: #f59e0b;
+}
 
-/* Calendar Picker Styles */
+.warning-content {
+  font-size: 14px;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+.warning-content strong {
+  color: #92400e;
+}
+
+/* Calendar Picker */
 .calendar-picker-backdrop {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -776,275 +1071,200 @@
 .calendar-picker {
   background: white;
   border-radius: 12px;
-  padding: 20px;
+  padding: 24px;
   max-width: 400px;
   width: 100%;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .calendar-picker-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .calendar-picker-header h3 {
   margin: 0;
-  font-size: 1.1em;
-  color: #333;
+  color: #1e293b;
+  font-size: 18px;
 }
 
 .calendar-nav-btn {
-  background: #FFCC00;
+  background: #f1f5f9;
   border: none;
   width: 36px;
   height: 36px;
-  border-radius: 8px;
-  cursor: pointer;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.calendar-nav-btn:hover {
+  background: #3b82f6;
+  color: white;
 }
 
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
 .calendar-day-header {
   text-align: center;
-  font-weight: 600;
   font-size: 12px;
-  color: #666;
-  padding: 8px 4px;
+  font-weight: 600;
+  color: #64748b;
+  padding: 8px;
 }
 
 .calendar-day {
+  aspect-ratio: 1;
+  border: 2px solid #e2e8f0;
   background: white;
-  border: 1px solid #e0e0e0;
   border-radius: 6px;
-  padding: 8px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
+  color: #1e293b;
   transition: all 0.2s ease;
 }
 
-.calendar-day:hover {
-  background: #f8f9fa;
-  transform: scale(1.05);
+.calendar-day:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
 }
 
-.calendar-day.calendar-today {
-  background: #FFCC00;
-  color: #333;
-  font-weight: 700;
+.calendar-day:disabled {
+  cursor: not-allowed;
+  background: #f8fafc;
 }
 
-.calendar-day.calendar-selected {
-  background: #3498db;
-  color: white;
-  font-weight: 700;
-}
-
-.calendar-day.calendar-empty {
-  background: transparent;
+.calendar-empty {
   border: none;
+  background: none;
   cursor: default;
+}
+
+.calendar-today {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.calendar-selected {
+  background: #3b82f6 !important;
+  color: white !important;
+  border-color: #3b82f6 !important;
 }
 
 .calendar-picker-actions {
   display: flex;
   gap: 12px;
-  justify-content: flex-end;
 }
 
-.calendar-today-btn {
-  background: #FFCC00;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
+.calendar-today-btn,
 .calendar-close-btn {
-  background: #95a5a6;
-  color: white;
-  border: none;
-  padding: 8px 16px;
+  flex: 1;
+  padding: 10px;
   border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-/* Enhanced Date Display */
-.order-tracking-date-display {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.order-tracking-calendar-btn {
-  background: #3498db;
-  border: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-}
-
-/* Driver Assignment Styles */
-.driver-assignment-modal {
-  max-width: 600px;
-}
-
-.driver-assignment-info {
-  background: #f8f9fa;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.driver-assignment-details p {
-  margin: 8px 0;
   font-size: 14px;
-}
-
-.driver-selection-section {
-  margin-bottom: 20px;
-}
-
-.driver-selection-select {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 2px solid #e2e8f0;
   background: white;
-  margin-bottom: 16px;
+  color: #64748b;
+  transition: all 0.2s ease;
 }
 
-.selected-driver-info {
-  background: #e8f5e8;
-  padding: 16px;
-  border-radius: 8px;
-  border-left: 4px solid #27ae60;
-}
-
-.driver-details p {
-  margin: 6px 0;
-  font-size: 14px;
-}
-
-.driver-status {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  margin-left: 8px;
-}
-
-.driver-status-online {
-  background: #d4edda;
-  color: #155724;
-}
-
-.driver-status-offline {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.driver-status-busy {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.driver-assignment-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-/* Driver Info in Order Modal */
-.driver-info-section {
-  margin-top: 12px;
-}
-
-.change-driver-btn, .assign-driver-btn {
-  background: #3498db;
+.calendar-today-btn:hover {
+  background: #3b82f6;
   color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  margin-top: 8px;
+  border-color: #3b82f6;
 }
 
-.assign-driver-btn {
-  background: #27ae60;
+.calendar-close-btn:hover {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
 }
 
-.change-driver-btn:hover {
-  background: #2980b9;
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .order-tracking-info-grid,
+  .order-tracking-summary-section,
+  .status-update-details {
+    grid-template-columns: 1fr;
+  }
+  
+  .status-options-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.assign-driver-btn:hover {
-  background: #219a52;
+@media (max-width: 768px) {
+  .order-tracking-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .order-tracking-header-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .order-tracking-filter-controls {
+    flex-direction: column;
+  }
+  
+  .order-tracking-filter-select {
+    min-width: 100%;
+  }
+  
+  .order-tracking-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .status-options-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .calendar-grid {
+    gap: 4px;
+  }
+  
+  .calendar-day {
+    font-size: 12px;
+  }
 }
 
-/* Driver Info in Table */
-.order-tracking-driver-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.order-tracking-driver-name {
-  font-weight: 600;
-  color: #333;
-}
-
-.order-tracking-driver-phone {
-  font-size: 11px;
-  color: #666;
-}
-
-.order-tracking-driver-status {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-weight: 600;
-  display: inline-block;
-  margin-top: 2px;
-}
-
-.order-tracking-driver-online {
-  background: #d4edda;
-  color: #155724;
-}
-
-.order-tracking-driver-offline {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.order-tracking-driver-busy {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.order-tracking-no-driver {
-  color: #999;
-  font-style: italic;
-  font-size: 12px;
+@media (max-width: 640px) {
+  .order-tracking-orders-table {
+    display: block;
+    overflow-x: auto;
+  }
+  
+  .order-tracking-date-stats {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .order-tracking-date-stat {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .order-tracking-modal-actions {
+    flex-direction: column;
+  }
+  
+  .order-tracking-action-btn {
+    width: 100%;
+  }
 }
