@@ -7,8 +7,7 @@ const normalizeStatus = (status) => {
   if (!status) return 'processing';
   const statusMap = {
     'accessing': 'processing', 'processing': 'processing', 'confirmed': 'processing',
-    'pending': 'processing', 'paid': 'processing', 'shipped': 'shipped', 
-    'delivered': 'delivered', 'cancelled': 'cancelled'
+    'paid': 'processing', 'shipped': 'shipped', 'delivered': 'delivered', 'cancelled': 'cancelled'
   };
   return statusMap[status.toLowerCase()] || 'processing';
 };
@@ -280,206 +279,6 @@ const CalendarPicker = ({ selectedDate, onDateSelect, onClose }) => {
   );
 };
 
-// Status Update Modal Component
-const StatusUpdateModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatDate }) => {
-  const [selectedStatus, setSelectedStatus] = useState(order.status || 'processing');
-  const [updating, setUpdating] = useState(false);
-  const [notes, setNotes] = useState('');
-
-  // Available status options
-  const statusOptions = [
-    { value: 'pending', label: 'Pending', description: 'Order placed but not yet confirmed' },
-    { value: 'confirmed', label: 'Confirmed', description: 'Order confirmed by restaurant' },
-    { value: 'processing', label: 'Processing', description: 'Order is being prepared' },
-    { value: 'shipped', label: 'Shipped', description: 'Order picked up by driver and on the way' },
-    { value: 'delivered', label: 'Delivered', description: 'Order successfully delivered to customer' },
-    { value: 'cancelled', label: 'Cancelled', description: 'Order cancelled' }
-  ];
-
-  // Map status to user-friendly display names
-  const statusLabels = {
-    'pending': 'Pending',
-    'confirmed': 'Confirmed',
-    'processing': 'Processing',
-    'shipped': 'Shipped',
-    'delivered': 'Delivered',
-    'cancelled': 'Cancelled'
-  };
-
-  const handleUpdateStatus = async () => {
-    if (!selectedStatus) {
-      alert('Please select a status');
-      return;
-    }
-
-    try {
-      setUpdating(true);
-      
-      // Prepare update data - only update fields that exist in the database
-      const updateData = {
-        status: selectedStatus,
-        updated_at: new Date().toISOString()
-      };
-      
-      // Handle specific status updates without using non-existent timestamp fields
-      switch(selectedStatus) {
-        case 'delivered':
-          if (order.payment_method === 'cash_on_delivery' && !order.cash_collected) {
-            updateData.cash_collected = true;
-            updateData.cash_collected_amount = order.total_amount;
-          }
-          // Update driver status without using non-existent order_completed_at
-          updateData.driver_status = 'order_completed';
-          break;
-        case 'cancelled':
-          updateData.driver_status = 'cancelled';
-          break;
-        case 'shipped':
-          // Update driver status to partner_accepted when shipped
-          if (!order.driver_status || order.driver_status === 'order_placed') {
-            updateData.driver_status = 'partner_accepted';
-          }
-          break;
-      }
-      
-      // Add notes if provided
-      if (notes.trim()) {
-        console.log('Status update notes:', notes);
-      }
-      
-      await onStatusUpdate(order.id, selectedStatus, updateData);
-      onClose();
-      
-    } catch (error) {
-      console.error('Error updating status:', error);
-      alert('Failed to update order status');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      'pending': '#ff9800',
-      'confirmed': '#2196f3',
-      'processing': '#4caf50',
-      'shipped': '#9c27b0',
-      'delivered': '#00bcd4',
-      'cancelled': '#f44336'
-    };
-    return colors[status] || '#757575';
-  };
-
-  return (
-    <div className="order-tracking-modal-backdrop" onClick={handleBackdropClick}>
-      <div className="order-tracking-modal-content status-update-modal">
-        <div className="order-tracking-modal-header">
-          <h2>Update Order Status - #{order.receipt_reference}</h2>
-          <button className="order-tracking-close-btn" onClick={onClose}>×</button>
-        </div>
-        
-        <div className="order-tracking-modal-body">
-          <div className="status-update-info">
-            <h3>Order Information</h3>
-            <div className="status-update-details">
-              <p><strong>Customer:</strong> {order.customer_name}</p>
-              <p><strong>Restaurant:</strong> {order.restaurant_name || 'N/A'}</p>
-              <p><strong>Current Status:</strong> 
-                <span 
-                  className="current-status-badge"
-                  style={{ backgroundColor: getStatusColor(normalizeStatus(order.status)) }}
-                >
-                  {statusLabels[normalizeStatus(order.status)] || order.status}
-                </span>
-              </p>
-              <p><strong>Amount:</strong> ₹{order.total_amount}</p>
-              <p><strong>Payment Method:</strong> {order.payment_method}</p>
-              {order.driver_name && (
-                <p><strong>Assigned Driver:</strong> {order.driver_name}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="status-selection-section">
-            <h3>Select New Status</h3>
-            <div className="status-options-grid">
-              {statusOptions.map((option) => (
-                <div 
-                  key={option.value}
-                  className={`status-option-card ${
-                    selectedStatus === option.value ? 'status-option-selected' : ''
-                  }`}
-                  onClick={() => setSelectedStatus(option.value)}
-                  style={{
-                    borderColor: getStatusColor(option.value),
-                    backgroundColor: selectedStatus === option.value ? `${getStatusColor(option.value)}15` : 'white'
-                  }}
-                >
-                  <div className="status-option-header">
-                    <div 
-                      className="status-option-indicator"
-                      style={{ backgroundColor: getStatusColor(option.value) }}
-                    ></div>
-                    <div className="status-option-title">{option.label}</div>
-                  </div>
-                  <div className="status-option-description">{option.description}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="status-notes-section">
-            <h3>Notes (Optional)</h3>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any notes about this status change..."
-              className="status-notes-textarea"
-              rows="3"
-              disabled={updating}
-            />
-          </div>
-
-          <div className="status-update-warning">
-            <div className="warning-icon">⚠️</div>
-            <div className="warning-content">
-              <strong>Important:</strong> Updating status will trigger notifications to customer and driver (if applicable).
-              Some status changes cannot be reversed.
-            </div>
-          </div>
-
-          <div className="status-update-actions">
-            <button 
-              onClick={handleUpdateStatus}
-              disabled={updating || selectedStatus === order.status}
-              className="order-tracking-action-btn order-tracking-primary"
-              style={{ 
-                backgroundColor: getStatusColor(selectedStatus),
-                opacity: (updating || selectedStatus === order.status) ? 0.6 : 1
-              }}
-            >
-              {updating ? 'Updating...' : `Update to ${statusLabels[selectedStatus] || selectedStatus}`}
-            </button>
-            <button 
-              onClick={onClose}
-              disabled={updating}
-              className="order-tracking-action-btn order-tracking-secondary"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Driver Assignment Modal Component
 const DriverAssignmentModal = ({ order, onClose, onDriverAssign, availableDrivers }) => {
   const [selectedDriver, setSelectedDriver] = useState('');
@@ -626,81 +425,6 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
   const canAssignDriver = normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped';
   const canChangeDriver = normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped';
 
-  // Simplified driver timeline using existing fields
-  const renderDriverTimeline = () => {
-    const timelineItems = [];
-    
-    if (order.driver_status === 'partner_accepted' || order.driver_status === 'reached_pickup_location' || 
-        order.driver_status === 'pickup_completed' || order.driver_status === 'reached_customer_location' ||
-        order.driver_status === 'cash_collected' || order.driver_status === 'order_completed') {
-      
-      timelineItems.push({
-        status: 'partner_accepted',
-        label: 'Driver Assigned',
-        completed: order.driver_status !== 'order_placed',
-        active: order.driver_status === 'partner_accepted'
-      });
-      
-      if (order.driver_status === 'reached_pickup_location' || order.driver_status === 'pickup_completed' || 
-          order.driver_status === 'reached_customer_location' || order.driver_status === 'cash_collected' ||
-          order.driver_status === 'order_completed') {
-        
-        timelineItems.push({
-          status: 'reached_pickup_location',
-          label: 'Reached Pickup',
-          completed: order.driver_status !== 'partner_accepted',
-          active: order.driver_status === 'reached_pickup_location'
-        });
-      }
-      
-      if (order.driver_status === 'pickup_completed' || order.driver_status === 'reached_customer_location' ||
-          order.driver_status === 'cash_collected' || order.driver_status === 'order_completed') {
-        
-        timelineItems.push({
-          status: 'pickup_completed',
-          label: 'Pickup Completed',
-          completed: order.driver_status !== 'reached_pickup_location',
-          active: order.driver_status === 'pickup_completed'
-        });
-      }
-      
-      if (order.driver_status === 'reached_customer_location' || order.driver_status === 'cash_collected' ||
-          order.driver_status === 'order_completed') {
-        
-        timelineItems.push({
-          status: 'reached_customer_location',
-          label: 'Reached Customer',
-          completed: order.driver_status !== 'pickup_completed',
-          active: order.driver_status === 'reached_customer_location'
-        });
-      }
-      
-      if (order.driver_status === 'cash_collected' || order.driver_status === 'order_completed') {
-        
-        timelineItems.push({
-          status: 'cash_collected',
-          label: order.payment_method === 'cash_on_delivery' ? 'Cash Collected' : 'Payment Verified',
-          completed: order.driver_status !== 'reached_customer_location',
-          active: order.driver_status === 'cash_collected'
-        });
-      }
-      
-      if (order.driver_status === 'order_completed') {
-        
-        timelineItems.push({
-          status: 'order_completed',
-          label: 'Order Completed',
-          completed: true,
-          active: true
-        });
-      }
-    }
-    
-    return timelineItems;
-  };
-
-  const timelineItems = renderDriverTimeline();
-
   return (
     <>
       <div className="order-tracking-modal-backdrop" onClick={handleBackdropClick}>
@@ -807,24 +531,69 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
             </div>
 
             {/* Driver Status Timeline */}
-            {timelineItems.length > 0 && (
+            {(order.driver_status && order.driver_status !== 'order_placed') && (
               <div className="order-tracking-driver-timeline">
                 <h3>Driver Activity Timeline</h3>
                 <div className="driver-timeline-steps">
-                  {timelineItems.map((item, index) => (
-                    <div 
-                      key={`${item.status}_${index}`} 
-                      className={`timeline-step ${item.active ? 'active' : ''} ${item.completed ? 'completed' : ''}`}
-                    >
-                      <div className="timeline-step-icon">
-                        {item.completed ? '✓' : (index + 1)}
-                      </div>
+                  {order.partner_accepted_at && (
+                    <div className={`timeline-step ${order.driver_status === 'partner_accepted' ? 'active' : 'completed'}`}>
+                      <div className="timeline-step-icon">✓</div>
                       <div className="timeline-step-content">
-                        <strong>{item.label}</strong>
-                        <span>{item.active ? 'In Progress' : item.completed ? 'Completed' : 'Pending'}</span>
+                        <strong>Partner Accepted</strong>
+                        <span>{formatDate(order.partner_accepted_at)}</span>
                       </div>
                     </div>
-                  ))}
+                  )}
+                  
+                  {order.reached_pickup_at && (
+                    <div className={`timeline-step ${order.driver_status === 'reached_pickup_location' ? 'active' : 'completed'}`}>
+                      <div className="timeline-step-icon">✓</div>
+                      <div className="timeline-step-content">
+                        <strong>Reached Pickup Location</strong>
+                        <span>{formatDate(order.reached_pickup_at)}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {order.pickup_completed_at && (
+                    <div className={`timeline-step ${order.driver_status === 'pickup_completed' ? 'active' : 'completed'}`}>
+                      <div className="timeline-step-icon">✓</div>
+                      <div className="timeline-step-content">
+                        <strong>Pickup Completed</strong>
+                        <span>{formatDate(order.pickup_completed_at)}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {order.reached_customer_at && (
+                    <div className={`timeline-step ${order.driver_status === 'reached_customer_location' ? 'active' : 'completed'}`}>
+                      <div className="timeline-step-icon">✓</div>
+                      <div className="timeline-step-content">
+                        <strong>Reached Customer Location</strong>
+                        <span>{formatDate(order.reached_customer_at)}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {order.cash_collected_at && (
+                    <div className={`timeline-step ${order.driver_status === 'cash_collected' ? 'active' : 'completed'}`}>
+                      <div className="timeline-step-icon">✓</div>
+                      <div className="timeline-step-content">
+                        <strong>Cash Collected</strong>
+                        <span>{formatDate(order.cash_collected_at)}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {order.order_completed_at && (
+                    <div className={`timeline-step ${order.driver_status === 'order_completed' ? 'active' : 'completed'}`}>
+                      <div className="timeline-step-icon">✓</div>
+                      <div className="timeline-step-content">
+                        <strong>Order Completed</strong>
+                        <span>{formatDate(order.order_completed_at)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -873,7 +642,7 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
                 {order.cash_collected && (
                   <div className="order-tracking-info-item order-tracking-cash-collected">
                     <strong>Cash Collected:</strong> ₹{order.cash_collected_amount || order.total_amount}
-                    {order.updated_at && ` at ${formatDate(order.updated_at)}`}
+                    {order.cash_collected_at && ` at ${formatDate(order.cash_collected_at)}`}
                   </div>
                 )}
                 {order.payment_completed_at && (
@@ -921,16 +690,6 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
 
             {/* Action Buttons */}
             <div className="order-tracking-modal-actions">
-              <button 
-                onClick={() => {
-                  onClose();
-                  // Status update will be handled by parent component
-                }}
-                className="order-tracking-action-btn order-tracking-warning"
-                style={{ backgroundColor: '#ff9800' }}
-              >
-                ✏️ Update Status
-              </button>
               {canAssignDriver && !order.driver_name && (
                 <button 
                   onClick={() => setShowDriverAssignment(true)}
@@ -996,8 +755,6 @@ const OrderTracking = () => {
   const [restaurantFilter, setRestaurantFilter] = useState('all');
   const [driverStatusFilter, setDriverStatusFilter] = useState('all');
   const [showCalendar, setShowCalendar] = useState(false);
-  const [showStatusUpdateModal, setShowStatusUpdateModal] = useState(false);
-  const [orderToUpdate, setOrderToUpdate] = useState(null);
 
   // Initialize selectedDate with current IST date FIRST, then fetch orders
   useEffect(() => {
@@ -1042,23 +799,19 @@ const OrderTracking = () => {
     return uniqueRestaurants.sort();
   }, [orders]);
 
-  // Get unique driver statuses for filter - FIXED: Use Set to remove duplicates
+  // Get unique driver statuses for filter
   const driverStatuses = useMemo(() => {
-    // Get all unique status values
-    const statusSet = new Set();
-    orders.forEach(order => {
-      if (order.driver_status) {
-        statusSet.add(order.driver_status);
-      }
-    });
+    const uniqueStatuses = [...new Set(orders
+      .map(order => order.driver_status)
+      .filter(Boolean)
+      .map(status => ({
+        value: status,
+        label: formatDriverStatus(status)
+      }))
+    )];
     
-    // Convert to array of objects with unique keys
-    return Array.from(statusSet).map(status => ({
-      value: status,
-      label: formatDriverStatus(status),
-      key: status // Unique key for React
-    })).sort((a, b) => {
-      // Sort by frequency
+    // Sort by frequency
+    return uniqueStatuses.sort((a, b) => {
       const countA = orders.filter(o => o.driver_status === a.value).length;
       const countB = orders.filter(o => o.driver_status === b.value).length;
       return countB - countA;
@@ -1130,54 +883,23 @@ const OrderTracking = () => {
     }
   };
 
-  const updateOrderStatus = async (orderId, newStatus, additionalData = {}) => {
+  const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      // Prepare update data - only use fields that exist in the database
-      const updateData = {
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-        ...additionalData
-      };
-
-      // If status is changing to 'shipped' and driver is not assigned, show warning
-      if (newStatus === 'shipped') {
-        const order = orders.find(o => o.id === orderId);
-        if (!order.driver_name) {
-          if (!window.confirm('No driver assigned to this order. Mark as shipped anyway?')) {
-            return;
-          }
-        }
-      }
-
-      // Remove any non-existent timestamp fields
-      delete updateData.order_completed_at;
-      delete updateData.partner_accepted_at;
-      delete updateData.reached_pickup_at;
-      delete updateData.pickup_completed_at;
-      delete updateData.reached_customer_at;
-      delete updateData.cash_collected_at;
-
       const { error } = await supabase
         .from('orders')
-        .update(updateData)
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', orderId);
 
       if (error) throw error;
       
-      // Update local state
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId ? { ...order, ...updateData } : order
+          order.id === orderId ? { ...order, status: newStatus } : order
         )
       );
-
-      // Show success message
-      alert(`Order status updated to ${newStatus}`);
-      
     } catch (error) {
       console.error('Error updating order status:', error);
       setError('Failed to update status');
-      throw error;
     }
   };
 
@@ -1447,8 +1169,8 @@ const OrderTracking = () => {
             >
               <option value="all">All Driver Status</option>
               <option value="">Not Assigned</option>
-              {driverStatuses.map(({ value, label, key }) => (
-                <option key={key} value={value}>{label}</option>
+              {driverStatuses.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
               ))}
             </select>
           </div>
@@ -1591,25 +1313,9 @@ const OrderTracking = () => {
                   </td>
                   <td onClick={(e) => e.stopPropagation()}>
                     <div className="order-tracking-order-actions">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOrderToUpdate(order);
-                          setShowStatusUpdateModal(true);
-                        }}
-                        className="order-tracking-action-btn order-tracking-update"
-                        title="Update Status"
-                      >
-                        ✏️
-                      </button>
                       {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped') && (
                         <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm('Cancel this order?')) {
-                              updateOrderStatus(order.id, 'cancelled');
-                            }
-                          }}
+                          onClick={() => window.confirm('Cancel this order?') && updateOrderStatus(order.id, 'cancelled')}
                           className="order-tracking-action-btn order-tracking-cancel"
                           title="Cancel Order"
                         >
@@ -1617,10 +1323,7 @@ const OrderTracking = () => {
                         </button>
                       )}
                       <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openOrderDetails(order);
-                        }}
+                        onClick={() => openOrderDetails(order)}
                         className="order-tracking-action-btn order-tracking-details"
                         title="View Details"
                       >
@@ -1681,23 +1384,9 @@ const OrderTracking = () => {
             availableDrivers={availableDrivers}
           />
         )}
-
-        {/* Status Update Modal */}
-        {showStatusUpdateModal && orderToUpdate && (
-          <StatusUpdateModal
-            order={orderToUpdate}
-            onClose={() => {
-              setShowStatusUpdateModal(false);
-              setOrderToUpdate(null);
-            }}
-            onStatusUpdate={updateOrderStatus}
-            normalizeStatus={normalizeStatus}
-            formatDate={formatDate}
-          />
-        )}
       </div>
     </>
   );
 };
 
-export default OrderTracking;
+export default OrderTracking; 
