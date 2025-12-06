@@ -1194,6 +1194,109 @@
   border-color: #ef4444;
 }
 
+/* Online Payment Status Styles */
+.order-tracking-payment-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.order-tracking-payment-paid {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.order-tracking-payment-paid::before {
+  content: "✓ ";
+  font-weight: bold;
+}
+
+.order-tracking-payment-pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.order-tracking-payment-pending::before {
+  content: "⏳ ";
+}
+
+.order-tracking-payment-failed {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.order-tracking-payment-failed::before {
+  content: "✗ ";
+  font-weight: bold;
+}
+
+.order-tracking-payment-cash {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.order-tracking-payment-cash::before {
+  content: "💵 ";
+}
+
+.order-tracking-payment-cod {
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
+.order-tracking-payment-cod::before {
+  content: "📦 ";
+}
+
+/* Payment Status Badge in Order Details */
+.payment-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+/* Online Payment Time */
+.order-tracking-payment-time {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+  font-style: italic;
+}
+
+/* Online Payment Details */
+.online-payment-details {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 4px;
+}
+
+.online-payment-details div {
+  font-size: 11px;
+  color: #0369a1;
+}
+
+.online-payment-details strong {
+  color: #0c4a6e;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .order-tracking-info-grid,
@@ -1266,5 +1369,10 @@
   
   .order-tracking-action-btn {
     width: 100%;
+  }
+  
+  .order-tracking-orders-table th:nth-child(9),
+  .order-tracking-orders-table td:nth-child(9) {
+    display: none;
   }
 }

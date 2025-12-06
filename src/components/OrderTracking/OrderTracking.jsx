@@ -56,6 +56,79 @@ const getDriverStatusClass = (driverStatus) => {
   return classMap[driverStatus] || 'driver-status-default';
 };
 
+// Helper function to determine payment status
+const getPaymentStatus = (order) => {
+  const paymentMethod = order.payment_method?.toLowerCase();
+  const paymentCompleted = order.payment_completed_at;
+  const razorpayPaymentId = order.razorpay_payment_id;
+  const cashCollected = order.cash_collected;
+  
+  // For online payments
+  if (paymentMethod === 'online' || paymentMethod === 'card' || paymentMethod === 'upi' || paymentMethod === 'wallet') {
+    if (paymentCompleted && razorpayPaymentId) {
+      return {
+        status: 'paid',
+        label: 'Paid Online',
+        details: `ID: ${razorpayPaymentId.slice(0, 8)}...`,
+        time: order.payment_completed_at
+      };
+    } else if (razorpayPaymentId && !paymentCompleted) {
+      return {
+        status: 'pending',
+        label: 'Pending',
+        details: 'Payment initiated',
+        time: null
+      };
+    } else {
+      return {
+        status: 'failed',
+        label: 'Failed',
+        details: 'Payment not completed',
+        time: null
+      };
+    }
+  }
+  
+  // For cash on delivery
+  if (paymentMethod === 'cash' || paymentMethod === 'cod') {
+    if (cashCollected) {
+      return {
+        status: 'cash',
+        label: 'COD - Paid',
+        details: `₹${order.cash_collected_amount || order.total_amount} collected`,
+        time: order.cash_collected_at
+      };
+    } else {
+      return {
+        status: 'cod',
+        label: 'COD - Pending',
+        details: `₹${order.total_amount} to collect`,
+        time: null
+      };
+    }
+  }
+  
+  // Default fallback
+  return {
+    status: 'unknown',
+    label: paymentMethod || 'Unknown',
+    details: '',
+    time: null
+  };
+};
+
+// Get payment status badge class
+const getPaymentStatusClass = (status) => {
+  switch(status) {
+    case 'paid': return 'order-tracking-payment-paid';
+    case 'pending': return 'order-tracking-payment-pending';
+    case 'failed': return 'order-tracking-payment-failed';
+    case 'cash': return 'order-tracking-payment-cash';
+    case 'cod': return 'order-tracking-payment-cod';
+    default: return 'order-tracking-payment-pending';
+  }
+};
+
 const safeParseItems = (itemsData) => {
   if (Array.isArray(itemsData)) return itemsData;
   if (typeof itemsData === 'string') {
@@ -144,7 +217,10 @@ const formatDate = (dateString) => {
   });
 };
 
-const formatCurrency = (amount) => `₹${parseFloat(amount || 0).toFixed(0)}`;
+const formatCurrency = (amount) => {
+  const num = parseFloat(amount || 0);
+  return `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+};
 
 // Tamil Nadu timezone formatting
 const getTamilNaduDay = (dateString) => {
@@ -424,6 +500,9 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
 
   const canAssignDriver = normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped';
   const canChangeDriver = normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped';
+  
+  // Get payment status
+  const paymentStatus = getPaymentStatus(order);
 
   return (
     <>
@@ -441,6 +520,9 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
                 <strong>#{order.receipt_reference}</strong>
                 <span className={`order-tracking-status-badge order-tracking-status-${normalizeStatus(order.status)}`}>
                   {normalizeStatus(order.status).toUpperCase()}
+                </span>
+                <span className={`order-tracking-payment-status ${getPaymentStatusClass(paymentStatus.status)}`}>
+                  {paymentStatus.label}
                 </span>
               </div>
               <div className="order-tracking-order-meta">
@@ -495,6 +577,16 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
                         <button 
                           onClick={() => setShowDriverAssignment(true)}
                           className="change-driver-btn"
+                          style={{
+                            background: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            marginTop: '8px'
+                          }}
                         >
                           Change Driver
                         </button>
@@ -509,6 +601,16 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
                         <button 
                           onClick={() => setShowDriverAssignment(true)}
                           className="assign-driver-btn"
+                          style={{
+                            background: '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            marginTop: '8px'
+                          }}
                         >
                           Assign Driver
                         </button>
@@ -527,6 +629,105 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
                     <strong>Delivery OTP:</strong> {order.otp}
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Payment Information Section */}
+            <div className="order-tracking-info-card" style={{ marginBottom: '24px' }}>
+              <h3>Payment Information</h3>
+              <div className="order-tracking-info-item">
+                <strong>Method:</strong> {order.payment_method}
+              </div>
+              <div className="order-tracking-info-item">
+                <strong>Status:</strong>
+                <span className={`order-tracking-payment-status ${getPaymentStatusClass(paymentStatus.status)}`}>
+                  {paymentStatus.label}
+                </span>
+              </div>
+              
+              {paymentStatus.details && (
+                <div className="order-tracking-info-item">
+                  <strong>Details:</strong> {paymentStatus.details}
+                </div>
+              )}
+              
+              {paymentStatus.time && (
+                <div className="order-tracking-info-item">
+                  <strong>Payment Time:</strong> {formatDate(paymentStatus.time)}
+                </div>
+              )}
+              
+              {order.razorpay_payment_id && (
+                <div className="order-tracking-info-item">
+                  <strong>Payment ID:</strong> {order.razorpay_payment_id}
+                </div>
+              )}
+              
+              {order.razorpay_order_id && (
+                <div className="order-tracking-info-item">
+                  <strong>Order ID:</strong> {order.razorpay_order_id}
+                </div>
+              )}
+            </div>
+
+            {/* Order Items */}
+            <div className="order-tracking-items-section">
+              <h3>Order Items ({order.items?.length || 0})</h3>
+              <div className="order-tracking-items-list">
+                {order.items?.map((item, index) => (
+                  <div key={index} className="order-tracking-item-card">
+                    <img 
+                      src={item.product_image} 
+                      alt={item.product_name}
+                      className="order-tracking-item-image"
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/60x60?text=No+Image';
+                      }}
+                    />
+                    <div className="order-tracking-item-details">
+                      <div className="order-tracking-item-name">{item.product_name}</div>
+                      <div className="order-tracking-item-meta">
+                        <span className="order-tracking-item-quantity">Qty: {item.quantity}</span>
+                        <span className="order-tracking-item-price">{formatCurrency(item.price)}</span>
+                      </div>
+                      {item.original_price && item.original_price > item.price && (
+                        <div className="order-tracking-item-discount">
+                          <span className="order-tracking-original-price">{formatCurrency(item.original_price)}</span>
+                          <span className="order-tracking-discount-badge">
+                            Save {formatCurrency(item.original_price - item.price)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Order Summary */}
+            <div className="order-summary-items">
+              <h3>Order Summary</h3>
+              <div className="order-summary-list">
+                <div className="order-summary-item">
+                  <span className="order-summary-item-label">Subtotal:</span>
+                  <span className="order-summary-item-value">{formatCurrency(order.total_amount - (order.delivery_charges || 0))}</span>
+                </div>
+                {order.delivery_charges && order.delivery_charges > 0 && (
+                  <div className="order-summary-item">
+                    <span className="order-summary-item-label">Delivery Charges:</span>
+                    <span className="order-summary-item-value">{formatCurrency(order.delivery_charges)}</span>
+                  </div>
+                )}
+                {order.promo_code && (
+                  <div className="order-summary-item">
+                    <span className="order-summary-item-label">Promo Code:</span>
+                    <span className="order-summary-item-value">{order.promo_code}</span>
+                  </div>
+                )}
+                <div className="order-summary-total">
+                  <span>Total Amount:</span>
+                  <span>{formatCurrency(order.total_amount)}</span>
+                </div>
               </div>
             </div>
 
@@ -597,96 +798,6 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
                 </div>
               </div>
             )}
-
-            {/* Order Items */}
-            <div className="order-tracking-items-section">
-              <h3>Order Items ({order.items?.length || 0})</h3>
-              <div className="order-tracking-items-list">
-                {order.items?.map((item, index) => (
-                  <div key={index} className="order-tracking-item-card">
-                    <img 
-                      src={item.product_image} 
-                      alt={item.product_name}
-                      className="order-tracking-item-image"
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/60x60?text=No+Image';
-                      }}
-                    />
-                    <div className="order-tracking-item-details">
-                      <div className="order-tracking-item-name">{item.product_name}</div>
-                      <div className="order-tracking-item-meta">
-                        <span className="order-tracking-item-quantity">Qty: {item.quantity}</span>
-                        <span className="order-tracking-item-price">{formatCurrency(item.price)}</span>
-                      </div>
-                      {item.original_price && item.original_price > item.price && (
-                        <div className="order-tracking-item-discount">
-                          <span className="order-tracking-original-price">{formatCurrency(item.original_price)}</span>
-                          <span className="order-tracking-discount-badge">
-                            Save {formatCurrency(item.original_price - item.price)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Payment & Summary */}
-            <div className="order-tracking-summary-section">
-              <div className="order-tracking-payment-info">
-                <h3>Payment Information</h3>
-                <div className="order-tracking-info-item">
-                  <strong>Method:</strong> {order.payment_method}
-                </div>
-                {order.cash_collected && (
-                  <div className="order-tracking-info-item order-tracking-cash-collected">
-                    <strong>Cash Collected:</strong> ₹{order.cash_collected_amount || order.total_amount}
-                    {order.cash_collected_at && ` at ${formatDate(order.cash_collected_at)}`}
-                  </div>
-                )}
-                {order.payment_completed_at && (
-                  <div className="order-tracking-info-item">
-                    <strong>Paid at:</strong> {formatDate(order.payment_completed_at)}
-                  </div>
-                )}
-                {order.razorpay_payment_id && (
-                  <div className="order-tracking-info-item">
-                    <strong>Payment ID:</strong> {order.razorpay_payment_id}
-                  </div>
-                )}
-              </div>
-
-              <div className="order-tracking-order-summary">
-                <h3>Order Summary</h3>
-                <div className="order-tracking-summary-row">
-                  <span>Items Total:</span>
-                  <span>{formatCurrency(order.total_amount - (parseFloat(order.delivery_charges) || 0))}</span>
-                </div>
-                {order.delivery_charges && (
-                  <div className="order-tracking-summary-row">
-                    <span>Delivery Charges:</span>
-                    <span>₹{order.delivery_charges}</span>
-                  </div>
-                )}
-                {order.driver_order_earnings && (
-                  <div className="order-tracking-summary-row">
-                    <span>Driver Earnings:</span>
-                    <span>{formatCurrency(order.driver_order_earnings)}</span>
-                  </div>
-                )}
-                {order.restaurant_earnings && (
-                  <div className="order-tracking-summary-row">
-                    <span>Restaurant Earnings:</span>
-                    <span>{formatCurrency(order.restaurant_earnings)}</span>
-                  </div>
-                )}
-                <div className="order-tracking-summary-row order-tracking-total">
-                  <span>Total Amount:</span>
-                  <span>{formatCurrency(order.total_amount)}</span>
-                </div>
-              </div>
-            </div>
 
             {/* Action Buttons */}
             <div className="order-tracking-modal-actions">
@@ -1077,6 +1188,27 @@ const OrderTracking = () => {
     );
   };
 
+  const renderPaymentStatus = (order) => {
+    const paymentStatus = getPaymentStatus(order);
+    return (
+      <div className="order-tracking-payment-info-cell">
+        <span className={`order-tracking-payment-status ${getPaymentStatusClass(paymentStatus.status)}`}>
+          {paymentStatus.label}
+        </span>
+        {paymentStatus.time && (
+          <div className="order-tracking-payment-time">
+            {formatDate(paymentStatus.time).split(',')[1]}
+          </div>
+        )}
+        {paymentStatus.details && order.payment_method?.toLowerCase() === 'online' && (
+          <div className="online-payment-details">
+            <div>{paymentStatus.details}</div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <>
@@ -1226,6 +1358,7 @@ const OrderTracking = () => {
                 <th>Driver Status</th>
                 <th>Items</th>
                 <th>Amount</th>
+                <th>Payment Status</th>
                 <th>Status</th>
                 <th>Date</th>
                 <th>Actions</th>
@@ -1294,6 +1427,9 @@ const OrderTracking = () => {
                     {order.delivery_charges && (
                       <div className="order-tracking-delivery-charge">+₹{order.delivery_charges} delivery</div>
                     )}
+                  </td>
+                  <td>
+                    {renderPaymentStatus(order)}
                   </td>
                   <td>
                     <span className={`order-tracking-status-badge order-tracking-status-${normalizeStatus(order.status)}`}>
@@ -1389,4 +1525,4 @@ const OrderTracking = () => {
   );
 };
 
-export default OrderTracking; 
+export default OrderTracking;
