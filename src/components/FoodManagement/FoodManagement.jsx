@@ -25,6 +25,14 @@ const FoodManagement = () => {
     "Shakes", "Mojito", "Cake's", "Ice Cream", "Fresh Juice"
   ];
 
+  // Time slots
+  const timeSlots = [
+    { id: 'morning', label: 'Morning', icon: '☀️' },
+    { id: 'afternoon', label: 'Afternoon', icon: '🌤️' },
+    { id: 'evening', label: 'Evening', icon: '🌆' },
+    { id: 'night', label: 'Night', icon: '🌙' }
+  ];
+
   // Fetch restaurants
   const fetchRestaurants = async () => {
     try {
@@ -93,6 +101,11 @@ const FoodManagement = () => {
           prep_time: foodItem.prep_time,
           profit: foodItem.profit,
           food_position: foodItem.food_position,
+          morning: foodItem.morning,
+          afternoon: foodItem.afternoon,
+          evening: foodItem.evening,
+          night: foodItem.night,
+          stock: foodItem.stock,
           updated_at: new Date().toISOString()
         })
         .eq('id', foodItem.id)
@@ -127,6 +140,78 @@ const FoodManagement = () => {
     } catch (error) {
       console.error('Error deleting food item:', error);
       setError('Failed to delete food item');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Bulk update time slots
+  const bulkUpdateTimeSlots = async (foodItemsToUpdate, timeSlot, value) => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const updates = foodItemsToUpdate.map(foodItem => ({
+        id: foodItem.id,
+        [timeSlot]: value
+      }));
+
+      const { data, error } = await supabase
+        .from('food_items')
+        .upsert(updates, { onConflict: 'id' })
+        .select();
+
+      if (error) throw error;
+
+      // Update local state
+      setFoodItems(prevItems =>
+        prevItems.map(item => {
+          const updatedItem = data.find(d => d.id === item.id);
+          return updatedItem || item;
+        })
+      );
+
+      return data;
+    } catch (error) {
+      console.error('Error bulk updating time slots:', error);
+      setError('Failed to update time slots');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Bulk update stock status
+  const bulkUpdateStockStatus = async (foodItemsToUpdate, stockStatus) => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const updates = foodItemsToUpdate.map(foodItem => ({
+        id: foodItem.id,
+        stock: stockStatus
+      }));
+
+      const { data, error } = await supabase
+        .from('food_items')
+        .upsert(updates, { onConflict: 'id' })
+        .select();
+
+      if (error) throw error;
+
+      // Update local state
+      setFoodItems(prevItems =>
+        prevItems.map(item => {
+          const updatedItem = data.find(d => d.id === item.id);
+          return updatedItem || item;
+        })
+      );
+
+      return data;
+    } catch (error) {
+      console.error('Error bulk updating stock status:', error);
+      setError('Failed to update stock status');
       throw error;
     } finally {
       setLoading(false);
@@ -215,7 +300,8 @@ const FoodManagement = () => {
           ? parseFloat(value) || 0
           : field === 'review_count' || field === 'calories' || field === 'food_position'
             ? parseInt(value) || 0
-            : field === 'veg' || field === 'popular' || field === 'bestseller'
+            : field === 'veg' || field === 'popular' || field === 'bestseller' || field === 'stock' ||
+              field === 'morning' || field === 'afternoon' || field === 'evening' || field === 'night'
               ? Boolean(value)
               : value
       }));
@@ -248,6 +334,78 @@ const FoodManagement = () => {
 
   const handleCategoryCancel = () => {
     setEditingCategory(null);
+  };
+
+  // Handle time slot toggle
+  const handleTimeSlotToggle = async (foodItem, timeSlot) => {
+    try {
+      setLoading(true);
+
+      const updatedFood = { 
+        ...foodItem, 
+        [timeSlot]: !foodItem[timeSlot] 
+      };
+      const result = await updateFoodItem(updatedFood);
+
+      if (result) {
+        setFoodItems(prevItems =>
+          prevItems.map(item =>
+            item.id === result.id ? result : item
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating time slot:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle stock toggle
+  const handleStockToggle = async (foodItem) => {
+    try {
+      setLoading(true);
+
+      const updatedFood = { 
+        ...foodItem, 
+        stock: !foodItem.stock 
+      };
+      const result = await updateFoodItem(updatedFood);
+
+      if (result) {
+        setFoodItems(prevItems =>
+          prevItems.map(item =>
+            item.id === result.id ? result : item
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating stock status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Bulk time slot actions
+  const handleBulkTimeSlotAction = async (timeSlot, value) => {
+    if (!selectedRestaurant) return;
+    
+    try {
+      await bulkUpdateTimeSlots(filteredFoodItems, timeSlot, value);
+    } catch (error) {
+      // Error is handled in bulkUpdateTimeSlots function
+    }
+  };
+
+  // Bulk stock action
+  const handleBulkStockAction = async (stockStatus) => {
+    if (!selectedRestaurant) return;
+    
+    try {
+      await bulkUpdateStockStatus(filteredFoodItems, stockStatus);
+    } catch (error) {
+      // Error is handled in bulkUpdateStockStatus function
+    }
   };
 
   const toggleFoodStatus = async (foodItem, field) => {
@@ -292,6 +450,10 @@ const FoodManagement = () => {
 
   const getVegBadge = (isVeg) => {
     return isVeg ? 'veg' : 'non-veg';
+  };
+
+  const getStockBadge = (isInStock) => {
+    return isInStock ? 'in-stock' : 'out-of-stock';
   };
 
   return (
@@ -486,7 +648,71 @@ const FoodManagement = () => {
                     <div className="stat-value">{foodItems.filter(item => item.veg).length}</div>
                     <div className="stat-label">Veg Items</div>
                   </div>
+                  <div className="stat-card">
+                    <div className="stat-value">{foodItems.filter(item => item.stock).length}</div>
+                    <div className="stat-label">In Stock</div>
+                  </div>
                 </div>
+
+                {/* Bulk Actions Section */}
+                {filteredFoodItems.length > 0 && (
+                  <div className="bulk-actions-section">
+                    <div className="bulk-actions-header">
+                      <h4>Bulk Actions</h4>
+                      <p>Apply changes to all filtered items ({filteredFoodItems.length} items)</p>
+                    </div>
+                    
+                    <div className="bulk-action-groups">
+                      {/* Time Slot Bulk Actions */}
+                      <div className="bulk-action-group">
+                        <label>Time Availability:</label>
+                        <div className="time-slot-bulk-actions">
+                          {timeSlots.map(slot => (
+                            <div key={slot.id} className="time-slot-bulk-action">
+                              <button
+                                className="bulk-action-btn enable"
+                                onClick={() => handleBulkTimeSlotAction(slot.id, true)}
+                                disabled={loading}
+                                title={`Enable ${slot.label} for all items`}
+                              >
+                                {slot.icon} Enable {slot.label}
+                              </button>
+                              <button
+                                className="bulk-action-btn disable"
+                                onClick={() => handleBulkTimeSlotAction(slot.id, false)}
+                                disabled={loading}
+                                title={`Disable ${slot.label} for all items`}
+                              >
+                                {slot.icon} Disable {slot.label}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Stock Bulk Actions */}
+                      <div className="bulk-action-group">
+                        <label>Stock Management:</label>
+                        <div className="stock-bulk-actions">
+                          <button
+                            className="bulk-action-btn enable"
+                            onClick={() => handleBulkStockAction(true)}
+                            disabled={loading}
+                          >
+                            ✅ Set All In Stock
+                          </button>
+                          <button
+                            className="bulk-action-btn disable"
+                            onClick={() => handleBulkStockAction(false)}
+                            disabled={loading}
+                          >
+                            ❌ Set All Out of Stock
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Enhanced Search Section */}
@@ -634,6 +860,8 @@ const FoodManagement = () => {
                         <th>Profit</th>
                         <th>Rating</th>
                         <th>Type</th>
+                        <th>Time Slots</th>
+                        <th>Stock</th>
                         <th>Status</th>
                         <th>Position</th>
                         <th>Actions</th>
@@ -642,7 +870,7 @@ const FoodManagement = () => {
                     <tbody>
                       {filteredFoodItems.length === 0 ? (
                         <tr>
-                          <td colSpan="10" className="no-items">
+                          <td colSpan="12" className="no-items">
                             <div className="empty-state">
                               <div className="empty-icon">🍕</div>
                               <h3>{
@@ -792,6 +1020,34 @@ const FoodManagement = () => {
                                     <option value={false}>Non-Veg</option>
                                   </select>
                                 </td>
+                                <td className="time-slots-cell">
+                                  <div className="time-slots-checkboxes">
+                                    {timeSlots.map(slot => (
+                                      <label key={slot.id} className="time-slot-checkbox">
+                                        <input
+                                          type="checkbox"
+                                          checked={editingFood[slot.id]}
+                                          onChange={(e) => handleFieldChange(slot.id, e.target.checked)}
+                                          className="time-slot-input"
+                                        />
+                                        <span className="time-slot-label">{slot.icon} {slot.label}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td className="stock-cell">
+                                  <label className="stock-checkbox">
+                                    <input
+                                      type="checkbox"
+                                      checked={editingFood.stock}
+                                      onChange={(e) => handleFieldChange('stock', e.target.checked)}
+                                      className="stock-input"
+                                    />
+                                    <span className={`stock-status ${editingFood.stock ? 'in-stock' : 'out-of-stock'}`}>
+                                      {editingFood.stock ? 'In Stock' : 'Out of Stock'}
+                                    </span>
+                                  </label>
+                                </td>
                                 <td className="status-actions">
                                   <div className="toggle-buttons">
                                     <button
@@ -862,6 +1118,30 @@ const FoodManagement = () => {
                                   <span className={`veg-badge ${getVegBadge(item.veg)}`}>
                                     {item.veg ? 'Veg' : 'Non-Veg'}
                                   </span>
+                                </td>
+                                <td className="time-slots-cell">
+                                  <div className="time-slots-display">
+                                    {timeSlots.map(slot => (
+                                      <button
+                                        key={slot.id}
+                                        className={`time-slot-btn ${item[slot.id] ? 'active' : 'inactive'}`}
+                                        onClick={() => handleTimeSlotToggle(item, slot.id)}
+                                        disabled={loading}
+                                        title={`${slot.label}: ${item[slot.id] ? 'Available' : 'Not Available'}`}
+                                      >
+                                        {slot.icon}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td className="stock-cell">
+                                  <button
+                                    className={`stock-toggle-btn ${item.stock ? 'in-stock' : 'out-of-stock'}`}
+                                    onClick={() => handleStockToggle(item)}
+                                    disabled={loading}
+                                  >
+                                    {item.stock ? '✅ In Stock' : '❌ Out of Stock'}
+                                  </button>
                                 </td>
                                 <td className="status-actions">
                                   <div className="toggle-buttons">

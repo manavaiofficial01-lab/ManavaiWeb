@@ -1189,3 +1189,338 @@
     flex-direction: row;
   }
 }
+
+/* Bulk Actions Section */
+.bulk-actions-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.bulk-actions-header {
+  margin-bottom: 16px;
+}
+
+.bulk-actions-header h4 {
+  color: #1e293b;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.bulk-actions-header p {
+  color: #64748b;
+  font-size: 12px;
+  margin: 0;
+}
+
+.bulk-action-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.bulk-action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bulk-action-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.time-slot-bulk-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.stock-bulk-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.time-slot-bulk-action {
+  display: flex;
+  gap: 4px;
+}
+
+.bulk-action-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.bulk-action-btn.enable {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #dcfce7;
+}
+
+.bulk-action-btn.enable:hover:not(:disabled) {
+  background: #dcfce7;
+}
+
+.bulk-action-btn.disable {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.bulk-action-btn.disable:hover:not(:disabled) {
+  background: #fecaca;
+}
+
+.bulk-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Time Slots Display */
+.time-slots-cell {
+  min-width: 140px;
+}
+
+.time-slots-display {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.time-slot-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  padding: 0;
+}
+
+.time-slot-btn.active {
+  background: #10b981;
+  color: white;
+}
+
+.time-slot-btn.inactive {
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+}
+
+.time-slot-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.time-slot-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Time Slots Checkboxes (Edit Mode) */
+.time-slots-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.time-slot-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 11px;
+}
+
+.time-slot-checkbox:hover {
+  background: #e2e8f0;
+}
+
+.time-slot-input {
+  margin: 0;
+  cursor: pointer;
+}
+
+.time-slot-label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Stock Management */
+.stock-cell {
+  min-width: 100px;
+}
+
+.stock-toggle-btn {
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.stock-toggle-btn.in-stock {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #dcfce7;
+}
+
+.stock-toggle-btn.in-stock:hover:not(:disabled) {
+  background: #dcfce7;
+}
+
+.stock-toggle-btn.out-of-stock {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.stock-toggle-btn.out-of-stock:hover:not(:disabled) {
+  background: #fecaca;
+}
+
+.stock-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Stock Checkbox (Edit Mode) */
+.stock-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  justify-content: center;
+}
+
+.stock-checkbox:hover {
+  background: #e2e8f0;
+}
+
+.stock-input {
+  margin: 0;
+  cursor: pointer;
+}
+
+.stock-status {
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stock-status.in-stock {
+  color: #166534;
+}
+
+.stock-status.out-of-stock {
+  color: #dc2626;
+}
+
+/* Badges for Stock */
+.status-badge.in-stock {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #dcfce7;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.out-of-stock {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Enhanced Food Stats */
+.food-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 16px 0 24px 0;
+}
+
+/* Responsive Design for Bulk Actions */
+@media (max-width: 768px) {
+  .time-slot-bulk-actions {
+    grid-template-columns: 1fr;
+  }
+  
+  .time-slot-bulk-action {
+    flex-direction: column;
+  }
+  
+  .stock-bulk-actions {
+    flex-direction: column;
+  }
+  
+  .bulk-action-btn {
+    justify-content: flex-start;
+  }
+  
+  .time-slots-checkboxes {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .bulk-actions-section {
+    padding: 16px;
+  }
+  
+  .time-slot-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+}

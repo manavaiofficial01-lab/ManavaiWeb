@@ -3,6 +3,8 @@ import { supabase } from '../../../supabase';
 import Navbar from '../Navbar/Navbar';
 import './OrderTracking.css';
 
+const GOOGLE_MAPS_API_KEY = "AIzaSyCwunFlQtMKPeJ2chyXPm1AKF07SvvqUX0";
+
 const normalizeStatus = (status) => {
   if (!status) return 'processing';
   const statusMap = {
@@ -240,6 +242,268 @@ const getTamilNaduDay = (dateString) => {
     console.error('Error formatting day:', error);
     return 'Error';
   }
+};
+
+// Map Modal Component
+const MapModal = ({ order, onClose }) => {
+  const mapRef = React.useRef(null);
+  const [map, setMap] = useState(null);
+  const [marker, setMarker] = useState(null);
+
+  useEffect(() => {
+    if (!window.google || !order.customer_lat || !order.customer_lon) {
+      return;
+    }
+
+    const initializeMap = () => {
+      const location = {
+        lat: parseFloat(order.customer_lat),
+        lng: parseFloat(order.customer_lon)
+      };
+
+      const mapInstance = new window.google.maps.Map(mapRef.current, {
+        center: location,
+        zoom: 15,
+        streetViewControl: false,
+        mapTypeControl: true,
+        fullscreenControl: true,
+        zoomControl: true,
+        styles: [
+          {
+            featureType: "all",
+            elementType: "geometry",
+            stylers: [{ color: "#f5f5f5" }]
+          },
+          {
+            featureType: "all",
+            elementType: "labels.text.fill",
+            stylers: [{ color: "#616161" }]
+          }
+        ]
+      });
+
+      const markerInstance = new window.google.maps.Marker({
+        position: location,
+        map: mapInstance,
+        title: `${order.customer_name}'s Location`,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: "#4285F4",
+          fillOpacity: 1,
+          strokeColor: "#FFFFFF",
+          strokeWeight: 2,
+        },
+        animation: window.google.maps.Animation.DROP
+      });
+
+      // Add info window
+      const infoWindow = new window.google.maps.InfoWindow({
+        content: `
+          <div style="padding: 10px;">
+            <h3 style="margin: 0 0 8px 0; color: #1a73e8;">${order.customer_name}</h3>
+            <p style="margin: 0 0 4px 0; color: #5f6368;">${order.delivery_address}</p>
+            <p style="margin: 0; color: #5f6368; font-size: 12px;">
+              📱 ${order.customer_phone || 'N/A'}
+            </p>
+            <p style="margin: 8px 0 0 0; color: #5f6368; font-size: 12px;">
+              📍 ${order.customer_lat.toFixed(6)}, ${order.customer_lon.toFixed(6)}
+            </p>
+          </div>
+        `
+      });
+
+      markerInstance.addListener('click', () => {
+        infoWindow.open(mapInstance, markerInstance);
+      });
+
+      // Open info window by default
+      infoWindow.open(mapInstance, markerInstance);
+
+      setMap(mapInstance);
+      setMarker(markerInstance);
+    };
+
+    initializeMap();
+
+    return () => {
+      if (marker) {
+        marker.setMap(null);
+      }
+    };
+  }, [order.customer_lat, order.customer_lon]);
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const getGoogleMapsLink = () => {
+    if (!order.customer_lat || !order.customer_lon) return '#';
+    return `https://www.google.com/maps?q=${order.customer_lat},${order.customer_lon}`;
+  };
+
+  const handleOpenInGoogleMaps = () => {
+    window.open(getGoogleMapsLink(), '_blank');
+  };
+
+  const handleCopyCoordinates = () => {
+    const coordinates = `${order.customer_lat}, ${order.customer_lon}`;
+    navigator.clipboard.writeText(coordinates)
+      .then(() => {
+        alert('Coordinates copied to clipboard!');
+      })
+      .catch(err => {
+        console.error('Failed to copy coordinates:', err);
+      });
+  };
+
+  return (
+    <div className="order-tracking-modal-backdrop" onClick={handleBackdropClick}>
+      <div className="order-tracking-modal-content map-modal">
+        <div className="order-tracking-modal-header">
+          <h2>
+            <span className="map-modal-title-icon">📍</span>
+            Location for Order #{order.receipt_reference}
+          </h2>
+          <button className="order-tracking-close-btn" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="order-tracking-modal-body">
+          {/* Customer Info Summary */}
+          <div className="map-customer-info">
+            <div className="map-customer-info-grid">
+              <div className="map-customer-info-item">
+                <strong>Customer:</strong> {order.customer_name}
+              </div>
+              <div className="map-customer-info-item">
+                <strong>Phone:</strong> {order.customer_phone || 'N/A'}
+              </div>
+              <div className="map-customer-info-item">
+                <strong>Coordinates:</strong> 
+                <span className="map-coordinates">
+                  {order.customer_lat?.toFixed(6)}, {order.customer_lon?.toFixed(6)}
+                </span>
+                <button 
+                  onClick={handleCopyCoordinates}
+                  className="map-copy-btn"
+                  title="Copy coordinates"
+                >
+                  📋
+                </button>
+              </div>
+            </div>
+            
+            <div className="map-address-section">
+              <strong>Delivery Address:</strong>
+              <p className="map-address-text">{order.delivery_address}</p>
+            </div>
+          </div>
+
+          {/* Map Container */}
+          <div className="map-container-wrapper">
+            {order.customer_lat && order.customer_lon ? (
+              <>
+                <div 
+                  ref={mapRef} 
+                  className="map-container"
+                  style={{ height: '500px', width: '100%' }}
+                />
+                <div className="map-controls">
+                  <button 
+                    onClick={handleOpenInGoogleMaps}
+                    className="map-control-btn map-control-google"
+                  >
+                    <span className="map-control-icon">🌐</span>
+                    Open in Google Maps
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (map) {
+                        map.setZoom(map.getZoom() + 1);
+                      }
+                    }}
+                    className="map-control-btn map-control-zoom"
+                  >
+                    <span className="map-control-icon">➕</span>
+                    Zoom In
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (map) {
+                        map.setZoom(map.getZoom() - 1);
+                      }
+                    }}
+                    className="map-control-btn map-control-zoom"
+                  >
+                    <span className="map-control-icon">➖</span>
+                    Zoom Out
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="map-no-location">
+                <div className="map-no-location-icon">📍</div>
+                <h3>Location Not Available</h3>
+                <p>This order does not have location coordinates.</p>
+                <button 
+                  onClick={handleBackdropClick}
+                  className="map-close-btn"
+                >
+                  Close
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Additional Information */}
+          <div className="map-additional-info">
+            <div className="map-info-card">
+              <h4>Delivery Information</h4>
+              <div className="map-info-content">
+                {order.delivery_distance_km && (
+                  <div className="map-info-item">
+                    <span className="map-info-label">Distance:</span>
+                    <span className="map-info-value">{order.delivery_distance_km} km</span>
+                  </div>
+                )}
+                {order.driver_name && (
+                  <div className="map-info-item">
+                    <span className="map-info-label">Assigned Driver:</span>
+                    <span className="map-info-value">{order.driver_name} ({order.driver_mobile})</span>
+                  </div>
+                )}
+                {order.restaurant_name && (
+                  <div className="map-info-item">
+                    <span className="map-info-label">Restaurant:</span>
+                    <span className="map-info-value">{order.restaurant_name}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="map-actions">
+              <button 
+                onClick={handleOpenInGoogleMaps}
+                className="order-tracking-action-btn order-tracking-primary"
+                disabled={!order.customer_lat || !order.customer_lon}
+              >
+                <span style={{ marginRight: '8px' }}>🌐</span>
+                Open in Google Maps
+              </button>
+              <button 
+                onClick={onClose}
+                className="order-tracking-action-btn order-tracking-secondary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // Calendar Component
@@ -489,7 +753,7 @@ const DriverAssignmentModal = ({ order, onClose, onDriverAssign, availableDriver
 };
 
 // Order Modal Component
-const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeStatus, formatCurrency, formatDate, availableDrivers }) => {
+const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeStatus, formatCurrency, formatDate, availableDrivers, onShowMap }) => {
   const [showDriverAssignment, setShowDriverAssignment] = useState(false);
 
   const handleBackdropClick = (e) => {
@@ -547,8 +811,19 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
                   <strong>Address:</strong> {order.delivery_address}
                 </div>
                 {order.customer_lat && order.customer_lon && (
-                  <div className="order-tracking-info-item">
-                    <strong>Location:</strong> {order.customer_lat.toFixed(4)}, {order.customer_lon.toFixed(4)}
+                  <div className="order-tracking-info-item order-tracking-location-item">
+                    <strong>Location:</strong> 
+                    <span className="order-tracking-coordinates">
+                      {order.customer_lat.toFixed(6)}, {order.customer_lon.toFixed(6)}
+                    </span>
+                    <button 
+                      onClick={() => onShowMap(order)}
+                      className="order-tracking-map-btn"
+                      title="View on map"
+                    >
+                      <span className="order-tracking-map-icon">📍</span>
+                      View Map
+                    </button>
                   </div>
                 )}
               </div>
@@ -801,12 +1076,22 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
 
             {/* Action Buttons */}
             <div className="order-tracking-modal-actions">
+              {order.customer_lat && order.customer_lon && (
+                <button 
+                  onClick={() => onShowMap(order)}
+                  className="order-tracking-action-btn order-tracking-warning"
+                >
+                  <span style={{ marginRight: '8px' }}>📍</span>
+                  View Map
+                </button>
+              )}
               {canAssignDriver && !order.driver_name && (
                 <button 
                   onClick={() => setShowDriverAssignment(true)}
                   className="order-tracking-action-btn order-tracking-primary"
                 >
-                  🚗 Assign Driver
+                  <span style={{ marginRight: '8px' }}>🚗</span>
+                  Assign Driver
                 </button>
               )}
               {canChangeDriver && order.driver_name && (
@@ -814,7 +1099,8 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
                   onClick={() => setShowDriverAssignment(true)}
                   className="order-tracking-action-btn order-tracking-primary"
                 >
-                  🔄 Change Driver
+                  <span style={{ marginRight: '8px' }}>🔄</span>
+                  Change Driver
                 </button>
               )}
               {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped') && (
@@ -827,7 +1113,8 @@ const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeS
                   }}
                   className="order-tracking-action-btn order-tracking-danger"
                 >
-                  ❌ Cancel Order
+                  <span style={{ marginRight: '8px' }}>❌</span>
+                  Cancel Order
                 </button>
               )}
               <button onClick={onClose} className="order-tracking-action-btn order-tracking-secondary">
@@ -866,6 +1153,33 @@ const OrderTracking = () => {
   const [restaurantFilter, setRestaurantFilter] = useState('all');
   const [driverStatusFilter, setDriverStatusFilter] = useState('all');
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [mapOrder, setMapOrder] = useState(null);
+  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
+
+  // Load Google Maps API
+  useEffect(() => {
+    const scriptId = 'google-maps-script';
+    if (document.getElementById(scriptId)) {
+      setGoogleMapsLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      setGoogleMapsLoaded(true);
+    };
+    script.onerror = () => {
+      console.error('Failed to load Google Maps API');
+      setError('Failed to load maps. Please check your internet connection.');
+    };
+    
+    document.head.appendChild(script);
+  }, []);
 
   // Initialize selectedDate with current IST date FIRST, then fetch orders
   useEffect(() => {
@@ -1064,6 +1378,16 @@ const OrderTracking = () => {
     setSelectedOrder(null);
   };
 
+  const openMapModal = (order) => {
+    setMapOrder(order);
+    setShowMapModal(true);
+  };
+
+  const closeMapModal = () => {
+    setShowMapModal(false);
+    setMapOrder(null);
+  };
+
   const getOrdersForSelectedDate = () => {
     if (!selectedDate) return [];
     return orders.filter(order => {
@@ -1206,6 +1530,24 @@ const OrderTracking = () => {
           </div>
         )}
       </div>
+    );
+  };
+
+  // Add map button to table row
+  const renderMapButton = (order) => {
+    if (!order.customer_lat || !order.customer_lon) return null;
+    
+    return (
+      <button 
+        onClick={(e) => {
+          e.stopPropagation();
+          openMapModal(order);
+        }}
+        className="order-tracking-action-btn order-tracking-map"
+        title="View on map"
+      >
+        📍
+      </button>
     );
   };
 
@@ -1379,6 +1721,13 @@ const OrderTracking = () => {
                     <div className="order-tracking-customer-info">
                       <span className="order-tracking-customer-name">{order.customer_name}</span>
                       <span className="order-tracking-customer-phone">{order.customer_phone}</span>
+                      {order.customer_lat && order.customer_lon && (
+                        <div className="order-tracking-location-info">
+                          <span className="order-tracking-location-coords">
+                            📍 {order.customer_lat.toFixed(4)}, {order.customer_lon.toFixed(4)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td>
@@ -1449,6 +1798,7 @@ const OrderTracking = () => {
                   </td>
                   <td onClick={(e) => e.stopPropagation()}>
                     <div className="order-tracking-order-actions">
+                      {renderMapButton(order)}
                       {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped') && (
                         <button 
                           onClick={() => window.confirm('Cancel this order?') && updateOrderStatus(order.id, 'cancelled')}
@@ -1518,6 +1868,15 @@ const OrderTracking = () => {
             formatCurrency={formatCurrency}
             formatDate={formatDate}
             availableDrivers={availableDrivers}
+            onShowMap={openMapModal}
+          />
+        )}
+
+        {/* Map Modal */}
+        {showMapModal && mapOrder && googleMapsLoaded && (
+          <MapModal
+            order={mapOrder}
+            onClose={closeMapModal}
           />
         )}
       </div>

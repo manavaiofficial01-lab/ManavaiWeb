@@ -1376,3 +1376,319 @@
     display: none;
   }
 }
+
+
+/* Map Modal Styles */
+.map-modal {
+  max-width: 1000px;
+}
+
+.map-modal-title-icon {
+  margin-right: 8px;
+}
+
+.map-customer-info {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.map-customer-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.map-customer-info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.map-customer-info-item strong {
+  color: #1e293b;
+  min-width: 80px;
+}
+
+.map-coordinates {
+  font-family: 'Courier New', monospace;
+  background: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.map-copy-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.map-copy-btn:hover {
+  background: #2563eb;
+}
+
+.map-address-section {
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.map-address-text {
+  margin: 8px 0 0 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.5;
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.map-container-wrapper {
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.map-container {
+  border-radius: 8px;
+}
+
+.map-controls {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.map-control-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.map-control-google {
+  background: #3b82f6;
+  color: white;
+}
+
+.map-control-google:hover {
+  background: #2563eb;
+}
+
+.map-control-zoom {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.map-control-zoom:hover {
+  background: #e2e8f0;
+}
+
+.map-control-icon {
+  font-size: 16px;
+}
+
+.map-no-location {
+  padding: 60px 20px;
+  text-align: center;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.map-no-location-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.map-no-location h3 {
+  margin: 0 0 8px 0;
+  color: #64748b;
+}
+
+.map-no-location p {
+  margin: 0 0 20px 0;
+  color: #94a3b8;
+}
+
+.map-close-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.map-additional-info {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: start;
+}
+
+.map-info-card {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.map-info-card h4 {
+  margin: 0 0 12px 0;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.map-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.map-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.map-info-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.map-info-value {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.map-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+}
+
+/* Order Modal Map Button Styles */
+.order-tracking-location-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.order-tracking-coordinates {
+  font-family: 'Courier New', monospace;
+  background: #e2e8f0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.order-tracking-map-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f59e0b;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.order-tracking-map-btn:hover {
+  background: #d97706;
+}
+
+.order-tracking-map-icon {
+  font-size: 14px;
+}
+
+/* Table Map Button */
+.order-tracking-action-btn.order-tracking-map {
+  background: #f59e0b !important;
+  color: white !important;
+}
+
+.order-tracking-action-btn.order-tracking-map:hover {
+  background: #d97706 !important;
+}
+
+.order-tracking-location-info {
+  margin-top: 4px;
+}
+
+.order-tracking-location-coords {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Responsive Design for Map Modal */
+@media (max-width: 768px) {
+  .map-modal {
+    margin: 10px;
+    max-height: 90vh;
+  }
+  
+  .map-additional-info {
+    grid-template-columns: 1fr;
+  }
+  
+  .map-actions {
+    width: 100%;
+  }
+  
+  .map-controls {
+    flex-wrap: wrap;
+  }
+  
+  .map-control-btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+  
+  .map-customer-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .order-tracking-location-coords {
+    display: none;
+  }
+  
+  .order-tracking-action-btn.order-tracking-map {
+    margin-top: 4px;
+  }
+}
