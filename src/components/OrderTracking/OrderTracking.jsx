@@ -14,50 +14,6 @@ const normalizeStatus = (status) => {
   return statusMap[status.toLowerCase()] || 'processing';
 };
 
-// Helper function to format driver status
-const formatDriverStatus = (driverStatus) => {
-  if (!driverStatus) return 'Order Placed';
-  
-  const statusMap = {
-    'order_placed': 'Order Placed',
-    'partner_accepted': 'Partner Accepted',
-    'reached_pickup_location': 'Reached Pickup',
-    'pickup_completed': 'Pickup Completed',
-    'item_not_available': 'Item Not Available',
-    'restaurant_closed': 'Restaurant Closed',
-    'reached_customer_location': 'Reached Customer',
-    'cash_collected': 'Cash Collected',
-    'paid_by_qr': 'Paid by QR',
-    'already_paid': 'Already Paid',
-    'order_completed': 'Order Completed',
-    'cancelled': 'Cancelled'
-  };
-  
-  return statusMap[driverStatus] || driverStatus.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-};
-
-// Helper function to get driver status badge class
-const getDriverStatusClass = (driverStatus) => {
-  if (!driverStatus) return 'driver-status-default';
-  
-  const classMap = {
-    'order_placed': 'driver-status-order-placed',
-    'partner_accepted': 'driver-status-partner-accepted',
-    'reached_pickup_location': 'driver-status-pickup-location',
-    'pickup_completed': 'driver-status-pickup-completed',
-    'item_not_available': 'driver-status-item-unavailable',
-    'restaurant_closed': 'driver-status-restaurant-closed',
-    'reached_customer_location': 'driver-status-customer-location',
-    'cash_collected': 'driver-status-cash-collected',
-    'paid_by_qr': 'driver-status-paid-qr',
-    'already_paid': 'driver-status-already-paid',
-    'order_completed': 'driver-status-order-completed',
-    'cancelled': 'driver-status-cancelled'
-  };
-  
-  return classMap[driverStatus] || 'driver-status-default';
-};
-
 // Helper function to determine payment status
 const getPaymentStatus = (order) => {
   const paymentMethod = order.payment_method?.toLowerCase();
@@ -619,522 +575,232 @@ const CalendarPicker = ({ selectedDate, onDateSelect, onClose }) => {
   );
 };
 
-// Driver Assignment Modal Component
-const DriverAssignmentModal = ({ order, onClose, onDriverAssign, availableDrivers }) => {
-  const [selectedDriver, setSelectedDriver] = useState('');
-  const [assigning, setAssigning] = useState(false);
-
-  const handleAssignDriver = async () => {
-    if (!selectedDriver) {
-      alert('Please select a driver');
-      return;
-    }
-
-    try {
-      setAssigning(true);
-      await onDriverAssign(order.id, selectedDriver);
-      onClose();
-    } catch (error) {
-      console.error('Error assigning driver:', error);
-      alert('Failed to assign driver');
-    } finally {
-      setAssigning(false);
-    }
-  };
-
+// Order Modal Component
+const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCurrency, formatDate, onShowMap }) => {
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
 
+  // Get payment status
+  const paymentStatus = getPaymentStatus(order);
+
   return (
     <div className="order-tracking-modal-backdrop" onClick={handleBackdropClick}>
-      <div className="order-tracking-modal-content driver-assignment-modal">
+      <div className="order-tracking-modal-content">
         <div className="order-tracking-modal-header">
-          <h2>
-            {order.driver_name ? 'Change Driver' : 'Assign Driver'} to Order #{order.receipt_reference}
-          </h2>
+          <h2>Order Details</h2>
           <button className="order-tracking-close-btn" onClick={onClose}>×</button>
         </div>
         
         <div className="order-tracking-modal-body">
-          <div className="driver-assignment-info">
-            <h3>Order Information</h3>
-            <div className="driver-assignment-details">
-              <p><strong>Customer:</strong> {order.customer_name}</p>
-              <p><strong>Restaurant:</strong> {order.restaurant_name || 'N/A'}</p>
-              <p><strong>Delivery Address:</strong> {order.delivery_address}</p>
-              <p><strong>Driver Status:</strong> 
-                <span className={`driver-status-badge ${getDriverStatusClass(order.driver_status)}`}>
-                  {formatDriverStatus(order.driver_status)}
-                </span>
-              </p>
-              {order.delivery_distance_km && (
-                <p><strong>Distance:</strong> {order.delivery_distance_km} km</p>
-              )}
-              {order.driver_name && (
-                <p><strong>Current Driver:</strong> {order.driver_name} ({order.driver_mobile})</p>
+          {/* Order Header */}
+          <div className="order-tracking-order-header">
+            <div className="order-tracking-order-id">
+              <strong>#{order.receipt_reference}</strong>
+              <span className={`order-tracking-status-badge order-tracking-status-${normalizeStatus(order.status)}`}>
+                {normalizeStatus(order.status).toUpperCase()}
+              </span>
+              <span className={`order-tracking-payment-status ${getPaymentStatusClass(paymentStatus.status)}`}>
+                {paymentStatus.label}
+              </span>
+            </div>
+            <div className="order-tracking-order-meta">
+              <div>Placed on: {formatDate(order.created_at)}</div>
+              {order.delivery_time && (
+                <div>Delivery by: {formatDate(order.delivery_time)}</div>
               )}
             </div>
           </div>
 
-          <div className="driver-selection-section">
-            <h3>Select Driver</h3>
-            <select 
-              value={selectedDriver} 
-              onChange={(e) => setSelectedDriver(e.target.value)}
-              className="driver-selection-select"
-              disabled={assigning}
-            >
-              <option value="">Choose a driver...</option>
-              {availableDrivers.map(driver => (
-                <option key={driver.id} value={driver.id}>
-                  {driver.driver_name} ({driver.driver_phone}) - {driver.status}
-                  {driver.status === 'online' && ' 🟢'}
-                  {driver.status === 'offline' && ' 🔴'}
-                  {driver.status === 'busy' && ' 🟡'}
-                </option>
-              ))}
-            </select>
+          {/* Customer & Restaurant Info */}
+          <div className="order-tracking-info-grid">
+            <div className="order-tracking-info-card">
+              <h3>Customer Information</h3>
+              <div className="order-tracking-info-item">
+                <strong>Name:</strong> {order.customer_name}
+              </div>
+              <div className="order-tracking-info-item">
+                <strong>Phone:</strong> {order.customer_phone}
+              </div>
+              <div className="order-tracking-info-item">
+                <strong>Address:</strong> {order.delivery_address}
+              </div>
+              {order.customer_lat && order.customer_lon && (
+                <div className="order-tracking-info-item order-tracking-location-item">
+                  <strong>Location:</strong> 
+                  <span className="order-tracking-coordinates">
+                    {order.customer_lat.toFixed(6)}, {order.customer_lon.toFixed(6)}
+                  </span>
+                  <button 
+                    onClick={() => onShowMap(order)}
+                    className="order-tracking-map-btn"
+                    title="View on map"
+                  >
+                    <span className="order-tracking-map-icon">📍</span>
+                    View Map
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="order-tracking-info-card">
+              <h3>Restaurant & Delivery</h3>
+              <div className="order-tracking-info-item">
+                <strong>Restaurant:</strong> {order.restaurant_name || 'N/A'}
+              </div>
+              
+              {order.driver_name && (
+                <div className="order-tracking-info-item">
+                  <strong>Driver:</strong> {order.driver_name} ({order.driver_mobile})
+                </div>
+              )}
+              
+              {order.delivery_distance_km && (
+                <div className="order-tracking-info-item">
+                  <strong>Distance:</strong> {order.delivery_distance_km} km
+                </div>
+              )}
+              {order.otp && normalizeStatus(order.status) !== 'delivered' && (
+                <div className="order-tracking-info-item order-tracking-otp-highlight">
+                  <strong>Delivery OTP:</strong> {order.otp}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Payment Information Section */}
+          <div className="order-tracking-info-card" style={{ marginBottom: '24px' }}>
+            <h3>Payment Information</h3>
+            <div className="order-tracking-info-item">
+              <strong>Method:</strong> {order.payment_method}
+            </div>
+            <div className="order-tracking-info-item">
+              <strong>Status:</strong>
+              <span className={`order-tracking-payment-status ${getPaymentStatusClass(paymentStatus.status)}`}>
+                {paymentStatus.label}
+              </span>
+            </div>
             
-            {selectedDriver && (
-              <div className="selected-driver-info">
-                {(() => {
-                  const driver = availableDrivers.find(d => d.id == selectedDriver);
-                  return driver ? (
-                    <>
-                      <h4>Selected Driver Details:</h4>
-                      <div className="driver-details">
-                        <p><strong>Name:</strong> {driver.driver_name}</p>
-                        <p><strong>Phone:</strong> {driver.driver_phone}</p>
-                        <p><strong>Status:</strong> 
-                          <span className={`driver-status driver-status-${driver.status}`}>
-                            {driver.status} 
-                            {driver.status === 'online' && ' 🟢'}
-                            {driver.status === 'offline' && ' 🔴'}
-                            {driver.status === 'busy' && ' 🟡'}
-                          </span>
-                        </p>
-                        {driver.latitude && driver.longitude && (
-                          <p><strong>Location:</strong> {driver.latitude.toFixed(4)}, {driver.longitude.toFixed(4)}</p>
-                        )}
-                        {driver.logined_at && (
-                          <p><strong>Last Active:</strong> {formatDate(driver.logined_at)}</p>
-                        )}
-                      </div>
-                    </>
-                  ) : null;
-                })()}
+            {paymentStatus.details && (
+              <div className="order-tracking-info-item">
+                <strong>Details:</strong> {paymentStatus.details}
+              </div>
+            )}
+            
+            {paymentStatus.time && (
+              <div className="order-tracking-info-item">
+                <strong>Payment Time:</strong> {formatDate(paymentStatus.time)}
+              </div>
+            )}
+            
+            {order.razorpay_payment_id && (
+              <div className="order-tracking-info-item">
+                <strong>Payment ID:</strong> {order.razorpay_payment_id}
+              </div>
+            )}
+            
+            {order.razorpay_order_id && (
+              <div className="order-tracking-info-item">
+                <strong>Order ID:</strong> {order.razorpay_order_id}
               </div>
             )}
           </div>
 
-          <div className="driver-assignment-actions">
-            <button 
-              onClick={handleAssignDriver}
-              disabled={!selectedDriver || assigning}
-              className="order-tracking-action-btn order-tracking-primary"
-            >
-              {assigning ? 'Assigning...' : (order.driver_name ? 'Change Driver' : 'Assign Driver')}
-            </button>
-            <button 
-              onClick={onClose}
-              disabled={assigning}
-              className="order-tracking-action-btn order-tracking-secondary"
-            >
-              Cancel
+          {/* Order Items */}
+          <div className="order-tracking-items-section">
+            <h3>Order Items ({order.items?.length || 0})</h3>
+            <div className="order-tracking-items-list">
+              {order.items?.map((item, index) => (
+                <div key={index} className="order-tracking-item-card">
+                  <img 
+                    src={item.product_image} 
+                    alt={item.product_name}
+                    className="order-tracking-item-image"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/60x60?text=No+Image';
+                    }}
+                  />
+                  <div className="order-tracking-item-details">
+                    <div className="order-tracking-item-name">{item.product_name}</div>
+                    <div className="order-tracking-item-meta">
+                      <span className="order-tracking-item-quantity">Qty: {item.quantity}</span>
+                      <span className="order-tracking-item-price">{formatCurrency(item.price)}</span>
+                    </div>
+                    {item.original_price && item.original_price > item.price && (
+                      <div className="order-tracking-item-discount">
+                        <span className="order-tracking-original-price">{formatCurrency(item.original_price)}</span>
+                        <span className="order-tracking-discount-badge">
+                          Save {formatCurrency(item.original_price - item.price)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Order Summary */}
+          <div className="order-summary-items">
+            <h3>Order Summary</h3>
+            <div className="order-summary-list">
+              <div className="order-summary-item">
+                <span className="order-summary-item-label">Subtotal:</span>
+                <span className="order-summary-item-value">{formatCurrency(order.total_amount - (order.delivery_charges || 0))}</span>
+              </div>
+              {order.delivery_charges && order.delivery_charges > 0 && (
+                <div className="order-summary-item">
+                  <span className="order-summary-item-label">Delivery Charges:</span>
+                  <span className="order-summary-item-value">{formatCurrency(order.delivery_charges)}</span>
+                </div>
+              )}
+              {order.promo_code && (
+                <div className="order-summary-item">
+                  <span className="order-summary-item-label">Promo Code:</span>
+                  <span className="order-summary-item-value">{order.promo_code}</span>
+                </div>
+              )}
+              <div className="order-summary-total">
+                <span>Total Amount:</span>
+                <span>{formatCurrency(order.total_amount)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="order-tracking-modal-actions">
+            {order.customer_lat && order.customer_lon && (
+              <button 
+                onClick={() => onShowMap(order)}
+                className="order-tracking-action-btn order-tracking-warning"
+              >
+                <span style={{ marginRight: '8px' }}>📍</span>
+                View Map
+              </button>
+            )}
+            {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped') && (
+              <button 
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to cancel this order?')) {
+                    onStatusUpdate(order.id, 'cancelled');
+                    onClose();
+                  }
+                }}
+                className="order-tracking-action-btn order-tracking-danger"
+              >
+                <span style={{ marginRight: '8px' }}>❌</span>
+                Cancel Order
+              </button>
+            )}
+            <button onClick={onClose} className="order-tracking-action-btn order-tracking-secondary">
+              Close
             </button>
           </div>
         </div>
       </div>
     </div>
-  );
-};
-
-// Order Modal Component
-const OrderModal = ({ order, onClose, onStatusUpdate, onDriverAssign, normalizeStatus, formatCurrency, formatDate, availableDrivers, onShowMap }) => {
-  const [showDriverAssignment, setShowDriverAssignment] = useState(false);
-
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  const canAssignDriver = normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped';
-  const canChangeDriver = normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped';
-  
-  // Get payment status
-  const paymentStatus = getPaymentStatus(order);
-
-  return (
-    <>
-      <div className="order-tracking-modal-backdrop" onClick={handleBackdropClick}>
-        <div className="order-tracking-modal-content">
-          <div className="order-tracking-modal-header">
-            <h2>Order Details</h2>
-            <button className="order-tracking-close-btn" onClick={onClose}>×</button>
-          </div>
-          
-          <div className="order-tracking-modal-body">
-            {/* Order Header */}
-            <div className="order-tracking-order-header">
-              <div className="order-tracking-order-id">
-                <strong>#{order.receipt_reference}</strong>
-                <span className={`order-tracking-status-badge order-tracking-status-${normalizeStatus(order.status)}`}>
-                  {normalizeStatus(order.status).toUpperCase()}
-                </span>
-                <span className={`order-tracking-payment-status ${getPaymentStatusClass(paymentStatus.status)}`}>
-                  {paymentStatus.label}
-                </span>
-              </div>
-              <div className="order-tracking-order-meta">
-                <div>Placed on: {formatDate(order.created_at)}</div>
-                {order.delivery_time && (
-                  <div>Delivery by: {formatDate(order.delivery_time)}</div>
-                )}
-              </div>
-            </div>
-
-            {/* Customer & Restaurant Info */}
-            <div className="order-tracking-info-grid">
-              <div className="order-tracking-info-card">
-                <h3>Customer Information</h3>
-                <div className="order-tracking-info-item">
-                  <strong>Name:</strong> {order.customer_name}
-                </div>
-                <div className="order-tracking-info-item">
-                  <strong>Phone:</strong> {order.customer_phone}
-                </div>
-                <div className="order-tracking-info-item">
-                  <strong>Address:</strong> {order.delivery_address}
-                </div>
-                {order.customer_lat && order.customer_lon && (
-                  <div className="order-tracking-info-item order-tracking-location-item">
-                    <strong>Location:</strong> 
-                    <span className="order-tracking-coordinates">
-                      {order.customer_lat.toFixed(6)}, {order.customer_lon.toFixed(6)}
-                    </span>
-                    <button 
-                      onClick={() => onShowMap(order)}
-                      className="order-tracking-map-btn"
-                      title="View on map"
-                    >
-                      <span className="order-tracking-map-icon">📍</span>
-                      View Map
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="order-tracking-info-card">
-                <h3>Restaurant & Delivery</h3>
-                <div className="order-tracking-info-item">
-                  <strong>Restaurant:</strong> {order.restaurant_name || 'N/A'}
-                </div>
-                
-                {/* Driver Information Section */}
-                <div className="driver-info-section">
-                  <div className="order-tracking-info-item">
-                    <strong>Driver Status:</strong> 
-                    <span className={`driver-status-badge ${getDriverStatusClass(order.driver_status)}`}>
-                      {formatDriverStatus(order.driver_status)}
-                    </span>
-                  </div>
-                  
-                  {order.driver_name ? (
-                    <>
-                      <div className="order-tracking-info-item">
-                        <strong>Assigned Driver:</strong> {order.driver_name} ({order.driver_mobile})
-                      </div>
-                      {canChangeDriver && (
-                        <button 
-                          onClick={() => setShowDriverAssignment(true)}
-                          className="change-driver-btn"
-                          style={{
-                            background: '#3b82f6',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            cursor: 'pointer',
-                            marginTop: '8px'
-                          }}
-                        >
-                          Change Driver
-                        </button>
-                      )}
-                    </>
-                  ) : (
-                    <div className="no-driver-assigned">
-                      <div className="order-tracking-info-item">
-                        <strong>Driver:</strong> Not assigned
-                      </div>
-                      {canAssignDriver && (
-                        <button 
-                          onClick={() => setShowDriverAssignment(true)}
-                          className="assign-driver-btn"
-                          style={{
-                            background: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            cursor: 'pointer',
-                            marginTop: '8px'
-                          }}
-                        >
-                          Assign Driver
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {order.delivery_distance_km && (
-                  <div className="order-tracking-info-item">
-                    <strong>Distance:</strong> {order.delivery_distance_km} km
-                  </div>
-                )}
-                {order.otp && normalizeStatus(order.status) !== 'delivered' && (
-                  <div className="order-tracking-info-item order-tracking-otp-highlight">
-                    <strong>Delivery OTP:</strong> {order.otp}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Payment Information Section */}
-            <div className="order-tracking-info-card" style={{ marginBottom: '24px' }}>
-              <h3>Payment Information</h3>
-              <div className="order-tracking-info-item">
-                <strong>Method:</strong> {order.payment_method}
-              </div>
-              <div className="order-tracking-info-item">
-                <strong>Status:</strong>
-                <span className={`order-tracking-payment-status ${getPaymentStatusClass(paymentStatus.status)}`}>
-                  {paymentStatus.label}
-                </span>
-              </div>
-              
-              {paymentStatus.details && (
-                <div className="order-tracking-info-item">
-                  <strong>Details:</strong> {paymentStatus.details}
-                </div>
-              )}
-              
-              {paymentStatus.time && (
-                <div className="order-tracking-info-item">
-                  <strong>Payment Time:</strong> {formatDate(paymentStatus.time)}
-                </div>
-              )}
-              
-              {order.razorpay_payment_id && (
-                <div className="order-tracking-info-item">
-                  <strong>Payment ID:</strong> {order.razorpay_payment_id}
-                </div>
-              )}
-              
-              {order.razorpay_order_id && (
-                <div className="order-tracking-info-item">
-                  <strong>Order ID:</strong> {order.razorpay_order_id}
-                </div>
-              )}
-            </div>
-
-            {/* Order Items */}
-            <div className="order-tracking-items-section">
-              <h3>Order Items ({order.items?.length || 0})</h3>
-              <div className="order-tracking-items-list">
-                {order.items?.map((item, index) => (
-                  <div key={index} className="order-tracking-item-card">
-                    <img 
-                      src={item.product_image} 
-                      alt={item.product_name}
-                      className="order-tracking-item-image"
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/60x60?text=No+Image';
-                      }}
-                    />
-                    <div className="order-tracking-item-details">
-                      <div className="order-tracking-item-name">{item.product_name}</div>
-                      <div className="order-tracking-item-meta">
-                        <span className="order-tracking-item-quantity">Qty: {item.quantity}</span>
-                        <span className="order-tracking-item-price">{formatCurrency(item.price)}</span>
-                      </div>
-                      {item.original_price && item.original_price > item.price && (
-                        <div className="order-tracking-item-discount">
-                          <span className="order-tracking-original-price">{formatCurrency(item.original_price)}</span>
-                          <span className="order-tracking-discount-badge">
-                            Save {formatCurrency(item.original_price - item.price)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Order Summary */}
-            <div className="order-summary-items">
-              <h3>Order Summary</h3>
-              <div className="order-summary-list">
-                <div className="order-summary-item">
-                  <span className="order-summary-item-label">Subtotal:</span>
-                  <span className="order-summary-item-value">{formatCurrency(order.total_amount - (order.delivery_charges || 0))}</span>
-                </div>
-                {order.delivery_charges && order.delivery_charges > 0 && (
-                  <div className="order-summary-item">
-                    <span className="order-summary-item-label">Delivery Charges:</span>
-                    <span className="order-summary-item-value">{formatCurrency(order.delivery_charges)}</span>
-                  </div>
-                )}
-                {order.promo_code && (
-                  <div className="order-summary-item">
-                    <span className="order-summary-item-label">Promo Code:</span>
-                    <span className="order-summary-item-value">{order.promo_code}</span>
-                  </div>
-                )}
-                <div className="order-summary-total">
-                  <span>Total Amount:</span>
-                  <span>{formatCurrency(order.total_amount)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Driver Status Timeline */}
-            {(order.driver_status && order.driver_status !== 'order_placed') && (
-              <div className="order-tracking-driver-timeline">
-                <h3>Driver Activity Timeline</h3>
-                <div className="driver-timeline-steps">
-                  {order.partner_accepted_at && (
-                    <div className={`timeline-step ${order.driver_status === 'partner_accepted' ? 'active' : 'completed'}`}>
-                      <div className="timeline-step-icon">✓</div>
-                      <div className="timeline-step-content">
-                        <strong>Partner Accepted</strong>
-                        <span>{formatDate(order.partner_accepted_at)}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {order.reached_pickup_at && (
-                    <div className={`timeline-step ${order.driver_status === 'reached_pickup_location' ? 'active' : 'completed'}`}>
-                      <div className="timeline-step-icon">✓</div>
-                      <div className="timeline-step-content">
-                        <strong>Reached Pickup Location</strong>
-                        <span>{formatDate(order.reached_pickup_at)}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {order.pickup_completed_at && (
-                    <div className={`timeline-step ${order.driver_status === 'pickup_completed' ? 'active' : 'completed'}`}>
-                      <div className="timeline-step-icon">✓</div>
-                      <div className="timeline-step-content">
-                        <strong>Pickup Completed</strong>
-                        <span>{formatDate(order.pickup_completed_at)}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {order.reached_customer_at && (
-                    <div className={`timeline-step ${order.driver_status === 'reached_customer_location' ? 'active' : 'completed'}`}>
-                      <div className="timeline-step-icon">✓</div>
-                      <div className="timeline-step-content">
-                        <strong>Reached Customer Location</strong>
-                        <span>{formatDate(order.reached_customer_at)}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {order.cash_collected_at && (
-                    <div className={`timeline-step ${order.driver_status === 'cash_collected' ? 'active' : 'completed'}`}>
-                      <div className="timeline-step-icon">✓</div>
-                      <div className="timeline-step-content">
-                        <strong>Cash Collected</strong>
-                        <span>{formatDate(order.cash_collected_at)}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {order.order_completed_at && (
-                    <div className={`timeline-step ${order.driver_status === 'order_completed' ? 'active' : 'completed'}`}>
-                      <div className="timeline-step-icon">✓</div>
-                      <div className="timeline-step-content">
-                        <strong>Order Completed</strong>
-                        <span>{formatDate(order.order_completed_at)}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="order-tracking-modal-actions">
-              {order.customer_lat && order.customer_lon && (
-                <button 
-                  onClick={() => onShowMap(order)}
-                  className="order-tracking-action-btn order-tracking-warning"
-                >
-                  <span style={{ marginRight: '8px' }}>📍</span>
-                  View Map
-                </button>
-              )}
-              {canAssignDriver && !order.driver_name && (
-                <button 
-                  onClick={() => setShowDriverAssignment(true)}
-                  className="order-tracking-action-btn order-tracking-primary"
-                >
-                  <span style={{ marginRight: '8px' }}>🚗</span>
-                  Assign Driver
-                </button>
-              )}
-              {canChangeDriver && order.driver_name && (
-                <button 
-                  onClick={() => setShowDriverAssignment(true)}
-                  className="order-tracking-action-btn order-tracking-primary"
-                >
-                  <span style={{ marginRight: '8px' }}>🔄</span>
-                  Change Driver
-                </button>
-              )}
-              {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped') && (
-                <button 
-                  onClick={() => {
-                    if (window.confirm('Are you sure you want to cancel this order?')) {
-                      onStatusUpdate(order.id, 'cancelled');
-                      onClose();
-                    }
-                  }}
-                  className="order-tracking-action-btn order-tracking-danger"
-                >
-                  <span style={{ marginRight: '8px' }}>❌</span>
-                  Cancel Order
-                </button>
-              )}
-              <button onClick={onClose} className="order-tracking-action-btn order-tracking-secondary">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Driver Assignment Modal */}
-      {showDriverAssignment && (
-        <DriverAssignmentModal
-          order={order}
-          onClose={() => setShowDriverAssignment(false)}
-          onDriverAssign={onDriverAssign}
-          availableDrivers={availableDrivers}
-        />
-      )}
-    </>
   );
 };
 
@@ -1151,7 +817,7 @@ const OrderTracking = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [restaurantFilter, setRestaurantFilter] = useState('all');
-  const [driverStatusFilter, setDriverStatusFilter] = useState('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all'); // New filter
   const [showCalendar, setShowCalendar] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapOrder, setMapOrder] = useState(null);
@@ -1224,36 +890,26 @@ const OrderTracking = () => {
     return uniqueRestaurants.sort();
   }, [orders]);
 
-  // Get unique driver statuses for filter
-  const driverStatuses = useMemo(() => {
-    const uniqueStatuses = [...new Set(orders
-      .map(order => order.driver_status)
+  // Get unique payment methods for filter
+  const paymentMethods = useMemo(() => {
+    const uniqueMethods = [...new Set(orders
+      .map(order => order.payment_method)
       .filter(Boolean)
-      .map(status => ({
-        value: status,
-        label: formatDriverStatus(status)
-      }))
+      .map(method => {
+        // Normalize payment method names
+        const lowerMethod = method.toLowerCase();
+        if (lowerMethod.includes('online') || lowerMethod.includes('card') || lowerMethod.includes('upi') || lowerMethod.includes('wallet')) {
+          return 'Online Payment';
+        } else if (lowerMethod.includes('cash') || lowerMethod.includes('cod')) {
+          return 'Cash on Delivery';
+        }
+        return method;
+      })
     )];
     
-    // Sort by frequency
-    return uniqueStatuses.sort((a, b) => {
-      const countA = orders.filter(o => o.driver_status === a.value).length;
-      const countB = orders.filter(o => o.driver_status === b.value).length;
-      return countB - countA;
-    });
+    // Remove duplicates and sort
+    return [...new Set(uniqueMethods)].sort();
   }, [orders]);
-
-  // Get available drivers (online and not busy)
-  const availableDrivers = useMemo(() => {
-    return drivers.filter(driver => 
-      driver.status === 'online' || driver.status === 'offline'
-    ).sort((a, b) => {
-      // Sort online drivers first
-      if (a.status === 'online' && b.status !== 'online') return -1;
-      if (b.status === 'online' && a.status !== 'online') return 1;
-      return a.driver_name.localeCompare(b.driver_name);
-    });
-  }, [drivers]);
 
   const fetchOrders = async () => {
     try {
@@ -1325,46 +981,6 @@ const OrderTracking = () => {
     } catch (error) {
       console.error('Error updating order status:', error);
       setError('Failed to update status');
-    }
-  };
-
-  const assignDriverToOrder = async (orderId, driverId) => {
-    try {
-      // Find the driver by ID
-      const driver = drivers.find(d => d.id == driverId);
-      if (!driver) {
-        throw new Error('Driver not found');
-      }
-
-      // Update the order with driver information
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          driver_name: driver.driver_name,
-          driver_mobile: driver.driver_phone,
-          driver_status: 'partner_accepted',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId);
-
-      if (error) throw error;
-      
-      // Update local state
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.id === orderId ? { 
-            ...order, 
-            driver_name: driver.driver_name,
-            driver_mobile: driver.driver_phone,
-            driver_status: 'partner_accepted'
-          } : order
-        )
-      );
-
-    } catch (error) {
-      console.error('Error assigning driver:', error);
-      setError('Failed to assign driver');
-      throw error;
     }
   };
 
@@ -1450,13 +1066,25 @@ const OrderTracking = () => {
       filtered = filtered.filter(order => order.restaurant_name === restaurantFilter);
     }
     
-    // Apply driver status filter
-    if (driverStatusFilter !== 'all') {
-      filtered = filtered.filter(order => order.driver_status === driverStatusFilter);
+    // Apply payment method filter
+    if (paymentMethodFilter !== 'all') {
+      filtered = filtered.filter(order => {
+        const paymentMethod = order.payment_method?.toLowerCase();
+        if (paymentMethodFilter === 'Online Payment') {
+          return paymentMethod.includes('online') || 
+                 paymentMethod.includes('card') || 
+                 paymentMethod.includes('upi') || 
+                 paymentMethod.includes('wallet');
+        } else if (paymentMethodFilter === 'Cash on Delivery') {
+          return paymentMethod.includes('cash') || 
+                 paymentMethod.includes('cod');
+        }
+        return order.payment_method === paymentMethodFilter;
+      });
     }
     
     return filtered;
-  }, [viewMode, orders, selectedDate, searchTerm, statusFilter, restaurantFilter, driverStatusFilter]);
+  }, [viewMode, orders, selectedDate, searchTerm, statusFilter, restaurantFilter, paymentMethodFilter]);
 
   const DateNavigation = () => {
     if (!selectedDate) return null;
@@ -1636,15 +1264,15 @@ const OrderTracking = () => {
               ))}
             </select>
             
+            {/* Payment Method Filter - Replaces Driver Status Filter */}
             <select 
-              value={driverStatusFilter} 
-              onChange={(e) => setDriverStatusFilter(e.target.value)}
+              value={paymentMethodFilter} 
+              onChange={(e) => setPaymentMethodFilter(e.target.value)}
               className="order-tracking-filter-select"
             >
-              <option value="all">All Driver Status</option>
-              <option value="">Not Assigned</option>
-              {driverStatuses.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
+              <option value="all">All Payment Types</option>
+              {paymentMethods.map(method => (
+                <option key={method} value={method}>{method}</option>
               ))}
             </select>
           </div>
@@ -1697,7 +1325,7 @@ const OrderTracking = () => {
                 <th>Customer</th>
                 <th>Restaurant</th>
                 <th>Driver</th>
-                <th>Driver Status</th>
+                <th>Payment Type</th> {/* Changed from Driver Status */}
                 <th>Items</th>
                 <th>Amount</th>
                 <th>Payment Status</th>
@@ -1707,118 +1335,121 @@ const OrderTracking = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((order) => (
-                <tr key={order.id} className="order-tracking-order-row" onClick={() => openOrderDetails(order)}>
-                  <td>
-                    <strong>#{order.receipt_reference}</strong>
-                    <div className="order-tracking-order-meta">
-                      <span className={`order-tracking-payment-method order-tracking-payment-${order.payment_method?.toLowerCase().replace(' ', '-')}`}>
-                        {order.payment_method}
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="order-tracking-customer-info">
-                      <span className="order-tracking-customer-name">{order.customer_name}</span>
-                      <span className="order-tracking-customer-phone">{order.customer_phone}</span>
-                      {order.customer_lat && order.customer_lon && (
-                        <div className="order-tracking-location-info">
-                          <span className="order-tracking-location-coords">
-                            📍 {order.customer_lat.toFixed(4)}, {order.customer_lon.toFixed(4)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="order-tracking-restaurant-info">
-                      <span className="order-tracking-restaurant-name">{order.restaurant_name || 'N/A'}</span>
-                      {order.delivery_distance_km && (
-                        <span className="order-tracking-distance">{order.delivery_distance_km} km</span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="order-tracking-driver-info">
-                      {order.driver_name ? (
-                        <>
-                          <span className="order-tracking-driver-name">{order.driver_name}</span>
-                          <span className="order-tracking-driver-phone">{order.driver_mobile}</span>
-                        </>
-                      ) : (
-                        <span className="order-tracking-no-driver">Not assigned</span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="order-tracking-driver-status-info">
-                      {order.driver_status ? (
-                        <span className={`driver-status-badge ${getDriverStatusClass(order.driver_status)}`}>
-                          {formatDriverStatus(order.driver_status)}
+              {filteredOrders.map((order) => {
+                // Determine payment type for display
+                const paymentMethod = order.payment_method?.toLowerCase();
+                let paymentType = order.payment_method || 'Unknown';
+                
+                if (paymentMethod?.includes('online') || paymentMethod?.includes('card') || paymentMethod?.includes('upi') || paymentMethod?.includes('wallet')) {
+                  paymentType = 'Online Payment';
+                } else if (paymentMethod?.includes('cash') || paymentMethod?.includes('cod')) {
+                  paymentType = 'Cash on Delivery';
+                }
+                
+                return (
+                  <tr key={order.id} className="order-tracking-order-row" onClick={() => openOrderDetails(order)}>
+                    <td>
+                      <strong>#{order.id}</strong>
+                      <div className="order-tracking-order-meta">
+                        <span className={`order-tracking-payment-method order-tracking-payment-${paymentMethod?.replace(' ', '-')}`}>
+                          {paymentType}
                         </span>
-                      ) : (
-                        <span className="driver-status-badge driver-status-default">Order Placed</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="order-tracking-customer-info">
+                        <span className="order-tracking-customer-name">{order.customer_name}</span>
+                        <span className="order-tracking-customer-phone">{order.customer_phone}</span>
+                        {order.customer_lat && order.customer_lon && (
+                          <div className="order-tracking-location-info">
+                            <span className="order-tracking-location-coords">
+                              📍 {order.customer_lat.toFixed(4)}, {order.customer_lon.toFixed(4)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="order-tracking-restaurant-info">
+                        <span className="order-tracking-restaurant-name">{order.restaurant_name || 'N/A'}</span>
+                        {order.delivery_distance_km && (
+                          <span className="order-tracking-distance">{order.delivery_distance_km} km</span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="order-tracking-driver-info">
+                        {order.driver_name ? (
+                          <>
+                            <span className="order-tracking-driver-name">{order.driver_name}</span>
+                            <span className="order-tracking-driver-phone">{order.driver_mobile}</span>
+                          </>
+                        ) : (
+                          <span className="order-tracking-no-driver">Not assigned</span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="order-tracking-payment-type-info">
+                        <span className={`payment-type-badge payment-type-${paymentType.toLowerCase().replace(' ', '-')}`}>
+                          {paymentType}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="order-tracking-items-preview">
+                        {renderItemsPreview(order.items)}
+                      </div>
+                    </td>
+                    <td className="order-tracking-amount">
+                      {formatCurrency(order.total_amount)}
+                      {order.delivery_charges && (
+                        <div className="order-tracking-delivery-charge">+₹{order.delivery_charges} delivery</div>
                       )}
-                      {order.driver_order_earnings && (
-                        <div className="order-tracking-driver-earnings">
-                          ₹{order.driver_order_earnings}
+                    </td>
+                    <td>
+                      {renderPaymentStatus(order)}
+                    </td>
+                    <td>
+                      <span className={`order-tracking-status-badge order-tracking-status-${normalizeStatus(order.status)}`}>
+                        {normalizeStatus(order.status).toUpperCase()}
+                      </span>
+                      {order.otp && normalizeStatus(order.status) !== 'delivered' && (
+                        <div className="order-tracking-otp-badge">OTP: {order.otp}</div>
+                      )}
+                    </td>
+                    <td>
+                      {formatDate(order.created_at)}
+                      {order.delivery_time && (
+                        <div className="order-tracking-delivery-time">
+                          Deliver by: {formatDate(order.delivery_time)}
                         </div>
                       )}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="order-tracking-items-preview">
-                      {renderItemsPreview(order.items)}
-                    </div>
-                  </td>
-                  <td className="order-tracking-amount">
-                    {formatCurrency(order.total_amount)}
-                    {order.delivery_charges && (
-                      <div className="order-tracking-delivery-charge">+₹{order.delivery_charges} delivery</div>
-                    )}
-                  </td>
-                  <td>
-                    {renderPaymentStatus(order)}
-                  </td>
-                  <td>
-                    <span className={`order-tracking-status-badge order-tracking-status-${normalizeStatus(order.status)}`}>
-                      {normalizeStatus(order.status).toUpperCase()}
-                    </span>
-                    {order.otp && normalizeStatus(order.status) !== 'delivered' && (
-                      <div className="order-tracking-otp-badge">OTP: {order.otp}</div>
-                    )}
-                  </td>
-                  <td>
-                    {formatDate(order.created_at)}
-                    {order.delivery_time && (
-                      <div className="order-tracking-delivery-time">
-                        Deliver by: {formatDate(order.delivery_time)}
-                      </div>
-                    )}
-                  </td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <div className="order-tracking-order-actions">
-                      {renderMapButton(order)}
-                      {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped') && (
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <div className="order-tracking-order-actions">
+                        {renderMapButton(order)}
+                        {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped') && (
+                          <button 
+                            onClick={() => window.confirm('Cancel this order?') && updateOrderStatus(order.id, 'cancelled')}
+                            className="order-tracking-action-btn order-tracking-cancel"
+                            title="Cancel Order"
+                          >
+                            ❌
+                          </button>
+                        )}
                         <button 
-                          onClick={() => window.confirm('Cancel this order?') && updateOrderStatus(order.id, 'cancelled')}
-                          className="order-tracking-action-btn order-tracking-cancel"
-                          title="Cancel Order"
+                          onClick={() => openOrderDetails(order)}
+                          className="order-tracking-action-btn order-tracking-details"
+                          title="View Details"
                         >
-                          ❌
+                          👁️
                         </button>
-                      )}
-                      <button 
-                        onClick={() => openOrderDetails(order)}
-                        className="order-tracking-action-btn order-tracking-details"
-                        title="View Details"
-                      >
-                        👁️
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
@@ -1831,13 +1462,13 @@ const OrderTracking = () => {
                   : 'No orders found'
                 }
               </p>
-              {(searchTerm || statusFilter !== 'all' || restaurantFilter !== 'all' || driverStatusFilter !== 'all') && (
+              {(searchTerm || statusFilter !== 'all' || restaurantFilter !== 'all' || paymentMethodFilter !== 'all') && (
                 <button 
                   onClick={() => {
                     setSearchTerm('');
                     setStatusFilter('all');
                     setRestaurantFilter('all');
-                    setDriverStatusFilter('all');
+                    setPaymentMethodFilter('all');
                   }}
                   className="order-tracking-clear-filters-btn"
                 >
@@ -1863,11 +1494,9 @@ const OrderTracking = () => {
             order={selectedOrder}
             onClose={closeOrderDetails}
             onStatusUpdate={updateOrderStatus}
-            onDriverAssign={assignDriverToOrder}
             normalizeStatus={normalizeStatus}
             formatCurrency={formatCurrency}
             formatDate={formatDate}
-            availableDrivers={availableDrivers}
             onShowMap={openMapModal}
           />
         )}
