@@ -1692,3 +1692,667 @@
     margin-top: 4px;
   }
 }
+
+
+/* Driver Status Badges */
+.order-tracking-driver-status-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.order-tracking-driver-status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Driver Status Colors */
+.order-tracking-driver-status-order-placed {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+}
+
+.order-tracking-driver-status-partner-accepted {
+  background-color: #fff8e1;
+  color: #f57c00;
+  border: 1px solid #ffecb3;
+}
+
+.order-tracking-driver-status-reached-pickup {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.order-tracking-driver-status-pickup-completed {
+  background-color: #e3f2fd;
+  color: #0d47a1;
+  border: 1px solid #bbdefb;
+}
+
+.order-tracking-driver-status-item-not-available {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.order-tracking-driver-status-restaurant-closed {
+  background-color: #f5f5f5;
+  color: #616161;
+  border: 1px solid #e0e0e0;
+}
+
+.order-tracking-driver-status-reached-customer {
+  background-color: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #c8e6c9;
+}
+
+.order-tracking-driver-status-cash-collected {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.order-tracking-driver-status-paid-by-qr {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+}
+
+.order-tracking-driver-status-already-paid {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+  border: 1px solid #e1bee7;
+}
+
+.order-tracking-driver-status-order-completed {
+  background-color: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #c8e6c9;
+}
+
+.order-tracking-driver-status-cancelled {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.order-tracking-driver-status-default {
+  background-color: #f5f5f5;
+  color: #757575;
+  border: 1px solid #e0e0e0;
+}
+
+.order-tracking-pickup-proof-time {
+  font-size: 10px;
+  color: #666;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Filter Controls Adjustment */
+.order-tracking-filter-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.order-tracking-filter-select {
+  flex: 1;
+  min-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+}
+
+.order-tracking-filter-select:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+/* Table Column Adjustments */
+.order-tracking-orders-table th:nth-child(6),
+.order-tracking-orders-table td:nth-child(6) {
+  width: 150px;
+  min-width: 150px;
+}
+
+/* Modal Driver Status */
+.order-tracking-info-item .order-tracking-driver-status-badge {
+  margin-left: 8px;
+  padding: 3px 6px;
+  font-size: 12px;
+}
+
+/* Driver Assignment Modal Styles */
+.driver-assignment-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.driver-assignment-modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.driver-assignment-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.driver-assignment-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.driver-assignment-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 24px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.driver-assignment-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.driver-assignment-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  max-height: calc(90vh - 80px);
+}
+
+/* Order Info */
+.driver-assignment-order-info {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  border-left: 4px solid #667eea;
+}
+
+.driver-assignment-order-details {
+  display: grid;
+  gap: 8px;
+}
+
+.driver-assignment-order-details div {
+  display: flex;
+  gap: 8px;
+}
+
+.driver-assignment-order-details strong {
+  min-width: 120px;
+  color: #495057;
+}
+
+.driver-assignment-current-driver {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #dee2e6;
+}
+
+.driver-assignment-current-driver h4 {
+  margin: 0 0 12px 0;
+  color: #495057;
+  font-size: 16px;
+}
+
+.current-driver-details {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.current-driver-name {
+  font-weight: 600;
+  color: #212529;
+  background: #e3f2fd;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid #bbdefb;
+}
+
+.current-driver-phone {
+  color: #6c757d;
+  background: #f8f9fa;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid #e9ecef;
+}
+
+.current-driver-status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Driver Selection */
+.driver-assignment-selection {
+  margin-bottom: 24px;
+}
+
+.driver-assignment-selection h3 {
+  margin: 0 0 16px 0;
+  color: #212529;
+  font-size: 18px;
+}
+
+.driver-category {
+  margin-bottom: 20px;
+}
+
+.driver-category-title {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.driver-category-title.online {
+  color: #28a745;
+}
+
+.driver-category-title.offline {
+  color: #6c757d;
+}
+
+.driver-list {
+  display: grid;
+  gap: 8px;
+}
+
+.driver-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.driver-item:hover {
+  border-color: #667eea;
+  background: #f8f9ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.driver-item.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-width: 2px;
+}
+
+.driver-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.driver-name {
+  font-weight: 600;
+  color: #212529;
+}
+
+.driver-phone {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.driver-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.driver-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.driver-status.online {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.driver-status.offline {
+  background: #e2e3e5;
+  color: #383d41;
+  border: 1px solid #d6d8db;
+}
+
+.driver-last-active {
+  font-size: 11px;
+  color: #6c757d;
+}
+
+.no-drivers-available {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+}
+
+.no-drivers-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* Action Buttons */
+.driver-assignment-modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.driver-assignment-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.driver-assignment-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.driver-assignment-unassign {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.driver-assignment-unassign:hover:not(:disabled) {
+  background: #ffcdd2;
+  color: #b71c1c;
+}
+
+.driver-assignment-action-group {
+  display: flex;
+  gap: 12px;
+}
+
+.driver-assignment-cancel {
+  background: #6c757d;
+  color: white;
+}
+
+.driver-assignment-cancel:hover {
+  background: #5a6268;
+}
+
+.driver-assignment-confirm {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.driver-assignment-confirm:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Driver Button in Table */
+.order-tracking-order-actions .order-tracking-driver {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.order-tracking-order-actions .order-tracking-driver:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Driver Button in Modal */
+.order-tracking-action-btn.order-tracking-driver-assign {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.order-tracking-action-btn.order-tracking-driver-assign:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Additional Filter Styles */
+.order-tracking-filter-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.order-tracking-filter-select {
+  flex: 1;
+  min-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+}
+
+.order-tracking-filter-select:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+/* Table Column Adjustments */
+.order-tracking-orders-table th:nth-child(6),
+.order-tracking-orders-table td:nth-child(6) {
+  width: 150px;
+  min-width: 150px;
+}
+
+/* Action Buttons Container */
+.order-tracking-order-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.order-tracking-order-actions .order-tracking-action-btn {
+  padding: 6px 10px;
+  font-size: 14px;
+  min-width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Driver Status Badges in Table */
+.order-tracking-driver-status-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.order-tracking-driver-status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Driver Status Colors */
+.order-tracking-driver-status-order-placed {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+}
+
+.order-tracking-driver-status-partner-accepted {
+  background-color: #fff8e1;
+  color: #f57c00;
+  border: 1px solid #ffecb3;
+}
+
+.order-tracking-driver-status-reached-pickup {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.order-tracking-driver-status-pickup-completed {
+  background-color: #e3f2fd;
+  color: #0d47a1;
+  border: 1px solid #bbdefb;
+}
+
+.order-tracking-driver-status-item-not-available {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.order-tracking-driver-status-restaurant-closed {
+  background-color: #f5f5f5;
+  color: #616161;
+  border: 1px solid #e0e0e0;
+}
+
+.order-tracking-driver-status-reached-customer {
+  background-color: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #c8e6c9;
+}
+
+.order-tracking-driver-status-cash-collected {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.order-tracking-driver-status-paid-by-qr {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+}
+
+.order-tracking-driver-status-already-paid {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+  border: 1px solid #e1bee7;
+}
+
+.order-tracking-driver-status-order-completed {
+  background-color: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #c8e6c9;
+}
+
+.order-tracking-driver-status-cancelled {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.order-tracking-driver-status-default {
+  background-color: #f5f5f5;
+  color: #757575;
+  border: 1px solid #e0e0e0;
+}
+
+.order-tracking-pickup-proof-time {
+  font-size: 10px;
+  color: #666;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

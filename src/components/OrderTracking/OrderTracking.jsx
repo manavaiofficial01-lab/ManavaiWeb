@@ -87,6 +87,50 @@ const getPaymentStatusClass = (status) => {
   }
 };
 
+// Get driver status badge class
+const getDriverStatusClass = (status) => {
+  if (!status) return 'order-tracking-driver-status-default';
+  
+  const statusMap = {
+    'order_placed': 'order-tracking-driver-status-order-placed',
+    'partner_accepted': 'order-tracking-driver-status-partner-accepted',
+    'reached_pickup_location': 'order-tracking-driver-status-reached-pickup',
+    'pickup_completed': 'order-tracking-driver-status-pickup-completed',
+    'item_not_available': 'order-tracking-driver-status-item-not-available',
+    'restaurant_closed': 'order-tracking-driver-status-restaurant-closed',
+    'reached_customer_location': 'order-tracking-driver-status-reached-customer',
+    'cash_collected': 'order-tracking-driver-status-cash-collected',
+    'paid_by_qr': 'order-tracking-driver-status-paid-by-qr',
+    'already_paid': 'order-tracking-driver-status-already-paid',
+    'order_completed': 'order-tracking-driver-status-order-completed',
+    'cancelled': 'order-tracking-driver-status-cancelled'
+  };
+  
+  return statusMap[status] || 'order-tracking-driver-status-default';
+};
+
+// Format driver status for display
+const formatDriverStatus = (status) => {
+  if (!status) return 'Not Started';
+  
+  const statusMap = {
+    'order_placed': 'Order Placed',
+    'partner_accepted': 'Driver Accepted',
+    'reached_pickup_location': 'Reached Pickup',
+    'pickup_completed': 'Pickup Completed',
+    'item_not_available': 'Item Not Available',
+    'restaurant_closed': 'Restaurant Closed',
+    'reached_customer_location': 'Reached Customer',
+    'cash_collected': 'Cash Collected',
+    'paid_by_qr': 'Paid by QR',
+    'already_paid': 'Already Paid',
+    'order_completed': 'Order Completed',
+    'cancelled': 'Cancelled'
+  };
+  
+  return statusMap[status] || status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
 const safeParseItems = (itemsData) => {
   if (Array.isArray(itemsData)) return itemsData;
   if (typeof itemsData === 'string') {
@@ -198,6 +242,208 @@ const getTamilNaduDay = (dateString) => {
     console.error('Error formatting day:', error);
     return 'Error';
   }
+};
+
+// Driver Assignment Modal Component
+const DriverAssignmentModal = ({ order, drivers, onClose, onAssignDriver, onUnassignDriver }) => {
+  const [selectedDriverId, setSelectedDriverId] = useState(order.driver_phone || '');
+  const [assigning, setAssigning] = useState(false);
+  const [unassigning, setUnassigning] = useState(false);
+
+  const handleAssignDriver = async () => {
+    if (!selectedDriverId) {
+      alert('Please select a driver');
+      return;
+    }
+
+    const selectedDriver = drivers.find(d => d.driver_phone === selectedDriverId);
+    if (!selectedDriver) {
+      alert('Selected driver not found');
+      return;
+    }
+
+    setAssigning(true);
+    try {
+      await onAssignDriver(order.id, selectedDriver);
+      onClose();
+    } catch (error) {
+      console.error('Error assigning driver:', error);
+      alert('Failed to assign driver');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const handleUnassignDriver = async () => {
+    if (!order.driver_name) {
+      alert('No driver assigned to this order');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to unassign ${order.driver_name} from this order?`)) {
+      return;
+    }
+
+    setUnassigning(true);
+    try {
+      await onUnassignDriver(order.id);
+      onClose();
+    } catch (error) {
+      console.error('Error unassigning driver:', error);
+      alert('Failed to unassign driver');
+    } finally {
+      setUnassigning(false);
+    }
+  };
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  // Filter online drivers
+  const onlineDrivers = drivers.filter(driver => driver.status === 'online');
+  const offlineDrivers = drivers.filter(driver => driver.status !== 'online');
+
+  return (
+    <div className="driver-assignment-modal-backdrop" onClick={handleBackdropClick}>
+      <div className="driver-assignment-modal-content">
+        <div className="driver-assignment-modal-header">
+          <h2>Assign Driver to Order #{order.receipt_reference}</h2>
+          <button className="driver-assignment-close-btn" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="driver-assignment-modal-body">
+          {/* Order Information */}
+          <div className="driver-assignment-order-info">
+            <div className="driver-assignment-order-details">
+              <div><strong>Customer:</strong> {order.customer_name}</div>
+              <div><strong>Restaurant:</strong> {order.restaurant_name || 'N/A'}</div>
+              <div><strong>Delivery Address:</strong> {order.delivery_address}</div>
+              {order.delivery_distance_km && (
+                <div><strong>Distance:</strong> {order.delivery_distance_km} km</div>
+              )}
+            </div>
+            
+            {order.driver_name && (
+              <div className="driver-assignment-current-driver">
+                <h4>Currently Assigned Driver</h4>
+                <div className="current-driver-details">
+                  <span className="current-driver-name">{order.driver_name}</span>
+                  <span className="current-driver-phone">{order.driver_mobile}</span>
+                  <span className={`current-driver-status ${order.driver_status ? getDriverStatusClass(order.driver_status) : ''}`}>
+                    {order.driver_status ? formatDriverStatus(order.driver_status) : 'No Status'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Driver Selection */}
+          <div className="driver-assignment-selection">
+            <h3>Select a Driver</h3>
+            
+            {/* Online Drivers */}
+            {onlineDrivers.length > 0 && (
+              <div className="driver-category">
+                <h4 className="driver-category-title online">🟢 Online Drivers ({onlineDrivers.length})</h4>
+                <div className="driver-list">
+                  {onlineDrivers.map(driver => (
+                    <div 
+                      key={driver.id}
+                      className={`driver-item ${selectedDriverId === driver.driver_phone ? 'selected' : ''}`}
+                      onClick={() => setSelectedDriverId(driver.driver_phone)}
+                    >
+                      <div className="driver-info">
+                        <span className="driver-name">{driver.driver_name}</span>
+                        <span className="driver-phone">{driver.driver_phone}</span>
+                      </div>
+                      <div className="driver-meta">
+                        <span className="driver-status online">Online</span>
+                        {driver.last_active && (
+                          <span className="driver-last-active">
+                            Active: {getISTTime(driver.last_active)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Offline Drivers */}
+            {offlineDrivers.length > 0 && (
+              <div className="driver-category">
+                <h4 className="driver-category-title offline">⚫ Offline/Other Drivers ({offlineDrivers.length})</h4>
+                <div className="driver-list">
+                  {offlineDrivers.map(driver => (
+                    <div 
+                      key={driver.id}
+                      className={`driver-item ${selectedDriverId === driver.driver_phone ? 'selected' : ''}`}
+                      onClick={() => setSelectedDriverId(driver.driver_phone)}
+                    >
+                      <div className="driver-info">
+                        <span className="driver-name">{driver.driver_name}</span>
+                        <span className="driver-phone">{driver.driver_phone}</span>
+                      </div>
+                      <div className="driver-meta">
+                        <span className={`driver-status ${driver.status || 'offline'}`}>
+                          {driver.status ? driver.status.charAt(0).toUpperCase() + driver.status.slice(1) : 'Offline'}
+                        </span>
+                        {driver.last_active && (
+                          <span className="driver-last-active">
+                            Last Active: {formatDate(driver.last_active)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {drivers.length === 0 && (
+              <div className="no-drivers-available">
+                <div className="no-drivers-icon">🚫</div>
+                <p>No drivers available</p>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="driver-assignment-modal-actions">
+            {order.driver_name && (
+              <button 
+                onClick={handleUnassignDriver}
+                className="driver-assignment-btn driver-assignment-unassign"
+                disabled={unassigning}
+              >
+                {unassigning ? 'Unassigning...' : `Unassign ${order.driver_name}`}
+              </button>
+            )}
+            
+            <div className="driver-assignment-action-group">
+              <button 
+                onClick={onClose}
+                className="driver-assignment-btn driver-assignment-cancel"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleAssignDriver}
+                className="driver-assignment-btn driver-assignment-confirm"
+                disabled={assigning || !selectedDriverId}
+              >
+                {assigning ? 'Assigning...' : 'Assign Selected Driver'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // Map Modal Component
@@ -576,7 +822,7 @@ const CalendarPicker = ({ selectedDate, onDateSelect, onClose }) => {
 };
 
 // Order Modal Component
-const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCurrency, formatDate, onShowMap }) => {
+const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCurrency, formatDate, onShowMap, onAssignDriver }) => {
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -662,6 +908,17 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
                   <strong>Distance:</strong> {order.delivery_distance_km} km
                 </div>
               )}
+              
+              {/* Driver Status in Modal */}
+              {order.driver_status && (
+                <div className="order-tracking-info-item">
+                  <strong>Driver Status:</strong>
+                  <span className={`order-tracking-driver-status-badge ${getDriverStatusClass(order.driver_status)}`}>
+                    {formatDriverStatus(order.driver_status)}
+                  </span>
+                </div>
+              )}
+              
               {order.otp && normalizeStatus(order.status) !== 'delivered' && (
                 <div className="order-tracking-info-item order-tracking-otp-highlight">
                   <strong>Delivery OTP:</strong> {order.otp}
@@ -780,6 +1037,16 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
                 View Map
               </button>
             )}
+            
+            {/* Driver Assignment Button */}
+            <button 
+              onClick={() => onAssignDriver(order)}
+              className="order-tracking-action-btn order-tracking-driver-assign"
+            >
+              <span style={{ marginRight: '8px' }}>🚗</span>
+              {order.driver_name ? 'Change Driver' : 'Assign Driver'}
+            </button>
+            
             {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped') && (
               <button 
                 onClick={() => {
@@ -814,10 +1081,14 @@ const OrderTracking = () => {
   const [viewMode, setViewMode] = useState('calendar');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showDriverAssignmentModal, setShowDriverAssignmentModal] = useState(false);
+  const [driverAssignmentOrder, setDriverAssignmentOrder] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [restaurantFilter, setRestaurantFilter] = useState('all');
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all'); // New filter
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+  const [driverStatusFilter, setDriverStatusFilter] = useState('all');
+  const [driverFilter, setDriverFilter] = useState('all'); // New filter for driver assignment
   const [showCalendar, setShowCalendar] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapOrder, setMapOrder] = useState(null);
@@ -859,7 +1130,11 @@ const OrderTracking = () => {
       fetchOrders();
       fetchDrivers();
       const subscription = subscribeToOrders();
-      return () => subscription?.unsubscribe();
+      const driverSubscription = subscribeToDrivers();
+      return () => {
+        subscription?.unsubscribe();
+        driverSubscription?.unsubscribe();
+      };
     }
   }, [selectedDate]);
 
@@ -909,6 +1184,35 @@ const OrderTracking = () => {
     
     // Remove duplicates and sort
     return [...new Set(uniqueMethods)].sort();
+  }, [orders]);
+
+  // Get unique driver statuses for filter
+  const driverStatuses = useMemo(() => {
+    const uniqueStatuses = [...new Set(orders
+      .map(order => order.driver_status)
+      .filter(Boolean)
+      .map(status => formatDriverStatus(status))
+    )];
+    
+    // Remove duplicates and sort
+    return ['All Driver Status', ...new Set(uniqueStatuses)].sort();
+  }, [orders]);
+
+  // Get unique drivers for filter
+  const uniqueDrivers = useMemo(() => {
+    const driversWithOrders = orders
+      .filter(order => order.driver_name)
+      .map(order => ({
+        name: order.driver_name,
+        phone: order.driver_mobile
+      }));
+    
+    // Remove duplicates
+    const unique = Array.from(
+      new Map(driversWithOrders.map(item => [item.phone, item])).values()
+    );
+    
+    return unique.sort((a, b) => a.name.localeCompare(b.name));
   }, [orders]);
 
   const fetchOrders = async () => {
@@ -964,6 +1268,18 @@ const OrderTracking = () => {
     }
   };
 
+  const subscribeToDrivers = () => {
+    try {
+      return supabase
+        .channel('drivers-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'driver' }, fetchDrivers)
+        .subscribe();
+    } catch (error) {
+      console.error('Error setting up driver subscription:', error);
+      return null;
+    }
+  };
+
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
       const { error } = await supabase
@@ -981,6 +1297,76 @@ const OrderTracking = () => {
     } catch (error) {
       console.error('Error updating order status:', error);
       setError('Failed to update status');
+    }
+  };
+
+  const assignDriverToOrder = async (orderId, driver) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          driver_name: driver.driver_name,
+          driver_mobile: driver.driver_phone,
+          driver_status: 'partner_accepted', // Default status when assigned
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+
+      if (error) throw error;
+      
+      // Update local state
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { 
+                ...order, 
+                driver_name: driver.driver_name,
+                driver_mobile: driver.driver_phone,
+                driver_status: 'partner_accepted'
+              } 
+            : order
+        )
+      );
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error assigning driver:', error);
+      throw error;
+    }
+  };
+
+  const unassignDriverFromOrder = async (orderId) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          driver_name: null,
+          driver_mobile: null,
+          driver_status: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+
+      if (error) throw error;
+      
+      // Update local state
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { 
+                ...order, 
+                driver_name: null,
+                driver_mobile: null,
+                driver_status: null
+              } 
+            : order
+        )
+      );
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error unassigning driver:', error);
+      throw error;
     }
   };
 
@@ -1002,6 +1388,16 @@ const OrderTracking = () => {
   const closeMapModal = () => {
     setShowMapModal(false);
     setMapOrder(null);
+  };
+
+  const openDriverAssignmentModal = (order) => {
+    setDriverAssignmentOrder(order);
+    setShowDriverAssignmentModal(true);
+  };
+
+  const closeDriverAssignmentModal = () => {
+    setShowDriverAssignmentModal(false);
+    setDriverAssignmentOrder(null);
   };
 
   const getOrdersForSelectedDate = () => {
@@ -1083,8 +1479,24 @@ const OrderTracking = () => {
       });
     }
     
+    // Apply driver status filter
+    if (driverStatusFilter !== 'all' && driverStatusFilter !== 'All Driver Status') {
+      filtered = filtered.filter(order => {
+        const formattedDriverStatus = formatDriverStatus(order.driver_status);
+        return formattedDriverStatus === driverStatusFilter;
+      });
+    }
+    
+    // Apply driver filter
+    if (driverFilter !== 'all') {
+      const [driverName, driverPhone] = driverFilter.split('|');
+      filtered = filtered.filter(order => 
+        order.driver_name === driverName && order.driver_mobile === driverPhone
+      );
+    }
+    
     return filtered;
-  }, [viewMode, orders, selectedDate, searchTerm, statusFilter, restaurantFilter, paymentMethodFilter]);
+  }, [viewMode, orders, selectedDate, searchTerm, statusFilter, restaurantFilter, paymentMethodFilter, driverStatusFilter, driverFilter]);
 
   const DateNavigation = () => {
     if (!selectedDate) return null;
@@ -1179,6 +1591,22 @@ const OrderTracking = () => {
     );
   };
 
+  // Add driver assignment button to table row
+  const renderDriverButton = (order) => {
+    return (
+      <button 
+        onClick={(e) => {
+          e.stopPropagation();
+          openDriverAssignmentModal(order);
+        }}
+        className="order-tracking-action-btn order-tracking-driver"
+        title={order.driver_name ? 'Change Driver' : 'Assign Driver'}
+      >
+        🚗
+      </button>
+    );
+  };
+
   if (loading) {
     return (
       <>
@@ -1264,7 +1692,7 @@ const OrderTracking = () => {
               ))}
             </select>
             
-            {/* Payment Method Filter - Replaces Driver Status Filter */}
+            {/* Payment Method Filter */}
             <select 
               value={paymentMethodFilter} 
               onChange={(e) => setPaymentMethodFilter(e.target.value)}
@@ -1273,6 +1701,32 @@ const OrderTracking = () => {
               <option value="all">All Payment Types</option>
               {paymentMethods.map(method => (
                 <option key={method} value={method}>{method}</option>
+              ))}
+            </select>
+            
+            {/* Driver Status Filter */}
+            <select 
+              value={driverStatusFilter} 
+              onChange={(e) => setDriverStatusFilter(e.target.value)}
+              className="order-tracking-filter-select"
+            >
+              <option value="all">All Driver Status</option>
+              {driverStatuses.slice(1).map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+            
+            {/* Driver Filter */}
+            <select 
+              value={driverFilter} 
+              onChange={(e) => setDriverFilter(e.target.value)}
+              className="order-tracking-filter-select"
+            >
+              <option value="all">All Drivers</option>
+              {uniqueDrivers.map(driver => (
+                <option key={`${driver.name}|${driver.phone}`} value={`${driver.name}|${driver.phone}`}>
+                  {driver.name} ({driver.phone})
+                </option>
               ))}
             </select>
           </div>
@@ -1325,7 +1779,8 @@ const OrderTracking = () => {
                 <th>Customer</th>
                 <th>Restaurant</th>
                 <th>Driver</th>
-                <th>Payment Type</th> {/* Changed from Driver Status */}
+                <th>Payment Type</th>
+                <th>Driver Status</th>
                 <th>Items</th>
                 <th>Amount</th>
                 <th>Payment Status</th>
@@ -1397,6 +1852,18 @@ const OrderTracking = () => {
                       </div>
                     </td>
                     <td>
+                      <div className="order-tracking-driver-status-cell">
+                        <span className={`order-tracking-driver-status-badge ${getDriverStatusClass(order.driver_status)}`}>
+                          {formatDriverStatus(order.driver_status)}
+                        </span>
+                        {order.pickup_proof_timestamp && (
+                          <div className="order-tracking-pickup-proof-time">
+                            📸 {getISTTime(order.pickup_proof_timestamp)}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td>
                       <div className="order-tracking-items-preview">
                         {renderItemsPreview(order.items)}
                       </div>
@@ -1429,6 +1896,7 @@ const OrderTracking = () => {
                     <td onClick={(e) => e.stopPropagation()}>
                       <div className="order-tracking-order-actions">
                         {renderMapButton(order)}
+                        {renderDriverButton(order)}
                         {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped') && (
                           <button 
                             onClick={() => window.confirm('Cancel this order?') && updateOrderStatus(order.id, 'cancelled')}
@@ -1462,13 +1930,15 @@ const OrderTracking = () => {
                   : 'No orders found'
                 }
               </p>
-              {(searchTerm || statusFilter !== 'all' || restaurantFilter !== 'all' || paymentMethodFilter !== 'all') && (
+              {(searchTerm || statusFilter !== 'all' || restaurantFilter !== 'all' || paymentMethodFilter !== 'all' || driverStatusFilter !== 'all' || driverFilter !== 'all') && (
                 <button 
                   onClick={() => {
                     setSearchTerm('');
                     setStatusFilter('all');
                     setRestaurantFilter('all');
                     setPaymentMethodFilter('all');
+                    setDriverStatusFilter('all');
+                    setDriverFilter('all');
                   }}
                   className="order-tracking-clear-filters-btn"
                 >
@@ -1498,6 +1968,18 @@ const OrderTracking = () => {
             formatCurrency={formatCurrency}
             formatDate={formatDate}
             onShowMap={openMapModal}
+            onAssignDriver={openDriverAssignmentModal}
+          />
+        )}
+
+        {/* Driver Assignment Modal */}
+        {showDriverAssignmentModal && driverAssignmentOrder && (
+          <DriverAssignmentModal
+            order={driverAssignmentOrder}
+            drivers={drivers}
+            onClose={closeDriverAssignmentModal}
+            onAssignDriver={assignDriverToOrder}
+            onUnassignDriver={unassignDriverFromOrder}
           />
         )}
 
