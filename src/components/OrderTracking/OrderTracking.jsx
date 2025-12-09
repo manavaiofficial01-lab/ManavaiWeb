@@ -446,6 +446,141 @@ const DriverAssignmentModal = ({ order, drivers, onClose, onAssignDriver, onUnas
   );
 };
 
+// Change Restaurant Modal Component
+const ChangeRestaurantModal = ({ order, restaurants, onClose, onUpdateRestaurant }) => {
+  const [selectedRestaurant, setSelectedRestaurant] = useState(order.restaurant_name || '');
+  const [updating, setUpdating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleUpdateRestaurant = async () => {
+    if (!selectedRestaurant) {
+      alert('Please select a restaurant');
+      return;
+    }
+
+    if (selectedRestaurant === order.restaurant_name) {
+      alert('Restaurant is already the same');
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      await onUpdateRestaurant(order.id, selectedRestaurant);
+      onClose();
+    } catch (error) {
+      console.error('Error updating restaurant:', error);
+      alert('Failed to update restaurant');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  // Filter restaurants based on search term
+  const filteredRestaurants = restaurants.filter(restaurant =>
+    restaurant.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="change-restaurant-modal-backdrop" onClick={handleBackdropClick}>
+      <div className="change-restaurant-modal-content">
+        <div className="change-restaurant-modal-header">
+          <h2>Change Restaurant for Order #{order.receipt_reference}</h2>
+          <button className="change-restaurant-close-btn" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="change-restaurant-modal-body">
+          {/* Order Information */}
+          <div className="change-restaurant-order-info">
+            <div className="change-restaurant-order-details">
+              <div><strong>Customer:</strong> {order.customer_name}</div>
+              <div><strong>Current Restaurant:</strong> {order.restaurant_name || 'N/A'}</div>
+              <div><strong>Order Type:</strong> {order.order_type || 'Food'}</div>
+              <div><strong>Items:</strong> {order.items?.length || 0} items</div>
+            </div>
+          </div>
+
+          {/* Restaurant Selection */}
+          <div className="change-restaurant-selection">
+            <h3>Select New Restaurant</h3>
+            
+            {/* Search Box */}
+            <div className="change-restaurant-search">
+              <input
+                type="text"
+                placeholder="Search restaurants..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="change-restaurant-search-input"
+              />
+              <span className="change-restaurant-search-icon">🔍</span>
+            </div>
+            
+            {/* Restaurant List */}
+            <div className="restaurant-list-container">
+              {filteredRestaurants.length > 0 ? (
+                <div className="restaurant-list">
+                  {filteredRestaurants.map(restaurant => (
+                    <div 
+                      key={restaurant.id}
+                      className={`restaurant-item ${selectedRestaurant === restaurant.name ? 'selected' : ''}`}
+                      onClick={() => setSelectedRestaurant(restaurant.name)}
+                    >
+                      <div className="restaurant-info">
+                        <span className="restaurant-name">{restaurant.name}</span>
+                        <span className="restaurant-category">{restaurant.category || 'Uncategorized'}</span>
+                      </div>
+                      <div className="restaurant-meta">
+                        <span className={`restaurant-status ${restaurant.hotel_status || 'unknown'}`}>
+                          {restaurant.hotel_status === 'open' ? '🟢 Open' : '🔴 Closed'}
+                        </span>
+                        {restaurant.delivery_time && (
+                          <span className="restaurant-delivery-time">
+                            {restaurant.delivery_time} delivery
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="no-restaurants-found">
+                  <div className="no-restaurants-icon">🏪</div>
+                  <p>No restaurants found</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="change-restaurant-modal-actions">
+            <div className="change-restaurant-action-group">
+              <button 
+                onClick={onClose}
+                className="change-restaurant-btn change-restaurant-cancel"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleUpdateRestaurant}
+                className="change-restaurant-btn change-restaurant-confirm"
+                disabled={updating || !selectedRestaurant || selectedRestaurant === order.restaurant_name}
+              >
+                {updating ? 'Updating...' : 'Change Restaurant'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Map Modal Component
 const MapModal = ({ order, onClose }) => {
   const mapRef = React.useRef(null);
@@ -822,7 +957,7 @@ const CalendarPicker = ({ selectedDate, onDateSelect, onClose }) => {
 };
 
 // Order Modal Component
-const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCurrency, formatDate, onShowMap, onAssignDriver }) => {
+const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCurrency, formatDate, onShowMap, onAssignDriver, onChangeRestaurant }) => {
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -1038,6 +1173,15 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
               </button>
             )}
             
+            {/* Change Restaurant Button */}
+            <button 
+              onClick={() => onChangeRestaurant(order)}
+              className="order-tracking-action-btn order-tracking-restaurant-change"
+            >
+              <span style={{ marginRight: '8px' }}>🏪</span>
+              Change Restaurant
+            </button>
+            
             {/* Driver Assignment Button */}
             <button 
               onClick={() => onAssignDriver(order)}
@@ -1075,6 +1219,7 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
 const OrderTracking = () => {
   const [orders, setOrders] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
@@ -1082,13 +1227,14 @@ const OrderTracking = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDriverAssignmentModal, setShowDriverAssignmentModal] = useState(false);
-  const [driverAssignmentOrder, setDriverAssignmentOrder] = useState(null);
+  const [showChangeRestaurantModal, setShowChangeRestaurantModal] = useState(false);
+  const [selectedOrderForAction, setSelectedOrderForAction] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [restaurantFilter, setRestaurantFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [driverStatusFilter, setDriverStatusFilter] = useState('all');
-  const [driverFilter, setDriverFilter] = useState('all'); // New filter for driver assignment
+  const [driverFilter, setDriverFilter] = useState('all');
   const [showCalendar, setShowCalendar] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapOrder, setMapOrder] = useState(null);
@@ -1124,11 +1270,12 @@ const OrderTracking = () => {
     setSelectedDate(currentISTDate);
   }, []);
 
-  // Fetch orders and drivers only after date is set
+  // Fetch orders, drivers, and restaurants only after date is set
   useEffect(() => {
     if (selectedDate) {
       fetchOrders();
       fetchDrivers();
+      fetchRestaurants();
       const subscription = subscribeToOrders();
       const driverSubscription = subscribeToDrivers();
       return () => {
@@ -1160,9 +1307,9 @@ const OrderTracking = () => {
   const stats = useMemo(() => calculateStats(orders, selectedDate), [orders, selectedDate]);
 
   // Get unique restaurants for filter
-  const restaurants = useMemo(() => {
-    const uniqueRestaurants = [...new Set(orders.map(order => order.restaurant_name).filter(Boolean))];
-    return uniqueRestaurants.sort();
+  const uniqueRestaurants = useMemo(() => {
+    const restaurants = [...new Set(orders.map(order => order.restaurant_name).filter(Boolean))];
+    return restaurants.sort();
   }, [orders]);
 
   // Get unique payment methods for filter
@@ -1253,6 +1400,22 @@ const OrderTracking = () => {
     } catch (error) {
       console.error('Error fetching drivers:', error);
       setError('Failed to load drivers');
+    }
+  };
+
+  const fetchRestaurants = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      
+      setRestaurants(data || []);
+    } catch (error) {
+      console.error('Error fetching restaurants:', error);
+      setError('Failed to load restaurants');
     }
   };
 
@@ -1370,6 +1533,37 @@ const OrderTracking = () => {
     }
   };
 
+  const updateRestaurantForOrder = async (orderId, restaurantName) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          restaurant_name: restaurantName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+
+      if (error) throw error;
+      
+      // Update local state
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { 
+                ...order, 
+                restaurant_name: restaurantName
+              } 
+            : order
+        )
+      );
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating restaurant:', error);
+      throw error;
+    }
+  };
+
   const openOrderDetails = (order) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
@@ -1391,13 +1585,23 @@ const OrderTracking = () => {
   };
 
   const openDriverAssignmentModal = (order) => {
-    setDriverAssignmentOrder(order);
+    setSelectedOrderForAction(order);
     setShowDriverAssignmentModal(true);
   };
 
   const closeDriverAssignmentModal = () => {
     setShowDriverAssignmentModal(false);
-    setDriverAssignmentOrder(null);
+    setSelectedOrderForAction(null);
+  };
+
+  const openChangeRestaurantModal = (order) => {
+    setSelectedOrderForAction(order);
+    setShowChangeRestaurantModal(true);
+  };
+
+  const closeChangeRestaurantModal = () => {
+    setShowChangeRestaurantModal(false);
+    setSelectedOrderForAction(null);
   };
 
   const getOrdersForSelectedDate = () => {
@@ -1533,25 +1737,6 @@ const OrderTracking = () => {
     );
   };
 
-  const renderItemsPreview = (items) => {
-    if (!Array.isArray(items) || items.length === 0) {
-      return <span className="order-tracking-item-chip">No items</span>;
-    }
-    
-    return (
-      <>
-        {items.slice(0, 2).map((item, index) => (
-          <span key={index} className="order-tracking-item-chip">
-            {item.product_name} x{item.quantity}
-          </span>
-        ))}
-        {items.length > 2 && (
-          <span className="order-tracking-more-items">+{items.length - 2} more</span>
-        )}
-      </>
-    );
-  };
-
   const renderPaymentStatus = (order) => {
     const paymentStatus = getPaymentStatus(order);
     return (
@@ -1570,40 +1755,6 @@ const OrderTracking = () => {
           </div>
         )}
       </div>
-    );
-  };
-
-  // Add map button to table row
-  const renderMapButton = (order) => {
-    if (!order.customer_lat || !order.customer_lon) return null;
-    
-    return (
-      <button 
-        onClick={(e) => {
-          e.stopPropagation();
-          openMapModal(order);
-        }}
-        className="order-tracking-action-btn order-tracking-map"
-        title="View on map"
-      >
-        📍
-      </button>
-    );
-  };
-
-  // Add driver assignment button to table row
-  const renderDriverButton = (order) => {
-    return (
-      <button 
-        onClick={(e) => {
-          e.stopPropagation();
-          openDriverAssignmentModal(order);
-        }}
-        className="order-tracking-action-btn order-tracking-driver"
-        title={order.driver_name ? 'Change Driver' : 'Assign Driver'}
-      >
-        🚗
-      </button>
     );
   };
 
@@ -1687,7 +1838,7 @@ const OrderTracking = () => {
               className="order-tracking-filter-select"
             >
               <option value="all">All Restaurants</option>
-              {restaurants.map(restaurant => (
+              {uniqueRestaurants.map(restaurant => (
                 <option key={restaurant} value={restaurant}>{restaurant}</option>
               ))}
             </select>
@@ -1781,12 +1932,10 @@ const OrderTracking = () => {
                 <th>Driver</th>
                 <th>Payment Type</th>
                 <th>Driver Status</th>
-                <th>Items</th>
                 <th>Amount</th>
                 <th>Payment Status</th>
                 <th>Status</th>
                 <th>Date</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1863,11 +2012,6 @@ const OrderTracking = () => {
                         )}
                       </div>
                     </td>
-                    <td>
-                      <div className="order-tracking-items-preview">
-                        {renderItemsPreview(order.items)}
-                      </div>
-                    </td>
                     <td className="order-tracking-amount">
                       {formatCurrency(order.total_amount)}
                       {order.delivery_charges && (
@@ -1892,28 +2036,6 @@ const OrderTracking = () => {
                           Deliver by: {formatDate(order.delivery_time)}
                         </div>
                       )}
-                    </td>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <div className="order-tracking-order-actions">
-                        {renderMapButton(order)}
-                        {renderDriverButton(order)}
-                        {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped') && (
-                          <button 
-                            onClick={() => window.confirm('Cancel this order?') && updateOrderStatus(order.id, 'cancelled')}
-                            className="order-tracking-action-btn order-tracking-cancel"
-                            title="Cancel Order"
-                          >
-                            ❌
-                          </button>
-                        )}
-                        <button 
-                          onClick={() => openOrderDetails(order)}
-                          className="order-tracking-action-btn order-tracking-details"
-                          title="View Details"
-                        >
-                          👁️
-                        </button>
-                      </div>
                     </td>
                   </tr>
                 );
@@ -1969,17 +2091,28 @@ const OrderTracking = () => {
             formatDate={formatDate}
             onShowMap={openMapModal}
             onAssignDriver={openDriverAssignmentModal}
+            onChangeRestaurant={openChangeRestaurantModal}
           />
         )}
 
         {/* Driver Assignment Modal */}
-        {showDriverAssignmentModal && driverAssignmentOrder && (
+        {showDriverAssignmentModal && selectedOrderForAction && (
           <DriverAssignmentModal
-            order={driverAssignmentOrder}
+            order={selectedOrderForAction}
             drivers={drivers}
             onClose={closeDriverAssignmentModal}
             onAssignDriver={assignDriverToOrder}
             onUnassignDriver={unassignDriverFromOrder}
+          />
+        )}
+
+        {/* Change Restaurant Modal */}
+        {showChangeRestaurantModal && selectedOrderForAction && (
+          <ChangeRestaurantModal
+            order={selectedOrderForAction}
+            restaurants={restaurants}
+            onClose={closeChangeRestaurantModal}
+            onUpdateRestaurant={updateRestaurantForOrder}
           />
         )}
 
