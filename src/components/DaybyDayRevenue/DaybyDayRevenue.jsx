@@ -4,25 +4,28 @@ import { supabase } from '../../../supabase';
 import "./DaybyDayRevenue.css"
 
 const DaybyDayRevenue = () => {
-  const [revenueData, setRevenueData] = useState([]);
+  const [profitData, setProfitData] = useState([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalRevenue: 0,
-    totalRevenueWithoutDelivery: 0,
-    foodRevenue: 0,
-    foodRevenueWithoutDelivery: 0,
-    productRevenue: 0,
-    productRevenueWithoutDelivery: 0,
-    deliveryChargesTotal: 0,
+    totalDeliveryCharges: 0,
+    totalDriverEarnings: 0,
+    totalAdminEarnings: 0,
+    totalCompanyProfit: 0,
+    totalOverallProfit: 0,
     deliveredOrders: 0,
-    totalOrders: 0
+    foodOrders: 0,
+    productOrders: 0,
+    totalItemsSold: 0
   });
-  const [restaurantRevenue, setRestaurantRevenue] = useState([]);
-  const [categoryRevenue, setCategoryRevenue] = useState([]);
+  const [restaurantProfit, setRestaurantProfit] = useState([]);
+  const [categoryProfit, setCategoryProfit] = useState([]);
   const [activeTab, setActiveTab] = useState('orders');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showItemsModal, setShowItemsModal] = useState(false);
+  const [foodItemsCache, setFoodItemsCache] = useState(new Map());
+  const [productsCache, setProductsCache] = useState(new Map());
 
   // Get current IST date in YYYY-MM-DD format
   const getCurrentISTDate = () => {
@@ -40,18 +43,35 @@ const DaybyDayRevenue = () => {
 
   useEffect(() => {
     if (selectedDate) {
-      fetchRevenueData();
+      fetchProfitData();
     }
   }, [selectedDate]);
 
-  // Tamil Nadu timezone (IST - India Standard Time)
+  // Get IST date from UTC timestamp
+  const getISTDate = (utcDateString) => {
+    try {
+      const date = new Date(utcDateString);
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+      
+      const istDateString = date.toLocaleDateString('en-CA', {
+        timeZone: 'Asia/Kolkata'
+      });
+      
+      return istDateString;
+    } catch (error) {
+      console.error('Error converting to IST date:', error);
+      return null;
+    }
+  };
+
+  // Tamil Nadu timezone formatting
   const getTamilNaduTime = (dateString) => {
     try {
       const date = new Date(dateString);
       
-      // Check if date is valid
       if (isNaN(date.getTime())) {
-        console.error('Invalid date:', dateString);
         return {
           time: 'Invalid Time',
           date: 'Invalid Date',
@@ -59,7 +79,6 @@ const DaybyDayRevenue = () => {
         };
       }
       
-      // Format time in 12-hour format with AM/PM
       const timeOptions = {
         timeZone: 'Asia/Kolkata',
         hour: '2-digit',
@@ -67,7 +86,6 @@ const DaybyDayRevenue = () => {
         hour12: true
       };
       
-      // Format date in Indian format
       const dateOptions = {
         timeZone: 'Asia/Kolkata',
         day: '2-digit',
@@ -104,7 +122,7 @@ const DaybyDayRevenue = () => {
 
   const getTamilNaduDay = (dateString) => {
     try {
-      const date = new Date(dateString + 'T00:00:00+05:30'); // Add timezone for IST
+      const date = new Date(dateString + 'T00:00:00+05:30');
       if (isNaN(date.getTime())) {
         return 'Invalid Date';
       }
@@ -121,26 +139,6 @@ const DaybyDayRevenue = () => {
     }
   };
 
-  // Get IST date from UTC timestamp
-  const getISTDate = (utcDateString) => {
-    try {
-      const date = new Date(utcDateString);
-      if (isNaN(date.getTime())) {
-        return null;
-      }
-      
-      // Convert to IST and return date part only (YYYY-MM-DD)
-      const istDateString = date.toLocaleDateString('en-CA', {
-        timeZone: 'Asia/Kolkata'
-      });
-      
-      return istDateString;
-    } catch (error) {
-      console.error('Error converting to IST date:', error);
-      return null;
-    }
-  };
-
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -150,18 +148,132 @@ const DaybyDayRevenue = () => {
     }).format(amount);
   };
 
-  const fetchRevenueData = async () => {
+  // Fetch food items profit data
+  const fetchFoodItems = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('food_items')
+        .select('id, price, profit, restaurant_name, category, name')
+        .not('profit', 'is', null);
+
+      if (error) throw error;
+
+      const foodItemsMap = new Map();
+      data?.forEach(item => {
+        const price = parseFloat(item.price) || 0;
+        const companyProfit = parseFloat(item.profit) || 0; // This is COMPANY earnings (from profit field)
+        const restaurantEarnings = price - companyProfit; // This is RESTAURANT earnings
+        
+        foodItemsMap.set(item.id, {
+          id: item.id,
+          name: item.name,
+          price: price,
+          companyProfit: companyProfit, // Company earnings (from profit field)
+          restaurantEarnings: restaurantEarnings, // Restaurant earnings = price - companyProfit
+          restaurant_name: item.restaurant_name,
+          category: item.category
+        });
+      });
+
+      setFoodItemsCache(foodItemsMap);
+      return foodItemsMap;
+    } catch (error) {
+      console.error('Error fetching food items:', error);
+      return new Map();
+    }
+  };
+
+  // Fetch products profit data
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, price, profit, category, brand')
+        .not('profit', 'is', null);
+
+      if (error) throw error;
+
+      const productsMap = new Map();
+      data?.forEach(product => {
+        const price = parseFloat(product.price) || 0;
+        const companyProfit = parseFloat(product.profit) || 0; // This is COMPANY earnings
+        const costOrMargin = price - companyProfit; // This is cost/margin
+        
+        productsMap.set(product.id, {
+          id: product.id,
+          name: product.name,
+          price: price,
+          companyProfit: companyProfit, // Company earnings
+          costOrMargin: costOrMargin, // Cost or margin
+          category: product.category,
+          brand: product.brand
+        });
+      });
+
+      setProductsCache(productsMap);
+      return productsMap;
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      return new Map();
+    }
+  };
+
+  // Calculate company profit for food items with quantity
+  const calculateFoodItemCompanyProfit = (item, foodItemsMap) => {
+    if (!item.product_id || !foodItemsMap.has(item.product_id)) {
+      return 0;
+    }
+    
+    const foodItem = foodItemsMap.get(item.product_id);
+    const quantity = parseInt(item.quantity) || 1;
+    
+    // Company profit = profit_field_value × quantity
+    return foodItem.companyProfit * quantity;
+  };
+
+  // Calculate company profit for products with quantity
+  const calculateProductCompanyProfit = (item, productsMap) => {
+    if (!item.product_id || !productsMap.has(item.product_id)) {
+      return 0;
+    }
+    
+    const product = productsMap.get(item.product_id);
+    const quantity = parseInt(item.quantity) || 1;
+    
+    // Company profit = profit_field_value × quantity
+    return product.companyProfit * quantity;
+  };
+
+  // Calculate admin earnings
+  const calculateAdminEarnings = (deliveryCharges, driverEarnings) => {
+    const delivery = parseFloat(deliveryCharges) || 0;
+    const driver = parseFloat(driverEarnings) || 0;
+    return Math.max(delivery - driver, 0);
+  };
+
+  // Calculate total items count for an order
+  const calculateTotalItemsCount = (items) => {
+    return items.reduce((total, item) => total + (parseInt(item.quantity) || 1), 0);
+  };
+
+  const fetchProfitData = async () => {
     if (!selectedDate) return;
     
     try {
       setLoading(true);
       
-      // Get all orders for a wider date range, then filter by IST date
+      // Fetch both food items and products in parallel
+      const [foodItemsMap, productsMap] = await Promise.all([
+        fetchFoodItems(),
+        fetchProducts()
+      ]);
+      
+      // Get orders for the selected date (3-day window for timezone safety)
       const startDate = new Date(selectedDate);
-      startDate.setDate(startDate.getDate() - 1); // Include previous day for timezone overlap
+      startDate.setDate(startDate.getDate() - 1);
       
       const endDate = new Date(selectedDate);
-      endDate.setDate(endDate.getDate() + 2); // Include next day for timezone overlap
+      endDate.setDate(endDate.getDate() + 2);
 
       const { data: orders, error } = await supabase
         .from('orders')
@@ -173,19 +285,19 @@ const DaybyDayRevenue = () => {
       if (error) throw error;
 
       if (orders) {
-        // Filter orders by IST date to handle timezone correctly and include only delivered orders
+        // Filter orders by IST date and delivered status
         const filteredOrders = orders.filter(order => {
           const istDate = getISTDate(order.created_at);
           return istDate === selectedDate && order.status === 'delivered';
         });
         
-        processRevenueData(filteredOrders);
+        processProfitData(filteredOrders, foodItemsMap, productsMap);
       } else {
-        processRevenueData([]);
+        processProfitData([], foodItemsMap, productsMap);
       }
     } catch (error) {
-      console.error('Error fetching revenue data:', error);
-      processRevenueData([]);
+      console.error('Error fetching profit data:', error);
+      processProfitData([], new Map(), new Map());
     } finally {
       setLoading(false);
     }
@@ -203,138 +315,185 @@ const DaybyDayRevenue = () => {
     return data || [];
   };
 
-  const processRevenueData = (orders) => {
+  const processProfitData = (orders, foodItemsMap, productsMap) => {
     let totalRevenue = 0;
-    let totalRevenueWithoutDelivery = 0;
-    let foodRevenue = 0;
-    let foodRevenueWithoutDelivery = 0;
-    let productRevenue = 0;
-    let productRevenueWithoutDelivery = 0;
-    let deliveryChargesTotal = 0;
+    let totalDeliveryCharges = 0;
+    let totalDriverEarnings = 0;
+    let totalAdminEarnings = 0;
+    let totalCompanyProfit = 0;
     let deliveredOrders = 0;
+    let foodOrders = 0;
+    let productOrders = 0;
+    let totalItemsSold = 0;
+    
     const restaurantMap = new Map();
     const categoryMap = new Map();
 
     const processedOrders = orders.map(order => {
       const isFoodOrder = order.order_type === 'food';
-      const isDelivered = order.status === 'delivered';
-
       const orderAmount = parseFloat(order.total_amount) || 0;
       const deliveryCharges = parseFloat(order.delivery_charges) || 0;
+      const driverEarnings = parseFloat(order.driver_order_earnings) || 0;
       const orderRevenue = orderAmount + deliveryCharges;
-      const orderRevenueWithoutDelivery = orderAmount;
-
-      // Only add to revenue totals for delivered orders
+      
+      // Calculate admin earnings from delivery
+      const adminEarnings = calculateAdminEarnings(deliveryCharges, driverEarnings);
+      
+      // Parse order items
+      const items = safeJsonParse(order.items);
+      const orderItemsCount = calculateTotalItemsCount(items);
+      
+      // Calculate company profit from items
+      let orderCompanyProfit = 0;
+      let itemsWithProfit = [];
+      
+      items.forEach(item => {
+        const quantity = parseInt(item.quantity) || 1;
+        let itemCompanyProfit = 0;
+        let itemDetails = null;
+        
+        if (isFoodOrder) {
+          itemCompanyProfit = calculateFoodItemCompanyProfit(item, foodItemsMap);
+          
+          if (foodItemsMap.has(item.product_id)) {
+            itemDetails = foodItemsMap.get(item.product_id);
+          }
+        } else {
+          itemCompanyProfit = calculateProductCompanyProfit(item, productsMap);
+          
+          if (productsMap.has(item.product_id)) {
+            itemDetails = productsMap.get(item.product_id);
+          }
+        }
+        
+        orderCompanyProfit += itemCompanyProfit;
+        
+        itemsWithProfit.push({
+          ...item,
+          quantity: quantity,
+          totalPrice: (parseFloat(item.price) || 0) * quantity,
+          companyProfit: itemCompanyProfit,
+          itemDetails: itemDetails
+        });
+      });
+      
+      // Total order profit = company profit + admin earnings
+      const totalOrderProfit = orderCompanyProfit + adminEarnings;
+      
+      // Add to totals
       totalRevenue += orderRevenue;
-      totalRevenueWithoutDelivery += orderRevenueWithoutDelivery;
-      deliveryChargesTotal += deliveryCharges;
+      totalDeliveryCharges += deliveryCharges;
+      totalDriverEarnings += driverEarnings;
+      totalAdminEarnings += adminEarnings;
+      totalCompanyProfit += orderCompanyProfit;
+      totalItemsSold += orderItemsCount;
+      deliveredOrders++;
       
       if (isFoodOrder) {
-        foodRevenue += orderRevenue;
-        foodRevenueWithoutDelivery += orderRevenueWithoutDelivery;
+        foodOrders++;
       } else {
-        productRevenue += orderRevenue;
-        productRevenueWithoutDelivery += orderRevenueWithoutDelivery;
+        productOrders++;
       }
 
-      if (isDelivered) {
-        deliveredOrders++;
-      }
-
-      const items = safeJsonParse(order.items);
-      
-      // Only add to restaurant revenue for delivered orders
+      // Restaurant profit calculation
       if (isFoodOrder && order.restaurant_name) {
         const currentRestaurant = restaurantMap.get(order.restaurant_name) || {
           name: order.restaurant_name,
           revenue: 0,
-          revenueWithoutDelivery: 0,
+          deliveryCharges: 0,
+          driverEarnings: 0,
+          adminEarnings: 0,
+          companyProfit: 0,
+          totalProfit: 0,
           orders: 0,
-          items: 0
+          items: 0,
+          totalQuantity: 0
         };
         
         currentRestaurant.revenue += orderRevenue;
-        currentRestaurant.revenueWithoutDelivery += orderRevenueWithoutDelivery;
+        currentRestaurant.deliveryCharges += deliveryCharges;
+        currentRestaurant.driverEarnings += driverEarnings;
+        currentRestaurant.adminEarnings += adminEarnings;
+        currentRestaurant.companyProfit += orderCompanyProfit;
+        currentRestaurant.totalProfit += totalOrderProfit;
         currentRestaurant.orders += 1;
-        currentRestaurant.items += items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        currentRestaurant.items += items.length;
+        currentRestaurant.totalQuantity += orderItemsCount;
         
         restaurantMap.set(order.restaurant_name, currentRestaurant);
       }
 
-      // Only add to category revenue for delivered orders
-      if (!isFoodOrder && order.category) {
-        const currentCategory = categoryMap.get(order.category) || {
-          name: order.category,
-          revenue: 0,
-          revenueWithoutDelivery: 0,
-          orders: 0,
-          items: 0
-        };
-        
-        currentCategory.revenue += orderRevenue;
-        currentCategory.revenueWithoutDelivery += orderRevenueWithoutDelivery;
-        currentCategory.orders += 1;
-        currentCategory.items += items.reduce((sum, item) => sum + (item.quantity || 1), 0);
-        
-        categoryMap.set(order.category, currentCategory);
-      }
-
-      // Only add to category revenue for food items for delivered orders
-      items.forEach(item => {
-        if (item.category && isFoodOrder) {
-          const currentFoodCategory = categoryMap.get(item.category) || {
-            name: item.category,
-            revenue: 0,
-            revenueWithoutDelivery: 0,
-            orders: 0,
-            items: 0
-          };
-          
-          const itemRevenue = (item.price || 0) * (item.quantity || 1);
-          currentFoodCategory.revenue += itemRevenue;
-          currentFoodCategory.revenueWithoutDelivery += itemRevenue;
-          currentFoodCategory.items += (item.quantity || 1);
-          
-          categoryMap.set(item.category, currentFoodCategory);
-        }
-      });
+      // Category profit calculation
+      const category = order.category || (isFoodOrder && items[0]?.category) || 'Uncategorized';
+      const currentCategory = categoryMap.get(category) || {
+        name: category,
+        revenue: 0,
+        deliveryCharges: 0,
+        driverEarnings: 0,
+        adminEarnings: 0,
+        companyProfit: 0,
+        totalProfit: 0,
+        orders: 0,
+        items: 0,
+        totalQuantity: 0,
+        orderType: isFoodOrder ? 'Food' : 'Product'
+      };
+      
+      currentCategory.revenue += orderRevenue;
+      currentCategory.deliveryCharges += deliveryCharges;
+      currentCategory.driverEarnings += driverEarnings;
+      currentCategory.adminEarnings += adminEarnings;
+      currentCategory.companyProfit += orderCompanyProfit;
+      currentCategory.totalProfit += totalOrderProfit;
+      currentCategory.orders += 1;
+      currentCategory.items += items.length;
+      currentCategory.totalQuantity += orderItemsCount;
+      
+      categoryMap.set(category, currentCategory);
 
       // Get Tamil Nadu time for the order
       const tamilNaduTime = getTamilNaduTime(order.created_at);
 
       return {
         ...order,
-        items: items,
+        items: itemsWithProfit,
         orderRevenue,
-        orderRevenueWithoutDelivery,
         deliveryCharges,
+        driverEarnings,
+        adminEarnings,
+        companyProfit: orderCompanyProfit,
+        totalOrderProfit,
+        itemsCount: orderItemsCount,
         formattedTime: tamilNaduTime.time,
         formattedDate: tamilNaduTime.date,
         fullDateTime: tamilNaduTime.fullDateTime,
-        isFoodOrder,
-        isDelivered
+        isFoodOrder
       };
     });
 
+    // Calculate overall profit
+    const totalOverallProfit = totalCompanyProfit + totalAdminEarnings;
+
     const restaurantArray = Array.from(restaurantMap.values())
-      .sort((a, b) => b.revenue - a.revenue);
+      .sort((a, b) => b.totalProfit - a.totalProfit);
     
     const categoryArray = Array.from(categoryMap.values())
-      .sort((a, b) => b.revenue - a.revenue);
+      .sort((a, b) => b.totalProfit - a.totalProfit);
 
-    setRevenueData(processedOrders);
-    setRestaurantRevenue(restaurantArray);
-    setCategoryRevenue(categoryArray);
+    setProfitData(processedOrders);
+    setRestaurantProfit(restaurantArray);
+    setCategoryProfit(categoryArray);
     setStats({
       totalRevenue,
-      totalRevenueWithoutDelivery,
-      foodRevenue,
-      foodRevenueWithoutDelivery,
-      productRevenue,
-      productRevenueWithoutDelivery,
-      deliveryChargesTotal,
+      totalDeliveryCharges,
+      totalDriverEarnings,
+      totalAdminEarnings,
+      totalCompanyProfit,
+      totalOverallProfit,
       deliveredOrders,
-      totalOrders: orders.length
+      foodOrders,
+      productOrders,
+      totalItemsSold
     });
   };
 
@@ -362,14 +521,15 @@ const DaybyDayRevenue = () => {
   const ItemsModal = () => {
     if (!selectedOrder) return null;
 
-    const totalItems = selectedOrder.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
-    const itemsTotal = selectedOrder.items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+    const totalItemsQuantity = selectedOrder.items.reduce((sum, item) => sum + item.quantity, 0);
+    const itemsTotal = selectedOrder.items.reduce((sum, item) => sum + item.totalPrice, 0);
+    const totalCompanyProfit = selectedOrder.items.reduce((sum, item) => sum + item.companyProfit, 0);
 
     return (
-      <div className="revenue-modal-overlay" onClick={closeItemsModal}>
-        <div className="revenue-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="revenue-modal-header">
-            <button className="revenue-modal-close" onClick={closeItemsModal}>×</button>
+      <div className="profit-modal-overlay" onClick={closeItemsModal}>
+        <div className="profit-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="profit-modal-header">
+            <button className="profit-modal-close" onClick={closeItemsModal}>×</button>
             <h3>Order Items - #{selectedOrder.receipt_reference}</h3>
             <p>
               {selectedOrder.customer_name} • {selectedOrder.customer_phone} • 
@@ -380,36 +540,48 @@ const DaybyDayRevenue = () => {
             </p>
           </div>
           
-          <div className="revenue-modal-body">
-            <div className="revenue-modal-items">
+          <div className="profit-modal-body">
+            <div className="profit-modal-items">
               {selectedOrder.items.map((item, index) => (
-                <div key={index} className="revenue-modal-item">
+                <div key={index} className="profit-modal-item">
                   <img 
                     src={item.product_image || '/placeholder-image.jpg'} 
                     alt={item.product_name}
-                    className="revenue-modal-item-image"
+                    className="profit-modal-item-image"
                     onError={(e) => {
-                      e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zMCAzN0MzMy4zMTM3IDM3IDM2IDM0LjMxMzcgMzYgMzFDMzYgMjcuNjg2MyAzMy4zMTM3IDI1IDMwIDI1QzI2LjY4NjMgMjUgMjQgMjcuNjg2MyAyNCAzMUMyNCAzNC4zMTM3IDI2LjY4NjMgMzcgMzAgMzdaIiBmaWxsPSIjOTRBMUI2Ii8+CjxwYXRoIGQ9Ik0zNi41IDQySDE5LjVDMTguMTE5MyA0MiAxNyA0MC44ODA3IDE3IDM5LjVWMTkuNUMxNyAxOC4xMTkzIDE4LjExOTMgMTcgMTkuNSAxN0g0MC41QzQxLjg4MDcgMTcgNDMgMTguMTE5MyA0MyAxOS41VjM5LjVDNDMgNDAuODgwNyA0MS44ODA3IDQyIDQwLjUgNDJIMzYuNVpNMzkuNSAzOS41VjI0LjI1TDMxLjM2NiAzMi4zODZDMzAuOTg3NSAzMi43NjQ1IDMwLjQxMjUgMzIuNzY0NSAzMC4wMzQgMzIuMzg2TDI2LjI1IDI4LjYwMkwyMC41IDM0LjM1MlYzOS41SDM5LjVaTTI0IDI0LjVDMjQgMjUuODgwNyAyMi44ODA3IDI3IDIxLjUgMjdDMjAuMTE5MyAyNyAxOSAyNS44ODA3IDE5IDI0LjVDMTkgMjMuMTE5MyAyMC4xMTkzIDIyIDIxLjUgMjJDMjIuODgwNyAyMiAyNCAyMy4xMTkzIDI0IDI0LjVaIiBmaWxsPSIjOTRBMUI2Ii8+Cjwvc3ZnPgo=';
+                      e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zMCAzN0MzMy4zMTM3IDM3IDM2IDM0LjMxMzcgMzYgMzFDMzYgMjcuNjg2MyAzMy4zMTM3IDI1IDMwIDI1QzI2LjY4NjMgMjUgMjQgMjcuNjg2MyAyNCAzMUMyNCAzNC4zMTM3IDI2LjY4NjMgMzcgMzAgMzdaIiBmaWxsPSIjOTRBMUI2Ii8+CjxwYXRoIGQ9Ik0zNi41IDQySDE5LjVDMTguMTE5MyA0yAxNyA0MC44ODA3IDE3IDM5LjVWMTkuNUMxNyAxOC4xMTkzIDE4LjExOTMgMTcgMTkuNSAxN0g0MC41QzQxLjg4MDcgMTcgNDMgMTguMTE5MyA0MyAxOS41VjM5LjVDNDMgNDAuODgwNyA0MS44ODA3IDQyIDQwLjUgNDJIMzYuNVpNMzkuNSAzOS41VjI0LjI1TDMxLjM2NiAzMi4zODZDMzAuOTg3NSAzMi43NjQ1IDMwLjQxMjUgMzIuNzY0NSAzMC4wMzQgMzIuMzg2TDI2LjI1IDI4LjYwMkwyMC41IDM0LjM1MlYzOS41SDM5LjVaTTI0IDI0LjVDMjQgMjUuODgwNyAyMi44ODA3IDI3IDIxLjUgMjdDMjAuMTE5MyAyNyAxOSAyNS44ODA3IDE5IDI0LjVDMTkgMjMuMTE5MyAyMC4xMTkzIDIyIDIxLjUgMjJDMjIuODgwNyAyMiAyNCAyMy4xOTkzIDI0IDI0LjVaIiBmaWxsPSIjOTRBMUI2Ii8+Cjwvc3ZnPgo=';
                     }}
                   />
-                  <div className="revenue-modal-item-details">
-                    <div className="revenue-modal-item-name">{item.product_name}</div>
-                    <div className="revenue-modal-item-info">
-                      <span className="revenue-modal-item-price">
-                        {formatCurrency(item.price || 0)} × {item.quantity || 1}
+                  <div className="profit-modal-item-details">
+                    <div className="profit-modal-item-name">
+                      {item.product_name}
+                      <small style={{display: 'block', color: '#64748b', fontSize: '0.75rem'}}>
+                        Quantity: {item.quantity}
+                      </small>
+                    </div>
+                    <div className="profit-modal-item-info">
+                      <span className="profit-modal-item-price">
+                        Unit Price: {formatCurrency(item.price || 0)}
                       </span>
-                      <span className="revenue-modal-item-quantity">
-                        Qty: {item.quantity || 1}
+                      <span className="profit-modal-item-total">
+                        Total: {formatCurrency(item.totalPrice)}
                       </span>
                       {item.restaurant_name && (
-                        <span className="revenue-modal-item-restaurant">
+                        <span className="profit-modal-item-restaurant">
                           🏪 {item.restaurant_name}
                         </span>
                       )}
-                      {item.category && (
-                        <span className="revenue-modal-item-category">
-                          {item.category}
-                        </span>
+                      {item.itemDetails && (
+                        <>
+                          <span className="profit-modal-item-profit-details">
+                            Price: {formatCurrency(item.itemDetails.price)} | 
+                            Company: {formatCurrency(item.itemDetails.companyProfit)} | 
+                            Restaurant: {formatCurrency(item.itemDetails.restaurantEarnings || item.itemDetails.costOrMargin)} per item
+                          </span>
+                          <span className="profit-modal-item-company-profit profit-positive">
+                            Company Profit: {formatCurrency(item.companyProfit)}
+                          </span>
+                        </>
                       )}
                     </div>
                   </div>
@@ -418,25 +590,50 @@ const DaybyDayRevenue = () => {
             </div>
           </div>
           
-          <div className="revenue-modal-footer">
-            <div className="revenue-modal-total">
-              <span>Items Total ({totalItems} items):</span>
-              <span className="revenue-modal-total-amount">
+          <div className="profit-modal-footer">
+            <div className="profit-modal-total">
+              <span>Order Summary:</span>
+            </div>
+            <div className="profit-modal-total">
+              <span>Items ({totalItemsQuantity} units):</span>
+              <span className="profit-modal-total-amount">
                 {formatCurrency(itemsTotal)}
               </span>
             </div>
-            {selectedOrder.deliveryCharges > 0 && (
-              <div className="revenue-modal-total" style={{marginTop: '8px'}}>
-                <span>Delivery Charges:</span>
-                <span className="revenue-modal-total-amount">
-                  +{formatCurrency(selectedOrder.deliveryCharges)}
-                </span>
-              </div>
-            )}
-            <div className="revenue-modal-total" style={{marginTop: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '8px'}}>
-              <span>Order Total:</span>
-              <span className="revenue-modal-total-amount">
+            <div className="profit-modal-total">
+              <span>Delivery Charges:</span>
+              <span className="profit-modal-total-amount">
+                +{formatCurrency(selectedOrder.deliveryCharges)}
+              </span>
+            </div>
+            <div className="profit-modal-total">
+              <span>Order Total (Revenue):</span>
+              <span className="profit-modal-total-amount">
                 {formatCurrency(selectedOrder.orderRevenue)}
+              </span>
+            </div>
+            <div className="profit-modal-total" style={{borderTop: '1px solid #e2e8f0', paddingTop: '8px'}}>
+              <span>Driver Earnings:</span>
+              <span className="profit-modal-total-amount">
+                -{formatCurrency(selectedOrder.driverEarnings)}
+              </span>
+            </div>
+            <div className="profit-modal-total">
+              <span>Admin Delivery Earnings:</span>
+              <span className="profit-modal-total-amount profit-positive">
+                +{formatCurrency(selectedOrder.adminEarnings)}
+              </span>
+            </div>
+            <div className="profit-modal-total">
+              <span>Company Profit from Items:</span>
+              <span className="profit-modal-total-amount profit-positive">
+                +{formatCurrency(totalCompanyProfit)}
+              </span>
+            </div>
+            <div className="profit-modal-total" style={{borderTop: '2px solid #e2e8f0', paddingTop: '12px', fontWeight: 'bold'}}>
+              <span>Total Order Profit:</span>
+              <span className="profit-modal-total-amount profit-total">
+                {formatCurrency(selectedOrder.totalOrderProfit)}
               </span>
             </div>
           </div>
@@ -446,8 +643,8 @@ const DaybyDayRevenue = () => {
   };
 
   const renderOrdersTable = () => (
-    <div className="revenue-orders-table-container">
-      <table className="revenue-orders-table">
+    <div className="profit-orders-table-container">
+      <table className="profit-orders-table">
         <thead>
           <tr>
             <th>Order ID</th>
@@ -455,59 +652,66 @@ const DaybyDayRevenue = () => {
             <th>Customer</th>
             <th>Type</th>
             <th>Items</th>
-            <th>Order Amount</th>
-            <th>Delivery Charges</th>
-            <th>Total Revenue</th>
+            <th>Revenue</th>
+            <th>Delivery</th>
+            <th>Driver</th>
+            <th>Admin</th>
+            <th>Company</th>
+            <th>Total Profit</th>
             <th>Status</th>
-            <th>Payment</th>
           </tr>
         </thead>
         <tbody>
-          {revenueData.map((order) => (
-            <tr key={order.id} className={order.isDelivered ? 'revenue-delivered-order' : ''}>
-              <td className="revenue-order-id">#{order.receipt_reference}</td>
-              <td className="revenue-order-time">
+          {profitData.map((order) => (
+            <tr key={order.id}>
+              <td className="profit-order-id">#{order.receipt_reference}</td>
+              <td className="profit-order-time">
                 <div>{order.formattedTime}</div>
                 <small>{order.formattedDate}</small>
               </td>
-              <td className="revenue-customer-info">
+              <td className="profit-customer-info">
                 <strong>{order.customer_name}</strong>
                 <small>{order.customer_phone}</small>
               </td>
               <td>
-                <span className={`revenue-order-type-badge ${order.isFoodOrder ? 'revenue-food' : 'revenue-product'}`}>
+                <span className={`profit-order-type-badge ${order.isFoodOrder ? 'profit-food' : 'profit-product'}`}>
                   {order.isFoodOrder ? '🍕 Food' : '📦 Product'}
                 </span>
               </td>
-              <td className="revenue-order-items">
+              <td className="profit-order-items">
                 <div 
-                  className="revenue-items-preview"
+                  className="profit-items-preview"
                   onClick={() => handleViewItems(order)}
                 >
-                  <div className="revenue-items-preview-content">
-                    <span className="revenue-items-preview-count">
-                      {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+                  <div className="profit-items-preview-content">
+                    <span className="profit-items-preview-count">
+                      {order.itemsCount} unit{order.itemsCount !== 1 ? 's' : ''}
+                      <small style={{display: 'block', fontSize: '0.75rem', color: '#64748b'}}>
+                        ({order.items.length} item{order.items.length !== 1 ? 's' : ''})
+                      </small>
                     </span>
-                    View Items
+                    View Details
                   </div>
                 </div>
               </td>
-              <td className="revenue-amount">{formatCurrency(order.orderRevenueWithoutDelivery)}</td>
-              <td className="revenue-delivery-charges">+{formatCurrency(order.deliveryCharges)}</td>
-              <td className="revenue-total-revenue-amount">
-                <strong>{formatCurrency(order.orderRevenue)}</strong>
+              <td className="profit-revenue">{formatCurrency(order.orderRevenue)}</td>
+              <td className="profit-delivery-charges">{formatCurrency(order.deliveryCharges)}</td>
+              <td className="profit-driver-earnings">-{formatCurrency(order.driverEarnings)}</td>
+              <td className="profit-admin-earnings profit-positive">
+                +{formatCurrency(order.adminEarnings)}
+              </td>
+              <td className="profit-company-profit profit-positive">
+                +{formatCurrency(order.companyProfit)}
+              </td>
+              <td className="profit-total-profit profit-total">
+                <strong>{formatCurrency(order.totalOrderProfit)}</strong>
               </td>
               <td>
                 <span 
-                  className="revenue-status-badge"
+                  className="profit-status-badge"
                   style={{ backgroundColor: getStatusColor(order.status) }}
                 >
                   {order.status}
-                </span>
-              </td>
-              <td>
-                <span className={`revenue-payment-method ${order.payment_method.toLowerCase().replace(' ', '-')}`}>
-                  {order.payment_method}
                 </span>
               </td>
             </tr>
@@ -518,38 +722,45 @@ const DaybyDayRevenue = () => {
   );
 
   const renderRestaurantsTable = () => (
-    <div className="revenue-table-container">
-      <table className="revenue-table">
+    <div className="profit-table-container">
+      <table className="profit-table">
         <thead>
           <tr>
             <th>Restaurant</th>
-            <th>Product Revenue</th>
-            <th>Total Revenue</th>
             <th>Orders</th>
-            <th>Items Sold</th>
-            <th>Average Order Value</th>
+            <th>Units Sold</th>
+            <th>Revenue</th>
+            <th>Delivery</th>
+            <th>Driver</th>
+            <th>Admin</th>
+            <th>Company Profit</th>
+            <th>Total Profit</th>
+            <th>Avg/Order</th>
           </tr>
         </thead>
         <tbody>
-          {restaurantRevenue.map((restaurant, index) => (
+          {restaurantProfit.map((restaurant, index) => (
             <tr key={restaurant.name}>
-              <td className="revenue-name-cell">
-                <span className="revenue-rank-badge">{index + 1}</span>
+              <td className="profit-name-cell">
+                <span className="profit-rank-badge">{index + 1}</span>
                 {restaurant.name}
               </td>
-              <td className="revenue-revenue-cell">
-                <strong>{formatCurrency(restaurant.revenueWithoutDelivery)}</strong>
+              <td className="profit-orders-cell">{restaurant.orders}</td>
+              <td className="profit-quantity-cell">{restaurant.totalQuantity}</td>
+              <td className="profit-revenue-cell">{formatCurrency(restaurant.revenue)}</td>
+              <td className="profit-delivery-cell">{formatCurrency(restaurant.deliveryCharges)}</td>
+              <td className="profit-driver-cell">-{formatCurrency(restaurant.driverEarnings)}</td>
+              <td className="profit-admin-cell profit-positive">
+                +{formatCurrency(restaurant.adminEarnings)}
               </td>
-              <td className="revenue-revenue-cell">
-                <strong>{formatCurrency(restaurant.revenue)}</strong>
-                <div style={{fontSize: '0.75rem', color: '#64748b', marginTop: '2px'}}>
-                  (+{formatCurrency(restaurant.revenue - restaurant.revenueWithoutDelivery)} delivery)
-                </div>
+              <td className="profit-company-profit-cell profit-positive">
+                +{formatCurrency(restaurant.companyProfit)}
               </td>
-              <td className="revenue-orders-cell">{restaurant.orders}</td>
-              <td className="revenue-items-cell">{restaurant.items}</td>
-              <td className="revenue-aov-cell">
-                {formatCurrency(restaurant.revenueWithoutDelivery / restaurant.orders)}
+              <td className="profit-total-cell profit-total">
+                <strong>{formatCurrency(restaurant.totalProfit)}</strong>
+              </td>
+              <td className="profit-per-order-cell">
+                {formatCurrency(restaurant.totalProfit / restaurant.orders)}
               </td>
             </tr>
           ))}
@@ -559,43 +770,59 @@ const DaybyDayRevenue = () => {
   );
 
   const renderCategoriesTable = () => (
-    <div className="revenue-table-container">
-      <table className="revenue-table">
+    <div className="profit-table-container">
+      <table className="profit-table">
         <thead>
           <tr>
             <th>Category</th>
-            <th>Product Revenue</th>
-            <th>Total Revenue</th>
+            <th>Type</th>
             <th>Orders</th>
-            <th>Items Sold</th>
+            <th>Units Sold</th>
+            <th>Revenue</th>
+            <th>Delivery</th>
+            <th>Driver</th>
+            <th>Admin</th>
+            <th>Company Profit</th>
+            <th>Total Profit</th>
             <th>Performance</th>
           </tr>
         </thead>
         <tbody>
-          {categoryRevenue.map((category, index) => (
+          {categoryProfit.map((category, index) => (
             <tr key={category.name}>
-              <td className="revenue-name-cell">
-                <span className="revenue-rank-badge">{index + 1}</span>
+              <td className="profit-name-cell">
+                <span className="profit-rank-badge">{index + 1}</span>
                 {category.name}
               </td>
-              <td className="revenue-revenue-cell">
-                <strong>{formatCurrency(category.revenueWithoutDelivery)}</strong>
+              <td>
+                <span className={`profit-type-badge ${category.orderType.toLowerCase()}`}>
+                  {category.orderType}
+                </span>
               </td>
-              <td className="revenue-revenue-cell">
-                <strong>{formatCurrency(category.revenue)}</strong>
+              <td className="profit-orders-cell">{category.orders}</td>
+              <td className="profit-quantity-cell">{category.totalQuantity}</td>
+              <td className="profit-revenue-cell">{formatCurrency(category.revenue)}</td>
+              <td className="profit-delivery-cell">{formatCurrency(category.deliveryCharges)}</td>
+              <td className="profit-driver-cell">-{formatCurrency(category.driverEarnings)}</td>
+              <td className="profit-admin-cell profit-positive">
+                +{formatCurrency(category.adminEarnings)}
               </td>
-              <td className="revenue-orders-cell">{category.orders}</td>
-              <td className="revenue-items-cell">{category.items}</td>
-              <td className="revenue-performance-cell">
-                <div className="revenue-performance-bar">
+              <td className="profit-company-profit-cell profit-positive">
+                +{formatCurrency(category.companyProfit)}
+              </td>
+              <td className="profit-total-cell profit-total">
+                <strong>{formatCurrency(category.totalProfit)}</strong>
+              </td>
+              <td className="profit-performance-cell">
+                <div className="profit-performance-bar">
                   <div 
-                    className="revenue-performance-fill"
+                    className="profit-performance-fill"
                     style={{ 
-                      width: `${(category.revenueWithoutDelivery / stats.totalRevenueWithoutDelivery) * 100}%`
+                      width: `${Math.min((category.totalProfit / stats.totalOverallProfit) * 100, 100)}%`
                     }}
                   ></div>
                 </div>
-                <span>{((category.revenueWithoutDelivery / stats.totalRevenueWithoutDelivery) * 100).toFixed(1)}%</span>
+                <span>{((category.totalProfit / stats.totalOverallProfit) * 100).toFixed(1)}%</span>
               </td>
             </tr>
           ))}
@@ -608,9 +835,9 @@ const DaybyDayRevenue = () => {
     return (
       <>
         <Navbar />
-        <div className="revenue-loading">
-          <div className="revenue-loading-spinner"></div>
-          <p>Loading revenue data...</p>
+        <div className="profit-loading">
+          <div className="profit-loading-spinner"></div>
+          <p>Loading profit data...</p>
         </div>
       </>
     );
@@ -619,107 +846,103 @@ const DaybyDayRevenue = () => {
   return (
     <>
       <Navbar />
-      <div className="revenue-container">
+      <div className="profit-container">
         {/* Header */}
-        <div className="revenue-header">
-          <h1>Daily Revenue Dashboard</h1>
-          <div className="revenue-date-selector">
-            <label htmlFor="revenue-date-picker">Select Date:</label>
+        <div className="profit-header">
+          <h1>Daily Profit Dashboard</h1>
+          <div className="profit-date-selector">
+            <label htmlFor="profit-date-picker">Select Date:</label>
             <input
-              id="revenue-date-picker"
+              id="profit-date-picker"
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="revenue-date-input"
+              className="profit-date-input"
             />
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="revenue-stats-grid">
-          <div className="revenue-stat-card revenue-total-revenue">
-            <div className="revenue-stat-icon">💰</div>
-            <div className="revenue-stat-info">
+        <div className="profit-stats-grid">
+          <div className="profit-stat-card profit-total-revenue">
+            <div className="profit-stat-icon">💰</div>
+            <div className="profit-stat-info">
               <h3>Total Revenue</h3>
-              <p className="revenue-stat-value">{formatCurrency(stats.totalRevenue)}</p>
+              <p className="profit-stat-value">{formatCurrency(stats.totalRevenue)}</p>
               <small>
-                {formatCurrency(stats.totalRevenueWithoutDelivery)} products + {' '}
-                {formatCurrency(stats.deliveryChargesTotal)} delivery
+                {stats.deliveredOrders} orders, {stats.totalItemsSold} units sold
               </small>
             </div>
           </div>
 
-          <div className="revenue-stat-card revenue-food-revenue">
-            <div className="revenue-stat-icon">🍕</div>
-            <div className="revenue-stat-info">
-              <h3>Food Revenue</h3>
-              <p className="revenue-stat-value">{formatCurrency(stats.foodRevenue)}</p>
+          <div className="profit-stat-card profit-total-profit">
+            <div className="profit-stat-icon">📈</div>
+            <div className="profit-stat-info">
+              <h3>Total Profit</h3>
+              <p className="profit-stat-value">{formatCurrency(stats.totalOverallProfit)}</p>
               <small>
-                {formatCurrency(stats.foodRevenueWithoutDelivery)} food + {' '}
-                {formatCurrency(stats.foodRevenue - stats.foodRevenueWithoutDelivery)} delivery
+                {formatCurrency(stats.totalCompanyProfit)} company + {' '}
+                {formatCurrency(stats.totalAdminEarnings)} admin
               </small>
             </div>
           </div>
 
-          <div className="revenue-stat-card revenue-product-revenue">
-            <div className="revenue-stat-icon">📦</div>
-            <div className="revenue-stat-info">
-              <h3>Product Revenue</h3>
-              <p className="revenue-stat-value">{formatCurrency(stats.productRevenue)}</p>
+          <div className="profit-stat-card profit-admin-earnings">
+            <div className="profit-stat-icon">🏢</div>
+            <div className="profit-stat-info">
+              <h3>Admin Earnings</h3>
+              <p className="profit-stat-value profit-positive">{formatCurrency(stats.totalAdminEarnings)}</p>
               <small>
-                {formatCurrency(stats.productRevenueWithoutDelivery)} products + {' '}
-                {formatCurrency(stats.productRevenue - stats.productRevenueWithoutDelivery)} delivery
+                {formatCurrency(stats.totalDeliveryCharges)} collected - {' '}
+                {formatCurrency(stats.totalDriverEarnings)} driver payments
               </small>
             </div>
           </div>
 
-          <div className="revenue-stat-card revenue-orders-delivered">
-            <div className="revenue-stat-icon">✅</div>
-            <div className="revenue-stat-info">
-              <h3>Delivered Orders</h3>
-              <p className="revenue-stat-value">
-                {stats.deliveredOrders} / {stats.totalOrders}
+          <div className="profit-stat-card profit-company-profit">
+            <div className="profit-stat-icon">📊</div>
+            <div className="profit-stat-info">
+              <h3>Company Profit</h3>
+              <p className="profit-stat-value profit-positive">
+                {formatCurrency(stats.totalCompanyProfit)}
               </p>
               <small>
-                {stats.totalOrders > 0 
-                  ? `${Math.round((stats.deliveredOrders / stats.totalOrders) * 100)}% delivered`
-                  : 'No orders'
-                }
+                Sum of "Profit" field × Quantity from all items
               </small>
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="revenue-tabs-navigation">
+        <div className="profit-tabs-navigation">
           <button 
-            className={`revenue-tab-button ${activeTab === 'orders' ? 'revenue-active' : ''}`}
+            className={`profit-tab-button ${activeTab === 'orders' ? 'profit-active' : ''}`}
             onClick={() => setActiveTab('orders')}
           >
-            📋 Delivered Orders
+            📋 Order Profits ({profitData.length})
           </button>
           <button 
-            className={`revenue-tab-button ${activeTab === 'restaurants' ? 'revenue-active' : ''}`}
+            className={`profit-tab-button ${activeTab === 'restaurants' ? 'profit-active' : ''}`}
             onClick={() => setActiveTab('restaurants')}
           >
-            🏪 Restaurant Revenue
+            🏪 Restaurant Profits ({restaurantProfit.length})
           </button>
           <button 
-            className={`revenue-tab-button ${activeTab === 'categories' ? 'revenue-active' : ''}`}
+            className={`profit-tab-button ${activeTab === 'categories' ? 'profit-active' : ''}`}
             onClick={() => setActiveTab('categories')}
           >
-            📊 Category Revenue
+            📊 Category Profits ({categoryProfit.length})
           </button>
         </div>
 
         {/* Content Area */}
-        <div className="revenue-tab-content">
+        <div className="profit-tab-content">
           {activeTab === 'orders' && (
-            <div className="revenue-orders-section">
-              <h2>Delivered Orders - {getTamilNaduDay(selectedDate)}</h2>
+            <div className="profit-orders-section">
+              <h2>Order Profits - {getTamilNaduDay(selectedDate)}</h2>
               
-              {revenueData.length === 0 ? (
-                <div className="revenue-no-orders">
+              {profitData.length === 0 ? (
+                <div className="profit-no-orders">
                   <p>No delivered orders found for selected date</p>
                 </div>
               ) : (
@@ -729,12 +952,12 @@ const DaybyDayRevenue = () => {
           )}
 
           {activeTab === 'restaurants' && (
-            <div className="revenue-section">
-              <h2>Restaurant Revenue (Delivered Orders) - {getTamilNaduDay(selectedDate)}</h2>
+            <div className="profit-section">
+              <h2>Restaurant Profits - {getTamilNaduDay(selectedDate)}</h2>
               
-              {restaurantRevenue.length === 0 ? (
-                <div className="revenue-no-data">
-                  <p>No restaurant data found for delivered orders on selected date</p>
+              {restaurantProfit.length === 0 ? (
+                <div className="profit-no-data">
+                  <p>No restaurant profit data found for delivered orders on selected date</p>
                 </div>
               ) : (
                 renderRestaurantsTable()
@@ -743,12 +966,12 @@ const DaybyDayRevenue = () => {
           )}
 
           {activeTab === 'categories' && (
-            <div className="revenue-section">
-              <h2>Category Revenue (Delivered Orders) - {getTamilNaduDay(selectedDate)}</h2>
+            <div className="profit-section">
+              <h2>Category Profits - {getTamilNaduDay(selectedDate)}</h2>
               
-              {categoryRevenue.length === 0 ? (
-                <div className="revenue-no-data">
-                  <p>No category data found for delivered orders on selected date</p>
+              {categoryProfit.length === 0 ? (
+                <div className="profit-no-data">
+                  <p>No category profit data found for delivered orders on selected date</p>
                 </div>
               ) : (
                 renderCategoriesTable()
@@ -758,42 +981,49 @@ const DaybyDayRevenue = () => {
         </div>
 
         {/* Summary Section */}
-        {revenueData.length > 0 && (
-          <div className="revenue-summary-section">
-            <h3>Daily Summary (Delivered Orders) - {getTamilNaduDay(selectedDate)}</h3>
-            <div className="revenue-summary-grid">
-              <div className="revenue-summary-item">
+        {profitData.length > 0 && (
+          <div className="profit-summary-section">
+            <h3>Profit Summary - {getTamilNaduDay(selectedDate)}</h3>
+            <div className="profit-summary-grid">
+              <div className="profit-summary-item">
                 <span>Total Delivered Orders:</span>
-                <strong>{stats.totalOrders}</strong>
+                <strong>{stats.deliveredOrders}</strong>
               </div>
-              <div className="revenue-summary-item">
-                <span>Product Revenue:</span>
-                <strong>{formatCurrency(stats.totalRevenueWithoutDelivery)}</strong>
+              <div className="profit-summary-item">
+                <span>Total Units Sold:</span>
+                <strong>{stats.totalItemsSold}</strong>
               </div>
-              <div className="revenue-summary-item">
-                <span>Delivery Charges:</span>
-                <strong>{formatCurrency(stats.deliveryChargesTotal)}</strong>
+              <div className="profit-summary-item">
+                <span>Food Orders:</span>
+                <strong>{stats.foodOrders}</strong>
               </div>
-              <div className="revenue-summary-item">
+              <div className="profit-summary-item">
+                <span>Product Orders:</span>
+                <strong>{stats.productOrders}</strong>
+              </div>
+              <div className="profit-summary-item">
                 <span>Total Revenue:</span>
                 <strong>{formatCurrency(stats.totalRevenue)}</strong>
               </div>
-              <div className="revenue-summary-item">
-                <span>Food Orders:</span>
-                <strong>{revenueData.filter(order => order.isFoodOrder).length}</strong>
+              <div className="profit-summary-item">
+                <span>Delivery Charges Collected:</span>
+                <strong>{formatCurrency(stats.totalDeliveryCharges)}</strong>
               </div>
-              <div className="revenue-summary-item">
-                <span>Product Orders:</span>
-                <strong>{revenueData.filter(order => !order.isFoodOrder).length}</strong>
+              <div className="profit-summary-item">
+                <span>Driver Earnings Paid:</span>
+                <strong>-{formatCurrency(stats.totalDriverEarnings)}</strong>
               </div>
-              <div className="revenue-summary-item">
-                <span>Delivery Success Rate:</span>
-                <strong>
-                  {stats.totalOrders > 0 
-                    ? `${Math.round((stats.deliveredOrders / stats.totalOrders) * 100)}%`
-                    : '0%'
-                  }
-                </strong>
+              <div className="profit-summary-item">
+                <span>Admin Earnings:</span>
+                <strong className="profit-positive">{formatCurrency(stats.totalAdminEarnings)}</strong>
+              </div>
+              <div className="profit-summary-item">
+                <span>Company Profit from Items:</span>
+                <strong className="profit-positive">{formatCurrency(stats.totalCompanyProfit)}</strong>
+              </div>
+              <div className="profit-summary-item">
+                <span>Total Overall Profit:</span>
+                <strong className="profit-total">{formatCurrency(stats.totalOverallProfit)}</strong>
               </div>
             </div>
           </div>
