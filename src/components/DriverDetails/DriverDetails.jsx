@@ -8,11 +8,7 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
-  XCircle,
-  MoreVertical,
-  Edit,
-  Trash2,
-  Eye
+  Trash2
 } from 'lucide-react';
 import "./DriverDetails.css";
 import Navbar from '../Navbar/Navbar';
@@ -35,11 +31,7 @@ function DriverDetails() {
   const [newDriverData, setNewDriverData] = useState({
     driver_name: '',
     driver_phone: '',
-    password: '',
-    confirmPassword: '',
-    fcm_token: '',
-    device_id: '',
-    app_version: ''
+    password: ''
   });
 
   // Fetch drivers
@@ -194,8 +186,19 @@ function DriverDetails() {
   const handleCreateDriver = async (e) => {
     e.preventDefault();
     
-    if (newDriverData.password !== newDriverData.confirmPassword) {
-      alert('Passwords do not match!');
+    // Basic validation
+    if (!newDriverData.driver_name.trim()) {
+      alert('Driver name is required!');
+      return;
+    }
+    
+    if (!newDriverData.driver_phone.trim() || !/^\d{10}$/.test(newDriverData.driver_phone)) {
+      alert('Please enter a valid 10-digit phone number!');
+      return;
+    }
+    
+    if (!newDriverData.password.trim()) {
+      alert('Password is required!');
       return;
     }
 
@@ -203,12 +206,9 @@ function DriverDetails() {
       const { data, error } = await supabase
         .from('driver')
         .insert([{
-          driver_name: newDriverData.driver_name,
-          driver_phone: newDriverData.driver_phone,
+          driver_name: newDriverData.driver_name.trim(),
+          driver_phone: newDriverData.driver_phone.trim(),
           password: newDriverData.password,
-          fcm_token: newDriverData.fcm_token || null,
-          device_id: newDriverData.device_id || null,
-          app_version: newDriverData.app_version || null,
           status: 'offline',
           created_at: new Date().toISOString()
         }])
@@ -221,11 +221,7 @@ function DriverDetails() {
       setNewDriverData({
         driver_name: '',
         driver_phone: '',
-        password: '',
-        confirmPassword: '',
-        fcm_token: '',
-        device_id: '',
-        app_version: ''
+        password: ''
       });
       fetchDrivers();
     } catch (error) {
@@ -454,6 +450,7 @@ function DriverDetails() {
                   onChange={(e) => setNewDriverData({...newDriverData, driver_name: e.target.value})}
                   required
                   placeholder="Enter driver's full name"
+                  autoFocus
                 />
               </div>
               
@@ -466,6 +463,7 @@ function DriverDetails() {
                   required
                   placeholder="Enter 10-digit mobile number"
                   pattern="[0-9]{10}"
+                  maxLength="10"
                 />
               </div>
               
@@ -477,47 +475,7 @@ function DriverDetails() {
                   onChange={(e) => setNewDriverData({...newDriverData, password: e.target.value})}
                   required
                   placeholder="Create a password"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Confirm Password *</label>
-                <input
-                  type="password"
-                  value={newDriverData.confirmPassword}
-                  onChange={(e) => setNewDriverData({...newDriverData, confirmPassword: e.target.value})}
-                  required
-                  placeholder="Confirm password"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>FCM Token (Optional)</label>
-                <input
-                  type="text"
-                  value={newDriverData.fcm_token}
-                  onChange={(e) => setNewDriverData({...newDriverData, fcm_token: e.target.value})}
-                  placeholder="Firebase Cloud Messaging token"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Device ID (Optional)</label>
-                <input
-                  type="text"
-                  value={newDriverData.device_id}
-                  onChange={(e) => setNewDriverData({...newDriverData, device_id: e.target.value})}
-                  placeholder="Device identifier"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>App Version (Optional)</label>
-                <input
-                  type="text"
-                  value={newDriverData.app_version}
-                  onChange={(e) => setNewDriverData({...newDriverData, app_version: e.target.value})}
-                  placeholder="e.g., 1.0.0"
+                  minLength="6"
                 />
               </div>
               
@@ -542,7 +500,6 @@ function DriverDetails() {
       )}
     </div>
     </>
-    
   );
 }
 
