@@ -8,7 +8,8 @@ const DaybyDayRevenue = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    totalRevenue: 0,
+    totalRevenue: 0, // This is total_amount from all orders
+    totalOrderAmountWithoutDelivery: 0, // Sum of item prices only
     totalDeliveryCharges: 0,
     totalDriverEarnings: 0,
     totalAdminEarnings: 0,
@@ -256,6 +257,15 @@ const DaybyDayRevenue = () => {
     return items.reduce((total, item) => total + (parseInt(item.quantity) || 1), 0);
   };
 
+  // Calculate total items amount (sum of item prices × quantities)
+  const calculateTotalItemsAmount = (items) => {
+    return items.reduce((total, item) => {
+      const price = parseFloat(item.price) || 0;
+      const quantity = parseInt(item.quantity) || 1;
+      return total + (price * quantity);
+    }, 0);
+  };
+
   const fetchProfitData = async () => {
     if (!selectedDate) return;
     
@@ -316,7 +326,8 @@ const DaybyDayRevenue = () => {
   };
 
   const processProfitData = (orders, foodItemsMap, productsMap) => {
-    let totalRevenue = 0;
+    let totalRevenue = 0; // Sum of total_amount from all orders
+    let totalOrderAmountWithoutDelivery = 0; // Sum of item prices only
     let totalDeliveryCharges = 0;
     let totalDriverEarnings = 0;
     let totalAdminEarnings = 0;
@@ -331,10 +342,12 @@ const DaybyDayRevenue = () => {
 
     const processedOrders = orders.map(order => {
       const isFoodOrder = order.order_type === 'food';
-      const orderAmount = parseFloat(order.total_amount) || 0;
+      const orderAmount = parseFloat(order.total_amount) || 0; // This already includes delivery charges
       const deliveryCharges = parseFloat(order.delivery_charges) || 0;
       const driverEarnings = parseFloat(order.driver_order_earnings) || 0;
-      const orderRevenue = orderAmount + deliveryCharges;
+      
+      // Revenue = total_amount (which already includes delivery)
+      const orderRevenue = orderAmount;
       
       // Calculate admin earnings from delivery
       const adminEarnings = calculateAdminEarnings(deliveryCharges, driverEarnings);
@@ -342,6 +355,7 @@ const DaybyDayRevenue = () => {
       // Parse order items
       const items = safeJsonParse(order.items);
       const orderItemsCount = calculateTotalItemsCount(items);
+      const itemsTotalAmount = calculateTotalItemsAmount(items); // Sum of item prices × quantities
       
       // Calculate company profit from items
       let orderCompanyProfit = 0;
@@ -382,6 +396,7 @@ const DaybyDayRevenue = () => {
       
       // Add to totals
       totalRevenue += orderRevenue;
+      totalOrderAmountWithoutDelivery += itemsTotalAmount; // Sum of item prices only
       totalDeliveryCharges += deliveryCharges;
       totalDriverEarnings += driverEarnings;
       totalAdminEarnings += adminEarnings;
@@ -400,6 +415,7 @@ const DaybyDayRevenue = () => {
         const currentRestaurant = restaurantMap.get(order.restaurant_name) || {
           name: order.restaurant_name,
           revenue: 0,
+          itemsAmount: 0, // Sum of item prices
           deliveryCharges: 0,
           driverEarnings: 0,
           adminEarnings: 0,
@@ -411,6 +427,7 @@ const DaybyDayRevenue = () => {
         };
         
         currentRestaurant.revenue += orderRevenue;
+        currentRestaurant.itemsAmount += itemsTotalAmount;
         currentRestaurant.deliveryCharges += deliveryCharges;
         currentRestaurant.driverEarnings += driverEarnings;
         currentRestaurant.adminEarnings += adminEarnings;
@@ -428,6 +445,7 @@ const DaybyDayRevenue = () => {
       const currentCategory = categoryMap.get(category) || {
         name: category,
         revenue: 0,
+        itemsAmount: 0,
         deliveryCharges: 0,
         driverEarnings: 0,
         adminEarnings: 0,
@@ -440,6 +458,7 @@ const DaybyDayRevenue = () => {
       };
       
       currentCategory.revenue += orderRevenue;
+      currentCategory.itemsAmount += itemsTotalAmount;
       currentCategory.deliveryCharges += deliveryCharges;
       currentCategory.driverEarnings += driverEarnings;
       currentCategory.adminEarnings += adminEarnings;
@@ -458,6 +477,7 @@ const DaybyDayRevenue = () => {
         ...order,
         items: itemsWithProfit,
         orderRevenue,
+        itemsTotalAmount, // NEW: Total of item prices only
         deliveryCharges,
         driverEarnings,
         adminEarnings,
@@ -485,6 +505,7 @@ const DaybyDayRevenue = () => {
     setCategoryProfit(categoryArray);
     setStats({
       totalRevenue,
+      totalOrderAmountWithoutDelivery,
       totalDeliveryCharges,
       totalDriverEarnings,
       totalAdminEarnings,
@@ -549,7 +570,7 @@ const DaybyDayRevenue = () => {
                     alt={item.product_name}
                     className="profit-modal-item-image"
                     onError={(e) => {
-                      e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zMCAzN0MzMy4zMTM3IDM3IDM2IDM0LjMxMzcgMzYgMzFDMzYgMjcuNjg2MyAzMy4zMTM3IDI1IDMwIDI1QzI2LjY4NjMgMjUgMjQgMjcuNjg2MyAyNCAzMUMyNCAzNC4zMTM3IDI2LjY4NjMgMzcgMzAgMzdaIiBmaWxsPSIjOTRBMUI2Ii8+CjxwYXRoIGQ9Ik0zNi41IDQySDE5LjVDMTguMTE5MyA0yAxNyA0MC44ODA3IDE3IDM5LjVWMTkuNUMxNyAxOC4xMTkzIDE4LjExOTMgMTcgMTkuNSAxN0g0MC41QzQxLjg4MDcgMTcgNDMgMTguMTE5MyA0MyAxOS41VjM5LjVDNDMgNDAuODgwNyA0MS44ODA3IDQyIDQwLjUgNDJIMzYuNVpNMzkuNSAzOS41VjI0LjI1TDMxLjM2NiAzMi4zODZDMzAuOTg3NSAzMi43NjQ1IDMwLjQxMjUgMzIuNzY0NSAzMC4wMzQgMzIuMzg2TDI2LjI1IDI4LjYwMkwyMC41IDM0LjM1MlYzOS41SDM5LjVaTTI0IDI0LjVDMjQgMjUuODgwNyAyMi44ODA3IDI3IDIxLjUgMjdDMjAuMTE5MyAyNyAxOSAyNS44ODA3IDE5IDI0LjVDMTkgMjMuMTE5MyAyMC4xMTkzIDIyIDIxLjUgMjJDMjIuODgwNyAyMiAyNCAyMy4xOTkzIDI0IDI0LjVaIiBmaWxsPSIjOTRBMUI2Ii8+Cjwvc3ZnPgo=';
+                      e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zMCAzN0MzMy4zMTM3IDM3IDM2IDM0LjMxMzcgMzYgMzFDMzYgMjcuNjg2MyAzMy4zMTM3IDI1IDMwIDI1QzI2LjY4NjMgMjUgMjQgMjcuNjg2MyAyNCAzMUMyNCAzNC4zMTM3IDI2LjY4NjMgMzcgMzAgMzdaIiBmaWxsPSIjOTRBMUI2Ii8+CjxwYXRoIGQ9Ik0zNi41IDQySDE5LjVDMTguMTE5MyA0MiAxNyA0MC44ODA3IDE3IDM5LjVWMTkuNUMxNyAxOC4xMTkzIDE4LjExOTMgMTcgMTkuNSAxN0g0MC41QzQxLjg4MDcgMTcgNDMgMTguMTE5MyA0MyAxOS41VjM5LjVDNDMgNDAuODgwNyA0MS44ODA3IDQyIDQwLjUgNDJIMzYuNVpNMzkuNSAzOS41VjI0LjI1TDMxLjM2NiAzMi4zODZDMzAuOTg3NSAzMi43NjQ1IDMwLjQxMjUgMzIuNzY0NSAzMC4wMzQgMzIuMzg2TDI2LjI1IDI4LjYwMkwyMC41IDM0LjM1MlYzOS41SDM5LjVaTTI0IDI0LjVDMjQgMjUuODgwNyAyMi44ODA3IDI3IDIxLjUgMjdDMjAuMTE5MyAyNyAxOSAyNS44ODA3IDE5IDI0LjVDMTkgMjMuMTE5MyAyMC4xMTkzIDIyIDIxLjUgMjJDMjIuODgwNyAyMiAyNCAyMy4xOTkzIDI0IDI0LjVaIiBmaWxsPSIjOTRBMUI2Ii8+Cjwvc3ZnPgo=';
                     }}
                   />
                   <div className="profit-modal-item-details">
@@ -652,8 +673,9 @@ const DaybyDayRevenue = () => {
             <th>Customer</th>
             <th>Type</th>
             <th>Items</th>
-            <th>Revenue</th>
+            <th>Items Amount</th> {/* Changed from Order Amount */}
             <th>Delivery</th>
+            <th>Revenue</th> {/* This is total_amount from order table */}
             <th>Driver</th>
             <th>Admin</th>
             <th>Company</th>
@@ -694,8 +716,9 @@ const DaybyDayRevenue = () => {
                   </div>
                 </div>
               </td>
-              <td className="profit-revenue">{formatCurrency(order.orderRevenue)}</td>
+              <td className="profit-items-amount">{formatCurrency(order.itemsTotalAmount)}</td> {/* Items Amount */}
               <td className="profit-delivery-charges">{formatCurrency(order.deliveryCharges)}</td>
+              <td className="profit-revenue">{formatCurrency(order.orderRevenue)}</td> {/* Total Revenue */}
               <td className="profit-driver-earnings">-{formatCurrency(order.driverEarnings)}</td>
               <td className="profit-admin-earnings profit-positive">
                 +{formatCurrency(order.adminEarnings)}
@@ -729,8 +752,9 @@ const DaybyDayRevenue = () => {
             <th>Restaurant</th>
             <th>Orders</th>
             <th>Units Sold</th>
-            <th>Revenue</th>
+            <th>Items Amount</th>
             <th>Delivery</th>
+            <th>Revenue</th>
             <th>Driver</th>
             <th>Admin</th>
             <th>Company Profit</th>
@@ -747,8 +771,9 @@ const DaybyDayRevenue = () => {
               </td>
               <td className="profit-orders-cell">{restaurant.orders}</td>
               <td className="profit-quantity-cell">{restaurant.totalQuantity}</td>
-              <td className="profit-revenue-cell">{formatCurrency(restaurant.revenue)}</td>
+              <td className="profit-items-amount-cell">{formatCurrency(restaurant.itemsAmount)}</td>
               <td className="profit-delivery-cell">{formatCurrency(restaurant.deliveryCharges)}</td>
+              <td className="profit-revenue-cell">{formatCurrency(restaurant.revenue)}</td>
               <td className="profit-driver-cell">-{formatCurrency(restaurant.driverEarnings)}</td>
               <td className="profit-admin-cell profit-positive">
                 +{formatCurrency(restaurant.adminEarnings)}
@@ -778,8 +803,9 @@ const DaybyDayRevenue = () => {
             <th>Type</th>
             <th>Orders</th>
             <th>Units Sold</th>
-            <th>Revenue</th>
+            <th>Items Amount</th>
             <th>Delivery</th>
+            <th>Revenue</th>
             <th>Driver</th>
             <th>Admin</th>
             <th>Company Profit</th>
@@ -801,8 +827,9 @@ const DaybyDayRevenue = () => {
               </td>
               <td className="profit-orders-cell">{category.orders}</td>
               <td className="profit-quantity-cell">{category.totalQuantity}</td>
-              <td className="profit-revenue-cell">{formatCurrency(category.revenue)}</td>
+              <td className="profit-items-amount-cell">{formatCurrency(category.itemsAmount)}</td>
               <td className="profit-delivery-cell">{formatCurrency(category.deliveryCharges)}</td>
+              <td className="profit-revenue-cell">{formatCurrency(category.revenue)}</td>
               <td className="profit-driver-cell">-{formatCurrency(category.driverEarnings)}</td>
               <td className="profit-admin-cell profit-positive">
                 +{formatCurrency(category.adminEarnings)}
@@ -871,6 +898,28 @@ const DaybyDayRevenue = () => {
               <p className="profit-stat-value">{formatCurrency(stats.totalRevenue)}</p>
               <small>
                 {stats.deliveredOrders} orders, {stats.totalItemsSold} units sold
+              </small>
+            </div>
+          </div>
+
+          <div className="profit-stat-card profit-items-amount">
+            <div className="profit-stat-icon">🛒</div>
+            <div className="profit-stat-info">
+              <h3>Items Amount</h3>
+              <p className="profit-stat-value">{formatCurrency(stats.totalOrderAmountWithoutDelivery)}</p>
+              <small>
+                Sum of item prices only (without delivery)
+              </small>
+            </div>
+          </div>
+
+          <div className="profit-stat-card profit-delivery-collected">
+            <div className="profit-stat-icon">🚚</div>
+            <div className="profit-stat-info">
+              <h3>Delivery Charges</h3>
+              <p className="profit-stat-value">{formatCurrency(stats.totalDeliveryCharges)}</p>
+              <small>
+                Total delivery fees collected
               </small>
             </div>
           </div>
@@ -1002,12 +1051,16 @@ const DaybyDayRevenue = () => {
                 <strong>{stats.productOrders}</strong>
               </div>
               <div className="profit-summary-item">
-                <span>Total Revenue:</span>
-                <strong>{formatCurrency(stats.totalRevenue)}</strong>
+                <span>Items Amount (Without Delivery):</span>
+                <strong>{formatCurrency(stats.totalOrderAmountWithoutDelivery)}</strong>
               </div>
               <div className="profit-summary-item">
                 <span>Delivery Charges Collected:</span>
                 <strong>{formatCurrency(stats.totalDeliveryCharges)}</strong>
+              </div>
+              <div className="profit-summary-item">
+                <span>Total Revenue (Amount + Delivery):</span>
+                <strong>{formatCurrency(stats.totalRevenue)}</strong>
               </div>
               <div className="profit-summary-item">
                 <span>Driver Earnings Paid:</span>
