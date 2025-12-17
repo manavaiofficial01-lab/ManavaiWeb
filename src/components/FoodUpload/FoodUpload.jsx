@@ -33,9 +33,10 @@ const FoodUpload = () => {
 
   // Predefined categories for food items
   const FOOD_CATEGORIES = [
-    "Biryani", "Pizza", "Burger", "Fried Chicken", "Mutton", "Chicken", "Fresh Juice", 
-    "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice", "Naan & Gravy", 
-    "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee", "Shakes", "Mojito", "Cake's", "Ice Cream"
+    "Biryani", "Pizza","Snacks", "Burger", "Fried Chicken", "Mutton", "Chicken", 
+    "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice", 
+    "Naan & Gravy", "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee", 
+    "Shakes", "Mojito", "Cake's", "Ice Cream", "Fresh Juice","Crispy","Sandwich","Sweets","Momos","Bday Cake"
   ];
 
   // Preparation time options
