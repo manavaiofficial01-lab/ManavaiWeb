@@ -13,17 +13,17 @@ const ProductManagement = () => {
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  // Fetch categories from search_categories table
+  // Fetch categories from product_categories table
   const fetchCategories = async () => {
     try {
       setLoading(true);
       setError('');
 
       const { data, error } = await supabase
-        .from('search_categories')
+        .from('product_categories')
         .select('*')
-        .order('display_order', { ascending: true, nullsFirst: false })
-        .order('title');
+        .order('position', { ascending: true, nullsFirst: false })
+        .order('name');
 
       if (error) throw error;
 
@@ -45,7 +45,7 @@ const ProductManagement = () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('category', category.title)
+        .eq('category', category.name)
         .order('name');
 
       if (error) throw error;
@@ -255,7 +255,7 @@ const ProductManagement = () => {
                 <div className="empty-state">
                   <div className="empty-icon">📁</div>
                   <h3>No Categories Found</h3>
-                  <p>Please add categories to the search_categories table.</p>
+                  <p>Please add categories to the product_categories table.</p>
                 </div>
               ) : (
                 <div className="categories-grid">
@@ -266,27 +266,33 @@ const ProductManagement = () => {
                       onClick={() => handleCategoryClick(category)}
                     >
                       <div className="category-card-inner">
-                        {category.image_url && (
+                        {category.image && (
                           <div className="category-image">
                             <img 
-                              src={category.image_url} 
-                              alt={category.title}
+                              src={category.image} 
+                              alt={category.name}
                               onError={(e) => {
                                 e.target.style.display = 'none';
                               }}
                             />
                           </div>
                         )}
-                        <div className={`category-content ${!category.image_url ? 'no-image' : ''}`}>
+                        <div className={`category-content ${!category.image ? 'no-image' : ''}`}>
                           <div className="category-header">
-                            <h3>{category.title}</h3>
-                            {category.icon_name && (
-                              <div className="category-icon">
-                                <i className={`icon-${category.icon_name}`}></i>
+                            <h3>{category.name}</h3>
+                            {category.navigation && (
+                              <div className="category-navigation-badge">
+                                {category.navigation}
                               </div>
                             )}
                           </div>
-                          <p className="category-subtitle">{category.subtitle}</p>
+                          <div className="category-meta">
+                            {category.position && (
+                              <span className="category-position">
+                                Position: {category.position}
+                              </span>
+                            )}
+                          </div>
                           <div className="category-footer">
                             <span className="category-cta">Manage Products</span>
                             <span className="category-arrow">→</span>
@@ -311,8 +317,18 @@ const ProductManagement = () => {
                     All Categories
                   </button>
                   <div className="header-title">
-                    <h1>{selectedCategory.title}</h1>
-                    <p>{selectedCategory.subtitle || `Manage ${selectedCategory.title} products`}</p>
+                    <h1>{selectedCategory.name}</h1>
+                    <p>
+                      {selectedCategory.navigation 
+                        ? `Navigation: ${selectedCategory.navigation}` 
+                        : `Manage ${selectedCategory.name} products`
+                      }
+                    </p>
+                    {selectedCategory.image && (
+                      <div className="category-image-info">
+                        <small>Category Image: {selectedCategory.image}</small>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
