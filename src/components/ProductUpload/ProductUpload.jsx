@@ -77,28 +77,28 @@ const ProductUpload = () => {
     'Fertilizer': ['1kg', '5kg', '10kg', '25kg']
   };
 
-  // Fetch categories from database
+  // Fetch categories from product_categories table
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const { data, error } = await supabase
-          .from('search_categories')
-          .select('id, title, subtitle, keywords')
-          .order('display_order', { ascending: true })
-          .order('title', { ascending: true });
+          .from('product_categories')
+          .select('id, name, image, navigation, position')
+          .order('position', { ascending: true })
+          .order('name', { ascending: true });
 
         if (error) {
           console.error('Error fetching categories:', error);
           // Fallback to default categories if database fetch fails
           setCategories([
-            { id: 1, title: 'Electronics', keywords: ['electronics', 'tech', 'gadgets'] },
-            { id: 2, title: 'Womens', keywords: ['womens', 'women', 'ladies'] },
-            { id: 3, title: 'Furniture', keywords: ['furniture', 'home'] },
-            { id: 4, title: 'Snacks', keywords: ['snacks', 'food'] },
-            { id: 5, title: 'Home Appliances', keywords: ['appliances', 'home'] },
-            { id: 6, title: 'Flowers', keywords: ['flowers', 'plants'] },
-            { id: 7, title: 'Daily Utilities', keywords: ['daily', 'essentials'] },
-            { id: 8, title: 'Grocery', keywords: ['grocery', 'food'] }
+            { id: 1, name: 'Electronics' },
+            { id: 2, name: 'Womens' },
+            { id: 3, name: 'Furniture' },
+            { id: 4, name: 'Snacks' },
+            { id: 5, name: 'Home Appliances' },
+            { id: 6, name: 'Flowers' },
+            { id: 7, name: 'Daily Utilities' },
+            { id: 8, name: 'Grocery' }
           ]);
         } else {
           setCategories(data || []);
@@ -481,10 +481,16 @@ const ProductUpload = () => {
     return COMMON_SIZES[formData.category] || ['Standard'];
   };
 
-  // Get category subtitle for the selected category
-  const getCategorySubtitle = () => {
-    const selectedCategory = categories.find(cat => cat.title === formData.category);
-    return selectedCategory?.subtitle || '';
+  // Get navigation info for the selected category
+  const getCategoryNavigation = () => {
+    const selectedCategory = categories.find(cat => cat.name === formData.category);
+    return selectedCategory?.navigation || '';
+  };
+
+  // Get category image for the selected category
+  const getCategoryImage = () => {
+    const selectedCategory = categories.find(cat => cat.name === formData.category);
+    return selectedCategory?.image || '';
   };
 
   return (
@@ -538,15 +544,24 @@ const ProductUpload = () => {
                       <option value="" disabled>Loading categories...</option>
                     ) : (
                       categories.map(cat => (
-                        <option key={cat.id} value={cat.title}>
-                          {cat.title}
+                        <option key={cat.id} value={cat.name}>
+                          {cat.name}
                         </option>
                       ))
                     )}
                   </select>
-                  {formData.category && getCategorySubtitle() && (
+                  {formData.category && (
                     <div className="category-info">
-                      {getCategorySubtitle()}
+                      {getCategoryNavigation() && (
+                        <div className="category-navigation">
+                          <strong>Navigation:</strong> {getCategoryNavigation()}
+                        </div>
+                      )}
+                      {getCategoryImage() && (
+                        <div className="category-image-info">
+                          <strong>Category Image:</strong> {getCategoryImage()}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
