@@ -36,7 +36,7 @@ const FoodUpload = () => {
     "Biryani", "Pizza","Snacks", "Burger", "Fried Chicken", "Mutton", "Chicken", "Tea",
     "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice", 
     "Naan & Gravy", "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee", 
-    "Shakes", "Mojito", "Cake's", "Ice Cream", "Fresh Juice","Crispy","Sandwich","Sweets","Momos","Bday Cake"
+    "Shakes", "Mojito", "Cake's", "Ice Cream", "Fresh Juice","Crispy","Sandwich","Sweets","Momos","Bday Cake" ,"Maggi", "Chilli Chicken","Pasta" ,"Mocktail","Tea",
   ];
 
   // Preparation time options

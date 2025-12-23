@@ -22,7 +22,7 @@ const FoodManagement = () => {
     "Biryani", "Pizza","Snacks", "Burger", "Fried Chicken", "Mutton", "Chicken", 
     "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice", 
     "Naan & Gravy", "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee", 
-    "Shakes", "Mojito", "Cake's", "Ice Cream", "Fresh Juice","Crispy","Sandwich","Sweets","Momos","Bday Cake" ,"Tea"
+    "Shakes", "Mojito", "Cake's", "Ice Cream", "Fresh Juice","Crispy","Sandwich","Sweets","Momos","Bday Cake" ,"Tea","Maggi", "Chilli Chicken","Pasta" ,"Mocktail"
   ];
 
   // Time slots
