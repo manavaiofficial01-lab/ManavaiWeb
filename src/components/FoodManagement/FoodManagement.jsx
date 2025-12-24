@@ -18,7 +18,7 @@ const FoodManagement = () => {
   const [editingCategory, setEditingCategory] = useState(null);
 
   // Predefined categories
-  const foodCategories = [
+  const foodCategories = [ "Offers",
     "Biryani", "Pizza","Snacks", "Burger", "Fried Chicken", "Mutton", "Chicken", 
     "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice", 
     "Naan & Gravy", "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee", 
