@@ -785,3 +785,97 @@
     font-size: 20px;
   }
 }
+
+/* Add these styles to your ProductManagement.css file */
+
+/* Category dropdown styles */
+.category-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.category-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.category-select:hover {
+  border-color: #999;
+}
+
+/* Loading categories state */
+.loading-categories {
+  padding: 8px;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Make the select field match the other input fields */
+.category-select.edit-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+/* Style for the "Add New Product" button in controls */
+.action-buttons-header {
+  display: flex;
+  gap: 12px;
+}
+
+.add-product-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.add-product-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+.add-product-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.add-product-btn .btn-icon {
+  font-size: 16px;
+}
+
+/* Make controls section flex layout */
+.controls-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.search-container {
+  flex: 1;
+  max-width: 400px;
+}
+
+

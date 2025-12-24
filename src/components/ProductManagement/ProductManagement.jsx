@@ -4,26 +4,31 @@ import Navbar from '../Navbar/Navbar';
 import "./ProductManagement.css";
 
 const ProductManagement = () => {
-  const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'ascending' });
+  const [stats, setStats] = useState({
+    total: 0,
+    inStock: 0,
+    outOfStock: 0,
+    totalValue: 0
+  });
+  const [categories, setCategories] = useState([]); // New state for categories
+  const [loadingCategories, setLoadingCategories] = useState(false); // Loading state for categories
 
-  // Fetch categories from product_categories table
+  // Fetch all categories from product_categories table
   const fetchCategories = async () => {
     try {
-      setLoading(true);
-      setError('');
-
+      setLoadingCategories(true);
       const { data, error } = await supabase
         .from('product_categories')
-        .select('*')
-        .order('position', { ascending: true, nullsFirst: false })
-        .order('name');
+        .select('id, name')
+        .order('position', { ascending: true });
 
       if (error) throw error;
 
@@ -32,12 +37,12 @@ const ProductManagement = () => {
       console.error('Error fetching categories:', error);
       setError('Failed to load categories');
     } finally {
-      setLoading(false);
+      setLoadingCategories(false);
     }
   };
 
-  // Fetch products by category
-  const fetchProductsByCategory = async (category) => {
+  // Fetch all products
+  const fetchProducts = async () => {
     try {
       setLoading(true);
       setError('');
@@ -45,18 +50,34 @@ const ProductManagement = () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('category', category.name)
         .order('name');
 
       if (error) throw error;
 
       setProducts(data || []);
+      setFilteredProducts(data || []);
+      updateStats(data || []);
     } catch (error) {
       console.error('Error fetching products:', error);
-      setError('Failed to load products');
+      setError('Failed to load products. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Update statistics
+  const updateStats = (productList) => {
+    const total = productList.length;
+    const inStock = productList.filter(p => p.stock > 0).length;
+    const outOfStock = productList.filter(p => p.stock === 0).length;
+    const totalValue = productList.reduce((sum, product) => sum + (product.price * product.stock), 0);
+    
+    setStats({
+      total,
+      inStock,
+      outOfStock,
+      totalValue
+    });
   };
 
   // Update product in Supabase
@@ -68,11 +89,16 @@ const ProductManagement = () => {
       const { data, error } = await supabase
         .from('products')
         .update({
-          price: product.price,
-          profit: product.profit,
-          stock: product.stock,
-          rating: product.rating,
-          reviews: product.reviews,
+          name: product.name,
+          brand: product.brand,
+          category: product.category,
+          price: parseFloat(product.price) || 0,
+          profit: parseFloat(product.profit) || 0,
+          stock: parseInt(product.stock) || 0,
+          rating: parseFloat(product.rating) || 0,
+          reviews: parseInt(product.reviews) || 0,
+          discount: product.discount,
+          main_image_url: product.main_image_url,
           updated_at: new Date().toISOString()
         })
         .eq('id', product.id)
@@ -113,13 +139,53 @@ const ProductManagement = () => {
     }
   };
 
+  // Create new product in Supabase
+  const createProduct = async (productData) => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const { data, error } = await supabase
+        .from('products')
+        .insert([{
+          name: productData.name,
+          brand: productData.brand || '',
+          category: productData.category || (categories.length > 0 ? categories[0].name : 'Uncategorized'),
+          price: parseFloat(productData.price) || 0,
+          profit: parseFloat(productData.profit) || 0,
+          stock: parseInt(productData.stock) || 0,
+          rating: parseFloat(productData.rating) || 0,
+          reviews: parseInt(productData.reviews) || 0,
+          discount: productData.discount || '',
+          main_image_url: productData.main_image_url || '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select();
+
+      if (error) throw error;
+
+      return data?.[0];
+    } catch (error) {
+      console.error('Error creating product:', error);
+      setError('Failed to create product');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeleteClick = async (productId) => {
     try {
       await deleteProduct(productId);
       setProducts(prevProducts => 
         prevProducts.filter(product => product.id !== productId)
       );
+      setFilteredProducts(prev => 
+        prev.filter(product => product.id !== productId)
+      );
       setDeleteConfirm(null);
+      fetchProducts(); // Refresh stats
     } catch (error) {
       // Error is handled in deleteProduct function
     }
@@ -134,20 +200,42 @@ const ProductManagement = () => {
   };
 
   useEffect(() => {
-    fetchCategories();
+    fetchProducts();
+    fetchCategories(); // Fetch categories when component mounts
   }, []);
 
-  const handleCategoryClick = (category) => {
-    setSelectedCategory(category);
-    fetchProductsByCategory(category);
-  };
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredProducts(products);
+    } else {
+      const filtered = products.filter(product =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (product.category && product.category.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+      setFilteredProducts(filtered);
+    }
+  }, [searchTerm, products]);
 
-  const handleBackToCategories = () => {
-    setSelectedCategory(null);
-    setProducts([]);
-    setSearchTerm('');
-    setError('');
-    setDeleteConfirm(null);
+  const handleSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+
+    setSortConfig({ key, direction });
+
+    const sortedProducts = [...filteredProducts].sort((a, b) => {
+      if (a[key] < b[key]) {
+        return direction === 'ascending' ? -1 : 1;
+      }
+      if (a[key] > b[key]) {
+        return direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    });
+
+    setFilteredProducts(sortedProducts);
   };
 
   const handleEditClick = (product) => {
@@ -167,7 +255,13 @@ const ProductManagement = () => {
             product.id === updatedProduct.id ? updatedProduct : product
           )
         );
+        setFilteredProducts(prevProducts => 
+          prevProducts.map(product => 
+            product.id === updatedProduct.id ? updatedProduct : product
+          )
+        );
         setEditingProduct(null);
+        updateStats(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
       }
     } catch (error) {
       // Error is handled in updateProduct function
@@ -182,19 +276,52 @@ const ProductManagement = () => {
     if (editingProduct) {
       setEditingProduct(prev => ({
         ...prev,
-        [field]: field === 'price' || field === 'profit' || field === 'rating' 
-          ? parseFloat(value) || 0
-          : field === 'stock' || field === 'reviews'
-          ? parseInt(value) || 0
-          : value
+        [field]: value
       }));
     }
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const handleAddNewProduct = () => {
+    setEditingProduct({
+      id: 'new',
+      name: '',
+      brand: '',
+      category: categories.length > 0 ? categories[0].name : '',
+      price: 0,
+      profit: 0,
+      stock: 0,
+      rating: 0,
+      reviews: 0,
+      discount: '',
+      main_image_url: ''
+    });
+  };
+
+  const handleSaveNewProduct = async () => {
+    if (!editingProduct || editingProduct.id !== 'new') return;
+
+    try {
+      const newProduct = await createProduct(editingProduct);
+      
+      if (newProduct) {
+        setProducts(prev => [...prev, newProduct]);
+        setFilteredProducts(prev => [...prev, newProduct]);
+        setEditingProduct(null);
+        fetchProducts(); // Refresh stats
+      }
+    } catch (error) {
+      // Error is handled in createProduct function
+    }
+  };
+
+  const handleCancelNewProduct = () => {
+    setEditingProduct(null);
+  };
+
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return '↕️';
+    return sortConfig.direction === 'ascending' ? '↑' : '↓';
+  };
 
   return (
     <>
@@ -238,345 +365,478 @@ const ProductManagement = () => {
             </div>
           )}
 
-          {!selectedCategory ? (
-            // Category Cards View
-            <div className="categories-section">
-              <div className="section-header">
+          <div className="products-section">
+            <div className="section-header">
+              <div className="header-title">
                 <h1>Product Management</h1>
-                <p className="section-subtitle">Select a category to manage products</p>
+                <p>Manage all products in your inventory</p>
               </div>
               
-              {loading ? (
-                <div className="loading-state">
-                  <div className="loading-spinner"></div>
-                  <p>Loading categories...</p>
+              <div className="products-stats">
+                <div className="stat-card">
+                  <div className="stat-icon">📦</div>
+                  <div className="stat-content">
+                    <div className="stat-value">{stats.total}</div>
+                    <div className="stat-label">Total Products</div>
+                  </div>
                 </div>
-              ) : categories.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-icon">📁</div>
-                  <h3>No Categories Found</h3>
-                  <p>Please add categories to the product_categories table.</p>
+                <div className="stat-card">
+                  <div className="stat-icon">✅</div>
+                  <div className="stat-content">
+                    <div className="stat-value">{stats.inStock}</div>
+                    <div className="stat-label">In Stock</div>
+                  </div>
                 </div>
-              ) : (
-                <div className="categories-grid">
-                  {categories.map(category => (
-                    <div 
-                      key={category.id}
-                      className="category-card"
-                      onClick={() => handleCategoryClick(category)}
-                    >
-                      <div className="category-card-inner">
-                        {category.image && (
-                          <div className="category-image">
-                            <img 
-                              src={category.image} 
-                              alt={category.name}
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                              }}
+                <div className="stat-card">
+                  <div className="stat-icon">⏸️</div>
+                  <div className="stat-content">
+                    <div className="stat-value">{stats.outOfStock}</div>
+                    <div className="stat-label">Out of Stock</div>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">💰</div>
+                  <div className="stat-content">
+                    <div className="stat-value">₹{stats.totalValue.toLocaleString()}</div>
+                    <div className="stat-label">Total Value</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="controls-section">
+              <div className="search-container">
+                <i className="icon-search">🔍</i>
+                <input
+                  type="text"
+                  placeholder="Search products by name, brand, or category..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+                {searchTerm && (
+                  <button 
+                    className="clear-search"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              
+              <div className="action-buttons-header">
+                <button 
+                  className="add-product-btn"
+                  onClick={handleAddNewProduct}
+                  disabled={loading || editingProduct}
+                >
+                  <span className="btn-icon">➕</span>
+                  Add New Product
+                </button>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="loading-state">
+                <div className="loading-spinner"></div>
+                <p>Loading products...</p>
+              </div>
+            ) : (
+              <div className="products-table-container">
+                <table className="products-table">
+                  <thead>
+                    <tr>
+                      <th onClick={() => handleSort('name')} className="sortable-header">
+                        Product Information {getSortIcon('name')}
+                      </th>
+                      <th onClick={() => handleSort('brand')} className="sortable-header">
+                        Brand {getSortIcon('brand')}
+                      </th>
+                      <th onClick={() => handleSort('category')} className="sortable-header">
+                        Category {getSortIcon('category')}
+                      </th>
+                      <th onClick={() => handleSort('price')} className="sortable-header">
+                        Price {getSortIcon('price')}
+                      </th>
+                      <th onClick={() => handleSort('profit')} className="sortable-header">
+                        Profit {getSortIcon('profit')}
+                      </th>
+                      <th onClick={() => handleSort('stock')} className="sortable-header">
+                        Stock {getSortIcon('stock')}
+                      </th>
+                      <th onClick={() => handleSort('rating')} className="sortable-header">
+                        Rating {getSortIcon('rating')}
+                      </th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {editingProduct && editingProduct.id === 'new' && (
+                      <tr className="new-product-row">
+                        <td className="product-info">
+                          <div className="edit-input-container">
+                            <input
+                              type="text"
+                              placeholder="Product Name"
+                              value={editingProduct.name}
+                              onChange={(e) => handleFieldChange('name', e.target.value)}
+                              className="edit-input"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Image URL"
+                              value={editingProduct.main_image_url}
+                              onChange={(e) => handleFieldChange('main_image_url', e.target.value)}
+                              className="edit-input image-url"
                             />
                           </div>
-                        )}
-                        <div className={`category-content ${!category.image ? 'no-image' : ''}`}>
-                          <div className="category-header">
-                            <h3>{category.name}</h3>
-                            {category.navigation && (
-                              <div className="category-navigation-badge">
-                                {category.navigation}
-                              </div>
-                            )}
-                          </div>
-                          <div className="category-meta">
-                            {category.position && (
-                              <span className="category-position">
-                                Position: {category.position}
-                              </span>
-                            )}
-                          </div>
-                          <div className="category-footer">
-                            <span className="category-cta">Manage Products</span>
-                            <span className="category-arrow">→</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            // Products Table View
-            <div className="products-section">
-              <div className="section-header">
-                <div className="header-top">
-                  <button 
-                    className="back-button"
-                    onClick={handleBackToCategories}
-                  >
-                    <span className="back-arrow">←</span>
-                    All Categories
-                  </button>
-                  <div className="header-title">
-                    <h1>{selectedCategory.name}</h1>
-                    <p>
-                      {selectedCategory.navigation 
-                        ? `Navigation: ${selectedCategory.navigation}` 
-                        : `Manage ${selectedCategory.name} products`
-                      }
-                    </p>
-                    {selectedCategory.image && (
-                      <div className="category-image-info">
-                        <small>Category Image: {selectedCategory.image}</small>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="products-stats">
-                  <div className="stat-card">
-                    <div className="stat-icon">📦</div>
-                    <div className="stat-content">
-                      <div className="stat-value">{products.length}</div>
-                      <div className="stat-label">Total Products</div>
-                    </div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-icon">🔍</div>
-                    <div className="stat-content">
-                      <div className="stat-value">{filteredProducts.length}</div>
-                      <div className="stat-label">Filtered</div>
-                    </div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-icon">✅</div>
-                    <div className="stat-content">
-                      <div className="stat-value">{products.filter(p => p.stock > 0).length}</div>
-                      <div className="stat-label">In Stock</div>
-                    </div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-icon">⏸️</div>
-                    <div className="stat-content">
-                      <div className="stat-value">{products.filter(p => p.stock === 0).length}</div>
-                      <div className="stat-label">Out of Stock</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="search-section">
-                <div className="search-container">
-                  <i className="icon-search">🔍</i>
-                  <input
-                    type="text"
-                    placeholder="Search products by name or brand..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="search-input"
-                  />
-                  {searchTerm && (
-                    <button 
-                      className="clear-search"
-                      onClick={() => setSearchTerm('')}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {loading ? (
-                <div className="loading-state">
-                  <div className="loading-spinner"></div>
-                  <p>Loading products...</p>
-                </div>
-              ) : (
-                <div className="products-table-container">
-                  <table className="products-table">
-                    <thead>
-                      <tr>
-                        <th>Product Information</th>
-                        <th>Brand</th>
-                        <th>Price</th>
-                        <th>Profit</th>
-                        <th>Stock</th>
-                        <th>Rating</th>
-                        <th>Reviews</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredProducts.length === 0 ? (
-                        <tr>
-                          <td colSpan="8" className="no-products">
-                            <div className="empty-state">
-                              <div className="empty-icon">🔍</div>
-                              <h3>{searchTerm ? 'No products found' : 'No products in this category'}</h3>
-                              <p>
-                                {searchTerm 
-                                  ? 'Try adjusting your search terms' 
-                                  : 'Add products to get started'
-                                }
-                              </p>
+                        </td>
+                        
+                        <td>
+                          <input
+                            type="text"
+                            placeholder="Brand"
+                            value={editingProduct.brand}
+                            onChange={(e) => handleFieldChange('brand', e.target.value)}
+                            className="edit-input"
+                          />
+                        </td>
+                        
+                        <td>
+                          {loadingCategories ? (
+                            <div className="loading-categories">
+                              <span>Loading categories...</span>
                             </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredProducts.map(product => (
-                          <tr key={product.id} className={product.stock === 0 ? 'out-of-stock-row' : ''}>
-                            <td className="product-info">
-                              {product.main_image_url && (
-                                <img 
-                                  src={product.main_image_url} 
-                                  alt={product.name}
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                  }}
-                                />
-                              )}
-                              <div className="product-details">
-                                <div className="product-name">{product.name}</div>
-                                {product.discount && (
-                                  <div className="product-discount">{product.discount} off</div>
-                                )}
-                              </div>
-                            </td>
-                            
-                            <td className="product-brand">
-                              <span className={!product.brand ? 'no-brand' : ''}>
-                                {product.brand || 'No brand'}
-                              </span>
-                            </td>
-                            
-                            {editingProduct?.id === product.id ? (
-                              <>
-                                <td>
-                                  <div className="edit-input-container">
-                                    <span className="currency-symbol">₹</span>
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={editingProduct.price}
-                                      onChange={(e) => handleFieldChange('price', e.target.value)}
-                                      className="edit-input"
-                                    />
-                                  </div>
-                                </td>
-                                <td>
-                                  <div className="edit-input-container">
-                                    <span className="currency-symbol">₹</span>
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={editingProduct.profit}
-                                      onChange={(e) => handleFieldChange('profit', e.target.value)}
-                                      className="edit-input"
-                                    />
-                                  </div>
-                                </td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={editingProduct.stock}
-                                    onChange={(e) => handleFieldChange('stock', e.target.value)}
-                                    className="edit-input"
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    max="5"
-                                    value={editingProduct.rating}
-                                    onChange={(e) => handleFieldChange('rating', e.target.value)}
-                                    className="edit-input"
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={editingProduct.reviews}
-                                    onChange={(e) => handleFieldChange('reviews', e.target.value)}
-                                    className="edit-input"
-                                  />
-                                </td>
-                                <td className="action-buttons">
-                                  <button 
-                                    className="save-btn"
-                                    onClick={handleSaveClick}
-                                    disabled={loading}
-                                  >
-                                    {loading ? 'Saving...' : 'Save'}
-                                  </button>
-                                  <button 
-                                    className="cancel-btn"
-                                    onClick={handleCancelClick}
-                                    disabled={loading}
-                                  >
-                                    Cancel
-                                  </button>
-                                </td>
-                              </>
-                            ) : (
-                              <>
-                                <td className="price-cell">
-                                  <span className="price-amount">₹{product.price}</span>
-                                </td>
-                                <td className="profit-cell">
-                                  <span className="profit-amount">₹{product.profit || 0}</span>
-                                </td>
-                                <td>
-                                  <span className={`stock-badge ${product.stock > 0 ? 'in-stock' : 'out-of-stock'}`}>
-                                    {product.stock}
-                                    {product.stock > 0 && <span className="stock-dot"></span>}
-                                  </span>
-                                </td>
-                                <td>
-                                  <div className="rating">
-                                    <span className="stars">
-                                      {"★".repeat(Math.floor(product.rating || 0))}
-                                      {"☆".repeat(5 - Math.floor(product.rating || 0))}
-                                    </span>
-                                    <span className="rating-value">{product.rating || 0}</span>
-                                  </div>
-                                </td>
-                                <td className="reviews-cell">
-                                  <span className="reviews-count">{product.reviews || 0}</span>
-                                </td>
-                                <td className="action-buttons">
-                                  <button 
-                                    className="edit-btn"
-                                    onClick={() => handleEditClick(product)}
-                                    disabled={loading}
-                                  >
-                                    <span className="btn-icon">✏️</span>
-                                    Edit
-                                  </button>
-                                  <button 
-                                    className="delete-btn"
-                                    onClick={() => startDeleteConfirm(product)}
-                                    disabled={loading}
-                                  >
-                                    <span className="btn-icon">🗑️</span>
-                                    Delete
-                                  </button>
-                                </td>
-                              </>
+                          ) : (
+                            <select
+                              value={editingProduct.category}
+                              onChange={(e) => handleFieldChange('category', e.target.value)}
+                              className="category-select"
+                            >
+                              {categories.map(category => (
+                                <option key={category.id} value={category.name}>
+                                  {category.name}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </td>
+                        
+                        <td>
+                          <div className="edit-input-container">
+                            <span className="currency-symbol">₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="Price"
+                              value={editingProduct.price}
+                              onChange={(e) => handleFieldChange('price', e.target.value)}
+                              className="edit-input"
+                            />
+                          </div>
+                        </td>
+                        
+                        <td>
+                          <div className="edit-input-container">
+                            <span className="currency-symbol">₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="Profit"
+                              value={editingProduct.profit}
+                              onChange={(e) => handleFieldChange('profit', e.target.value)}
+                              className="edit-input"
+                            />
+                          </div>
+                        </td>
+                        
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="Stock"
+                            value={editingProduct.stock}
+                            onChange={(e) => handleFieldChange('stock', e.target.value)}
+                            className="edit-input"
+                          />
+                        </td>
+                        
+                        <td>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            max="5"
+                            placeholder="Rating"
+                            value={editingProduct.rating}
+                            onChange={(e) => handleFieldChange('rating', e.target.value)}
+                            className="edit-input"
+                          />
+                        </td>
+                        
+                        <td className="action-buttons">
+                          <button 
+                            className="save-btn"
+                            onClick={handleSaveNewProduct}
+                            disabled={loading || !editingProduct.name}
+                          >
+                            {loading ? 'Saving...' : 'Create'}
+                          </button>
+                          <button 
+                            className="cancel-btn"
+                            onClick={handleCancelNewProduct}
+                            disabled={loading}
+                          >
+                            Cancel
+                          </button>
+                        </td>
+                      </tr>
+                    )}
+
+                    {filteredProducts.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="no-products">
+                          <div className="empty-state">
+                            <div className="empty-icon">🔍</div>
+                            <h3>{searchTerm ? 'No products found' : 'No products available'}</h3>
+                            <p>
+                              {searchTerm 
+                                ? 'Try adjusting your search terms' 
+                                : 'Add your first product to get started'
+                              }
+                            </p>
+                            {!searchTerm && (
+                              <button 
+                                className="add-first-product-btn"
+                                onClick={handleAddNewProduct}
+                              >
+                                Add First Product
+                              </button>
                             )}
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredProducts.map(product => (
+                        <tr key={product.id} className={product.stock === 0 ? 'out-of-stock-row' : ''}>
+                          {editingProduct?.id === product.id ? (
+                            <>
+                              <td className="product-info">
+                                <div className="edit-input-container">
+                                  <input
+                                    type="text"
+                                    value={editingProduct.name}
+                                    onChange={(e) => handleFieldChange('name', e.target.value)}
+                                    className="edit-input"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Image URL"
+                                    value={editingProduct.main_image_url}
+                                    onChange={(e) => handleFieldChange('main_image_url', e.target.value)}
+                                    className="edit-input image-url"
+                                  />
+                                </div>
+                              </td>
+                              
+                              <td>
+                                <input
+                                  type="text"
+                                  value={editingProduct.brand}
+                                  onChange={(e) => handleFieldChange('brand', e.target.value)}
+                                  className="edit-input"
+                                />
+                              </td>
+                              
+                              <td>
+                                {loadingCategories ? (
+                                  <div className="loading-categories">
+                                    <span>Loading categories...</span>
+                                  </div>
+                                ) : (
+                                  <select
+                                    value={editingProduct.category}
+                                    onChange={(e) => handleFieldChange('category', e.target.value)}
+                                    className="category-select"
+                                  >
+                                    {categories.map(category => (
+                                      <option key={category.id} value={category.name}>
+                                        {category.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
+                              </td>
+                              
+                              <td>
+                                <div className="edit-input-container">
+                                  <span className="currency-symbol">₹</span>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={editingProduct.price}
+                                    onChange={(e) => handleFieldChange('price', e.target.value)}
+                                    className="edit-input"
+                                  />
+                                </div>
+                              </td>
+                              
+                              <td>
+                                <div className="edit-input-container">
+                                  <span className="currency-symbol">₹</span>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={editingProduct.profit}
+                                    onChange={(e) => handleFieldChange('profit', e.target.value)}
+                                    className="edit-input"
+                                  />
+                                </div>
+                              </td>
+                              
+                              <td>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={editingProduct.stock}
+                                  onChange={(e) => handleFieldChange('stock', e.target.value)}
+                                  className="edit-input"
+                                />
+                              </td>
+                              
+                              <td>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  max="5"
+                                  value={editingProduct.rating}
+                                  onChange={(e) => handleFieldChange('rating', e.target.value)}
+                                  className="edit-input"
+                                />
+                              </td>
+                              
+                              <td className="action-buttons">
+                                <button 
+                                  className="save-btn"
+                                  onClick={handleSaveClick}
+                                  disabled={loading}
+                                >
+                                  {loading ? 'Saving...' : 'Save'}
+                                </button>
+                                <button 
+                                  className="cancel-btn"
+                                  onClick={handleCancelClick}
+                                  disabled={loading}
+                                >
+                                  Cancel
+                                </button>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="product-info">
+                                {product.main_image_url && (
+                                  <img 
+                                    src={product.main_image_url} 
+                                    alt={product.name}
+                                    className="product-image"
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                    }}
+                                  />
+                                )}
+                                <div className="product-details">
+                                  <div className="product-name">{product.name}</div>
+                                  {product.discount && (
+                                    <div className="product-discount">{product.discount} off</div>
+                                  )}
+                                </div>
+                              </td>
+                              
+                              <td className="product-brand">
+                                <span className={!product.brand ? 'no-brand' : ''}>
+                                  {product.brand || 'No brand'}
+                                </span>
+                              </td>
+                              
+                              <td className="product-category">
+                                <span className="category-badge">{product.category || 'Uncategorized'}</span>
+                              </td>
+                              
+                              <td className="price-cell">
+                                <span className="price-amount">₹{product.price.toLocaleString()}</span>
+                              </td>
+                              
+                              <td className="profit-cell">
+                                <span className="profit-amount">₹{product.profit ? product.profit.toLocaleString() : 0}</span>
+                              </td>
+                              
+                              <td>
+                                <span className={`stock-badge ${product.stock > 0 ? 'in-stock' : 'out-of-stock'}`}>
+                                  {product.stock}
+                                  {product.stock > 0 && <span className="stock-dot"></span>}
+                                </span>
+                              </td>
+                              
+                              <td>
+                                <div className="rating">
+                                  <span className="stars">
+                                    {"★".repeat(Math.floor(product.rating || 0))}
+                                    {"☆".repeat(5 - Math.floor(product.rating || 0))}
+                                  </span>
+                                  <span className="rating-value">{product.rating || 0}</span>
+                                </div>
+                              </td>
+                              
+                              <td className="action-buttons">
+                                <button 
+                                  className="edit-btn"
+                                  onClick={() => handleEditClick(product)}
+                                  disabled={loading}
+                                >
+                                  <span className="btn-icon">✏️</span>
+                                  Edit
+                                </button>
+                                <button 
+                                  className="delete-btn"
+                                  onClick={() => startDeleteConfirm(product)}
+                                  disabled={loading}
+                                >
+                                  <span className="btn-icon">🗑️</span>
+                                  Delete
+                                </button>
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="table-footer">
+              <div className="footer-info">
+                Showing {filteredProducts.length} of {products.length} products
+              </div>
+              <div className="footer-actions">
+                <button 
+                  className="refresh-btn"
+                  onClick={fetchProducts}
+                  disabled={loading}
+                >
+                  <span className="btn-icon">🔄</span>
+                  Refresh
+                </button>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </>
