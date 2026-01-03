@@ -1371,20 +1371,12 @@ const OrderTracking = () => {
 
   // Get unique drivers for filter
   const uniqueDrivers = useMemo(() => {
-    const driversWithOrders = orders
-      .filter(order => order.driver_name)
-      .map(order => ({
-        name: order.driver_name,
-        phone: order.driver_mobile
-      }));
-
-    // Remove duplicates
-    const unique = Array.from(
-      new Map(driversWithOrders.map(item => [item.phone, item])).values()
-    );
-
-    return unique.sort((a, b) => a.name.localeCompare(b.name));
-  }, [orders]);
+    // Use the comprehensive driver list directly from the database
+    return drivers.map(driver => ({
+      name: driver.driver_name,
+      phone: driver.driver_phone
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [drivers]);
 
   const fetchOrders = async () => {
     try {
@@ -1632,71 +1624,48 @@ const OrderTracking = () => {
   const DriverCollectionModal = ({ orders, drivers, onClose, formatCurrency }) => {
     // Aggregate data
     const driverStats = useMemo(() => {
-      // 1. Initialize stats for ALL drivers from the master list
       const stats = {};
 
-      // Populate with master list drivers first
-      if (drivers && drivers.length > 0) {
-        drivers.forEach(driver => {
-          // Use phone as unique key
-          const key = driver.driver_phone;
-          if (key) {
-            stats[key] = {
-              name: driver.driver_name,
-              mobile: driver.driver_phone,
-              ordersCount: 0,
-              cash: 0,
-              upi: 0,
-              total: 0,
-              status: driver.status // track status if needed
-            };
-          }
-        });
-      }
-
-      // 2. Iterate through orders to sum up collections
+      // Iterate through orders to build collections list
       orders.forEach(order => {
-        if (!order.driver_name) return; // Skip unassigned orders
+        // Skip unassigned
+        if (!order.driver_name) return;
 
-        // Use driver_mobile from order to match with master list
-        const key = order.driver_mobile;
+        // STRICTLY only count DELIVERED orders
+        const status = order.status?.toLowerCase() || '';
+        if (status !== 'delivered') {
+          return;
+        }
 
-        // If driver matches a master record, use it. If not, create a new entry (for drivers not in master list??)
-        // Ideally orders.driver_mobile should match driver.driver_phone
-        // If key is missing or not in stats, fall back to name or create new entry
-        const effectiveKey = key || order.driver_name; // Fallback
+        // Use driver_mobile as unique key, fallback to name
+        const key = order.driver_mobile || order.driver_name;
 
-        if (!stats[effectiveKey]) {
-          // Driver found in orders but not in master list (e.g. deleted driver or data mismatch)
-          stats[effectiveKey] = {
+        if (!stats[key]) {
+          // Try to find status from drivers list if available
+          const driverInfo = drivers?.find(d => d.driver_phone === key);
+
+          stats[key] = {
             name: order.driver_name,
-            mobile: order.driver_mobile || 'N/A',
+            mobile: order.driver_mobile || '',
             ordersCount: 0,
             cash: 0,
             upi: 0,
             total: 0,
-            status: 'unknown'
+            status: driverInfo?.status || '' // Optional: enrich if possible
           };
         }
 
         const cash = parseFloat(order.cash || 0);
         const upi = parseFloat(order.upi || 0);
 
-        stats[effectiveKey].ordersCount += 1;
-        stats[effectiveKey].cash += cash;
-        stats[effectiveKey].upi += upi;
-        stats[effectiveKey].total += (cash + upi);
+        stats[key].ordersCount += 1;
+        stats[key].cash += cash;
+        stats[key].upi += upi;
+        stats[key].total += (cash + upi);
       });
 
-      // 3. Convert to array and sort
-      // Filter out drivers with 0 activity if list is too long? 
-      // User asked to "list the drivers name from here", implying they want to see the list. 
-      // I will keep ALL drivers but sort active ones to top.
-      return Object.values(stats).sort((a, b) => {
-        // Sort by Total Collected (Desc) -> Then by Name (Asc)
-        if (b.total !== a.total) return b.total - a.total;
-        return a.name.localeCompare(b.name);
-      });
+      // Convert to array and sort by Total Collected (Desc)
+      return Object.values(stats).sort((a, b) => b.total - a.total);
     }, [orders, drivers]);
 
     const grandTotal = driverStats.reduce((acc, curr) => ({
@@ -1734,7 +1703,21 @@ const OrderTracking = () => {
                     driverStats.map((stat, index) => (
                       <tr key={index}>
                         <td>
-                          <div style={{ fontWeight: '600' }}>{stat.name}</div>
+                          <div style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {stat.name}
+                            {stat.status && (
+                              <span
+                                style={{
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  backgroundColor: stat.status === 'online' ? '#22c55e' : '#cbd5e1',
+                                  display: 'inline-block',
+                                  title: stat.status
+                                }}
+                              />
+                            )}
+                          </div>
                           <div style={{ fontSize: '11px', color: '#64748b' }}>{stat.mobile}</div>
                         </td>
                         <td style={{ textAlign: 'center' }}>{stat.ordersCount}</td>
