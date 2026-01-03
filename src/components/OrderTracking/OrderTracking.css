@@ -2626,3 +2626,487 @@
 .order-tracking-restaurant-change:hover {
   background: linear-gradient(135deg, #d97706, #b45309);
 }
+/* Verified Status Badges */
+.status-verified {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-verified.success {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.status-verified.pending {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+}
+
+/* Responsive Fixes */
+.order-tracking-orders-table-container {
+  overflow-x: auto !important;
+}
+.order-tracking-orders-table th {
+  white-space: nowrap;
+}
+.order-tracking-orders-table td {
+  white-space: nowrap;
+  padding: 12px 16px !important;
+}
+.driver-status-badge,
+.order-tracking-status-badge,
+.order-tracking-payment-status {
+  white-space: nowrap;
+}
+
+
+.order-tracking-payment-method {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+/* Responsive & UI Fixes for New Columns - Appended Override */
+.order-tracking-orders-table-container {
+  overflow-x: auto !important;
+  border: 1px solid #e2e8f0;
+}
+
+/* Base Cell Styling */
+.order-tracking-orders-table th,
+.order-tracking-orders-table td {
+  padding: 12px 8px !important;
+  vertical-align: middle;
+}
+
+/* Header Specifics */
+.order-tracking-orders-table th {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Column Specific Widths & Alignment */
+/* 1. Order ID */
+.order-tracking-orders-table th:nth-child(1),
+.order-tracking-orders-table td:nth-child(1) {
+  min-width: 100px;
+  white-space: nowrap;
+}
+
+/* 2. Customer */
+.order-tracking-orders-table th:nth-child(2),
+.order-tracking-orders-table td:nth-child(2) {
+  min-width: 160px;
+  max-width: 200px;
+  white-space: normal !important;
+}
+
+/* 3. Restaurant */
+.order-tracking-orders-table th:nth-child(3),
+.order-tracking-orders-table td:nth-child(3) {
+  min-width: 140px;
+  max-width: 180px;
+  white-space: normal !important;
+}
+
+/* 4. Driver */
+.order-tracking-orders-table th:nth-child(4),
+.order-tracking-orders-table td:nth-child(4) {
+  min-width: 140px;
+  max-width: 180px;
+  white-space: normal !important;
+}
+
+/* 5. Payment Type */
+.order-tracking-orders-table th:nth-child(5),
+.order-tracking-orders-table td:nth-child(5) {
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* 6. Driver Status */
+.order-tracking-orders-table th:nth-child(6),
+.order-tracking-orders-table td:nth-child(6) {
+  min-width: 140px;
+}
+
+/* 7. Amount */
+.order-tracking-orders-table th:nth-child(7),
+.order-tracking-orders-table td:nth-child(7) {
+  text-align: right;
+  font-family: 'Roboto Mono', monospace;
+  white-space: nowrap;
+}
+
+/* 8. Cash, 9. UPI */
+.order-tracking-orders-table th:nth-child(8),
+.order-tracking-orders-table td:nth-child(8),
+.order-tracking-orders-table th:nth-child(9),
+.order-tracking-orders-table td:nth-child(9) {
+  text-align: right;
+  font-family: 'Roboto Mono', monospace;
+  white-space: nowrap;
+  width: 80px;
+}
+
+/* 10. Verified, 11. Accepted */
+.order-tracking-orders-table th:nth-child(10),
+.order-tracking-orders-table td:nth-child(10),
+.order-tracking-orders-table th:nth-child(11),
+.order-tracking-orders-table td:nth-child(11) {
+  text-align: center;
+  width: 90px;
+}
+
+/* 12. Payment Status */
+.order-tracking-orders-table th:nth-child(12),
+.order-tracking-orders-table td:nth-child(12) {
+  text-align: center;
+}
+
+/* 13. Status, 14. Date */
+.order-tracking-orders-table th:nth-child(13),
+.order-tracking-orders-table td:nth-child(13),
+.order-tracking-orders-table th:nth-child(14),
+.order-tracking-orders-table td:nth-child(14) {
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Badges Alignment */
+.status-verified {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  text-align: center;
+}
+
+.order-tracking-payment-method {
+  display: block;
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 2px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+
+/* Updated Columns after removing Payment Status */
+
+/* 12. Status */
+.order-tracking-orders-table th:nth-child(12),
+.order-tracking-orders-table td:nth-child(12) {
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 13. Date */
+.order-tracking-orders-table th:nth-child(13),
+.order-tracking-orders-table td:nth-child(13) {
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Reset previous 14th column rule as there are only 13 columns now */
+.order-tracking-orders-table th:nth-child(14),
+.order-tracking-orders-table td:nth-child(14) {
+  /* No specific rule needed, or reset defaults if necessary */
+  text-align: left; 
+}
+
+
+/* Ensure Status Cell allows height for stacking */
+.order-tracking-orders-table th:nth-child(12),
+.order-tracking-orders-table td:nth-child(12) {
+  white-space: normal !important;
+  vertical-align: top;
+}
+
+
+/* --- COMPACT UI MODE --- */
+
+/* Reduce main container padding */
+.order-tracking {
+  padding: 10px;
+}
+
+/* Compact Table Cells */
+.order-tracking-orders-table th, 
+.order-tracking-orders-table td {
+  padding: 6px 4px !important;
+  font-size: 11px !important;
+}
+
+.order-tracking-orders-table th {
+  font-size: 10px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Compact Badges (Status, Driver Status, Payment) */
+.order-tracking-status-badge,
+.driver-status-badge,
+.payment-type-badge,
+.status-verified,
+.order-tracking-payment-status {
+  padding: 2px 6px !important;
+  font-size: 9px !important;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+
+/* Compact Payment Method Label */
+.order-tracking-payment-method {
+  font-size: 9px;
+  margin-top: 1px;
+}
+
+/* Compact Action Buttons */
+.order-tracking-order-actions .order-tracking-action-btn {
+  padding: 4px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  font-size: 12px;
+}
+
+/* Compact OTP Badge */
+.order-tracking-otp-badge {
+  padding: 1px 4px;
+  font-size: 9px;
+  margin-top: 2px;
+}
+
+/* Adjust Row Height / Line Height */
+.order-tracking-order-row {
+  height: auto;
+}
+
+/* Customer & Driver Info Compactness */
+.order-tracking-customer-name,
+.order-tracking-driver-name {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.order-tracking-customer-phone,
+.order-tracking-driver-phone {
+  font-size: 10px;
+}
+
+.order-tracking-location-coords {
+  font-size: 9px;
+  padding: 1px 4px;
+}
+
+/* Specific Column Width Adjustments for Compactness */
+.order-tracking-orders-table th:nth-child(1),
+.order-tracking-orders-table td:nth-child(1) {
+  min-width: 70px; /* Reduced Order ID width */
+}
+
+/* Reduce gaps in flex containers inside cells */
+.order-tracking-customer-info, 
+.order-tracking-driver-info,
+.order-tracking-driver-status-cell {
+  gap: 2px;
+}
+
+
+/* --- NEW COMPACT UI STYLES --- */
+
+/* Base Table Updates */
+.order-tracking-orders-table td {
+  vertical-align: top !important;
+  padding: 16px 12px !important;
+}
+
+/* 1. Order Identity Cell */
+.order-identity-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.order-id-large {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.order-date-small {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* 2. Route Cell (Restaurant -> Customer) */
+.route-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 220px;
+}
+
+.route-point {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  padding-left: 12px;
+}
+
+.route-point::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.route-point.restaurant::before { background: #f59e0b; }
+.route-point.customer::before { background: #3b82f6; }
+
+.route-entity-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.route-address {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.verified-badge-mini {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.verified-badge-mini.success { background: #dcfce7; color: #15803d; }
+.verified-badge-mini.pending { background: #f1f5f9; color: #94a3b8; }
+
+/* 3. Driver Cell */
+.driver-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.driver-info-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.driver-avatar-placeholder {
+  width: 28px;
+  height: 28px;
+  background: #e2e8f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+/* 4. Financials Cell */
+.financials-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+  text-align: right;
+  min-width: 140px;
+}
+
+.amount-large {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.collection-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.collection-item {
+  font-size: 11px;
+  color: #475569;
+  background: #f8fafc;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+/* 5. Status Cell */
+.status-cell-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+
+/* Driver Collection Summary Modal Styles */
+.driver-collection-table-container {
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.driver-collection-table-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.driver-collection-table-container th {
+  background: #f8fafc;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 2px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+}
+
+.driver-collection-table-container td {
+  padding: 12px;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.driver-collection-table-container tfoot td {
+  background: #f1f5f9;
+  border-top: 2px solid #cbd5e1;
+}
+
