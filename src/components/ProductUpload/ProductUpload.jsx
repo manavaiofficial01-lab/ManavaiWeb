@@ -9,7 +9,7 @@ const ProductUpload = () => {
   // State for categories from database
   const [categories, setCategories] = useState([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
-  
+
   // State for warehouses and zones from database
   const [warehouses, setWarehouses] = useState([]);
   const [zones, setZones] = useState([]);
@@ -31,13 +31,13 @@ const ProductUpload = () => {
     zone: ''
   });
 
-  const [colors, setColors] = useState([{ 
-    name: '', 
-    code: '', 
+  const [colors, setColors] = useState([{
+    name: '',
+    code: '',
     price: '',
-    images: Array(4).fill(null) 
+    images: Array(4).fill(null)
   }]);
-  
+
   const [sizes, setSizes] = useState(Array(4).fill({ size: '', price: '' }));
   const [mainImage, setMainImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -165,7 +165,7 @@ const ProductUpload = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Auto-populate sizes when category changes
     if (name === 'category' && value) {
       // Auto-populate sizes based on category
@@ -174,25 +174,25 @@ const ProductUpload = () => {
         size: size,
         price: index === 0 ? formData.price : ''
       }));
-      
+
       // Fill remaining slots with empty values
       while (newSizes.length < 4) {
         newSizes.push({ size: '', price: '' });
       }
-      
+
       setSizes(newSizes.slice(0, 4));
     }
-    
+
     // Auto-calculate profit if price changes (10% by default)
     if (name === 'price' && value) {
       const priceValue = parseFloat(value);
       if (!isNaN(priceValue) && priceValue > 0) {
         const profitValue = (priceValue * 0.1).toFixed(2);
         setFormData(prev => ({ ...prev, profit: profitValue }));
-        
+
         // Update first size price if it exists and matches the main price
         if (sizes[0] && sizes[0].size) {
-          setSizes(prev => prev.map((sizeItem, index) => 
+          setSizes(prev => prev.map((sizeItem, index) =>
             index === 0 ? { ...sizeItem, price: value } : sizeItem
           ));
         }
@@ -206,9 +206,9 @@ const ProductUpload = () => {
       if (discountMatch && priceValue > 0) {
         const discountPercent = parseInt(discountMatch[1]);
         const discountAmount = (priceValue * discountPercent / 100).toFixed(2);
-        setMessage({ 
-          type: 'info', 
-          text: `Discount amount: ₹${discountAmount} (${discountPercent}% of ₹${priceValue})` 
+        setMessage({
+          type: 'info',
+          text: `Discount amount: ₹${discountAmount} (${discountPercent}% of ₹${priceValue})`
         });
       }
     }
@@ -216,17 +216,17 @@ const ProductUpload = () => {
 
   // Handle color changes
   const handleColorChange = useCallback((colorIndex, field, value) => {
-    setColors(prev => prev.map((color, index) => 
+    setColors(prev => prev.map((color, index) =>
       index === colorIndex ? { ...color, [field]: value } : color
     ));
   }, []);
 
   // Handle color image changes
   const handleColorImageChange = useCallback((colorIndex, imageIndex, file) => {
-    setColors(prev => prev.map((color, index) => 
+    setColors(prev => prev.map((color, index) =>
       index === colorIndex ? {
         ...color,
-        images: color.images.map((img, imgIndex) => 
+        images: color.images.map((img, imgIndex) =>
           imgIndex === imageIndex ? file : img
         )
       } : color
@@ -236,11 +236,11 @@ const ProductUpload = () => {
   // Add/remove colors
   const addColor = () => {
     if (colors.length < 4) {
-      setColors(prev => [...prev, { 
-        name: '', 
-        code: '', 
+      setColors(prev => [...prev, {
+        name: '',
+        code: '',
         price: '',
-        images: Array(4).fill(null) 
+        images: Array(4).fill(null)
       }]);
     }
   };
@@ -253,7 +253,7 @@ const ProductUpload = () => {
 
   // Handle size changes
   const handleSizeChange = (index, field, value) => {
-    setSizes(prev => prev.map((sizeItem, i) => 
+    setSizes(prev => prev.map((sizeItem, i) =>
       i === index ? { ...sizeItem, [field]: value } : sizeItem
     ));
   };
@@ -271,15 +271,15 @@ const ProductUpload = () => {
   const validateFile = (file) => {
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
     const maxSize = 5 * 1024 * 1024; // 5MB
-    
+
     if (!validTypes.includes(file.type)) {
       throw new Error('Invalid file type. Please use JPEG, PNG, or WebP.');
     }
-    
+
     if (file.size > maxSize) {
       throw new Error('File size too large. Maximum 5MB allowed.');
     }
-    
+
     return true;
   };
 
@@ -313,12 +313,12 @@ const ProductUpload = () => {
   // Form validation
   const validateForm = () => {
     const errors = [];
-    
+
     if (!formData.name.trim()) errors.push('Product name is required');
     if (!formData.category) errors.push('Category is required');
     if (!formData.price || parseFloat(formData.price) <= 0) errors.push('Valid price is required');
     if (!mainImage) errors.push('Main image is required');
-    
+
     return errors;
   };
 
@@ -443,10 +443,10 @@ const ProductUpload = () => {
       }
 
       setMessage({ type: 'success', text: 'Product uploaded successfully!' });
-      
+
       // Show alert after successful upload
       alert('✅ Product uploaded successfully!\n\nProduct Details:\n• Name: ' + formData.name + '\n• Category: ' + formData.category + '\n• Price: ₹' + formData.price + '\n• Profit: ₹' + formData.profit + '\n• Warehouse: ' + (formData.warehouse || 'Not specified') + '\n• Zone: ' + (formData.zone || 'Not specified'));
-      
+
       resetForm();
 
     } catch (error) {
@@ -464,11 +464,11 @@ const ProductUpload = () => {
       name: '', category: '', price: '', brand: '', description: '', discount: '',
       rating: '0', reviews: '0', stock: '0', profit: '0', warehouse: '', zone: ''
     });
-    setColors([{ 
-      name: '', 
-      code: '', 
+    setColors([{
+      name: '',
+      code: '',
       price: '',
-      images: Array(4).fill(null) 
+      images: Array(4).fill(null)
     }]);
     setSizes(Array(4).fill({ size: '', price: '' }));
     setMainImage(null);
@@ -495,14 +495,13 @@ const ProductUpload = () => {
 
   return (
     <>
-      <Navbar />
       <div className="product-upload-container">
         <div className="product-upload-form">
           <div className="form-header">
             <h2>Upload New Product</h2>
             <p className="form-subtitle">Add a new product to your inventory</p>
           </div>
-          
+
           {message.text && (
             <div className={`message ${message.type}`}>
               {message.text}
@@ -522,21 +521,21 @@ const ProductUpload = () => {
               <div className="form-grid">
                 <div className="form-group">
                   <label>Product Name *</label>
-                  <input 
-                    type="text" 
-                    name="name" 
-                    value={formData.name} 
-                    onChange={handleInputChange} 
-                    required 
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
                     placeholder="Enter product name"
                   />
                 </div>
                 <div className="form-group">
                   <label>Category *</label>
-                  <select 
-                    name="category" 
-                    value={formData.category} 
-                    onChange={handleInputChange} 
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
                     required
                   >
                     <option value="">Select Category</option>
@@ -567,23 +566,23 @@ const ProductUpload = () => {
                 </div>
                 <div className="form-group">
                   <label>Price (₹) *</label>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    min="0.01" 
-                    name="price" 
-                    value={formData.price} 
-                    onChange={handleInputChange} 
-                    required 
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    required
                     placeholder="0.00"
                   />
                 </div>
                 <div className="form-group">
                   <label>Brand</label>
-                  <input 
-                    type="text" 
-                    name="brand" 
-                    value={formData.brand} 
+                  <input
+                    type="text"
+                    name="brand"
+                    value={formData.brand}
                     onChange={handleInputChange}
                     placeholder="Enter brand name"
                     list="brand-suggestions"
@@ -599,9 +598,9 @@ const ProductUpload = () => {
                 </div>
                 <div className="form-group">
                   <label>Warehouse</label>
-                  <select 
-                    name="warehouse" 
-                    value={formData.warehouse} 
+                  <select
+                    name="warehouse"
+                    value={formData.warehouse}
                     onChange={handleInputChange}
                   >
                     <option value="">Select Warehouse (Optional)</option>
@@ -621,9 +620,9 @@ const ProductUpload = () => {
                 </div>
                 <div className="form-group">
                   <label>Zone</label>
-                  <select 
-                    name="zone" 
-                    value={formData.zone} 
+                  <select
+                    name="zone"
+                    value={formData.zone}
                     onChange={handleInputChange}
                   >
                     <option value="">Select Zone (Optional)</option>
@@ -643,70 +642,70 @@ const ProductUpload = () => {
                 </div>
                 <div className="form-group">
                   <label>Stock Quantity</label>
-                  <input 
-                    type="number" 
-                    name="stock" 
-                    value={formData.stock} 
-                    onChange={handleInputChange} 
-                    min="0" 
+                  <input
+                    type="number"
+                    name="stock"
+                    value={formData.stock}
+                    onChange={handleInputChange}
+                    min="0"
                     placeholder="0"
                   />
                 </div>
                 <div className="form-group">
                   <label>Profit (₹)</label>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    name="profit" 
-                    value={formData.profit} 
-                    onChange={handleInputChange} 
-                    min="0" 
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="profit"
+                    value={formData.profit}
+                    onChange={handleInputChange}
+                    min="0"
                     placeholder="Auto-calculated"
                   />
                   <div className="field-info">Auto-calculated as 10% of price</div>
                 </div>
                 <div className="form-group">
                   <label>Discount</label>
-                  <input 
-                    type="text" 
-                    name="discount" 
-                    value={formData.discount} 
-                    onChange={handleInputChange} 
+                  <input
+                    type="text"
+                    name="discount"
+                    value={formData.discount}
+                    onChange={handleInputChange}
                     placeholder="e.g., 15% off or ₹1000 off"
                   />
                 </div>
                 <div className="form-group">
                   <label>Rating</label>
-                  <input 
-                    type="number" 
-                    step="0.1" 
-                    min="0" 
-                    max="5" 
-                    name="rating" 
-                    value={formData.rating} 
-                    onChange={handleInputChange} 
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    name="rating"
+                    value={formData.rating}
+                    onChange={handleInputChange}
                     placeholder="0.0 - 5.0"
                   />
                 </div>
                 <div className="form-group">
                   <label>Review Count</label>
-                  <input 
-                    type="number" 
-                    name="reviews" 
-                    value={formData.reviews} 
-                    onChange={handleInputChange} 
-                    min="0" 
+                  <input
+                    type="number"
+                    name="reviews"
+                    value={formData.reviews}
+                    onChange={handleInputChange}
+                    min="0"
                     placeholder="0"
                   />
                 </div>
               </div>
               <div className="form-group full-width">
                 <label>Description</label>
-                <textarea 
-                  name="description" 
-                  value={formData.description} 
-                  onChange={handleInputChange} 
-                  rows="4" 
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows="4"
                   placeholder="Enter detailed product description..."
                 />
                 <div className="field-info">
@@ -719,18 +718,18 @@ const ProductUpload = () => {
             <div className="form-section">
               <h3>Main Product Image *</h3>
               <div className="form-group">
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleMainImageChange} 
-                  required 
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleMainImageChange}
+                  required
                 />
                 <div className="file-info">
                   Accepted formats: JPEG, PNG, WebP | Maximum size: 5MB
                 </div>
                 {mainImage && (
                   <div className="image-preview">
-                    <strong>Selected:</strong> {mainImage.name} 
+                    <strong>Selected:</strong> {mainImage.name}
                     ({(mainImage.size / 1024 / 1024).toFixed(2)} MB)
                   </div>
                 )}
@@ -748,9 +747,9 @@ const ProductUpload = () => {
                   <div className="color-header">
                     <h4>Color {colorIndex + 1}</h4>
                     {colors.length > 1 && (
-                      <button 
-                        type="button" 
-                        onClick={() => removeColor(colorIndex)} 
+                      <button
+                        type="button"
+                        onClick={() => removeColor(colorIndex)}
                         className="remove-btn"
                       >
                         Remove
@@ -760,25 +759,25 @@ const ProductUpload = () => {
                   <div className="form-grid">
                     <div className="form-group">
                       <label>Color Name</label>
-                      <input 
-                        type="text" 
-                        value={color.name} 
-                        onChange={(e) => handleColorChange(colorIndex, 'name', e.target.value)} 
+                      <input
+                        type="text"
+                        value={color.name}
+                        onChange={(e) => handleColorChange(colorIndex, 'name', e.target.value)}
                         placeholder="e.g., Black, Red, Blue (optional)"
                       />
                     </div>
                     <div className="form-group">
                       <label>Color Code</label>
                       <div className="color-input-group">
-                        <input 
-                          type="text" 
-                          value={color.code} 
-                          onChange={(e) => handleColorChange(colorIndex, 'code', e.target.value)} 
+                        <input
+                          type="text"
+                          value={color.code}
+                          onChange={(e) => handleColorChange(colorIndex, 'code', e.target.value)}
                           placeholder="#000000 (optional)"
                         />
                         {color.code && (
-                          <div 
-                            className="color-preview" 
+                          <div
+                            className="color-preview"
                             style={{ backgroundColor: color.code }}
                             title={color.code}
                           />
@@ -787,12 +786,12 @@ const ProductUpload = () => {
                     </div>
                     <div className="form-group">
                       <label>Color Price (₹)</label>
-                      <input 
-                        type="number" 
-                        step="0.01" 
-                        min="0" 
-                        value={color.price} 
-                        onChange={(e) => handleColorChange(colorIndex, 'price', e.target.value)} 
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={color.price}
+                        onChange={(e) => handleColorChange(colorIndex, 'price', e.target.value)}
                         placeholder="Optional color-specific price"
                       />
                     </div>
@@ -801,10 +800,10 @@ const ProductUpload = () => {
                     {[0, 1, 2, 3].map(imgIndex => (
                       <div key={imgIndex} className="form-group">
                         <label>Image {imgIndex + 1}</label>
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          onChange={(e) => handleColorFileChange(colorIndex, imgIndex, e)} 
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleColorFileChange(colorIndex, imgIndex, e)}
                         />
                         {color.images[imgIndex] && (
                           <div className="image-preview">
@@ -832,20 +831,20 @@ const ProductUpload = () => {
                     {formData.category ? `Common sizes for ${formData.category}` : 'Select category first'}
                   </span>
                   {formData.category && (
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => {
                         const categorySizes = COMMON_SIZES[formData.category] || ['Standard'];
                         const newSizes = categorySizes.map((size, index) => ({
                           size: size,
                           price: index === 0 ? formData.price : ''
                         }));
-                        
+
                         // Fill remaining slots with empty values
                         while (newSizes.length < 4) {
                           newSizes.push({ size: '', price: '' });
                         }
-                        
+
                         setSizes(newSizes.slice(0, 4));
                       }}
                       className="template-btn"
@@ -860,22 +859,22 @@ const ProductUpload = () => {
                   <div key={index} className="size-group">
                     <div className="form-group">
                       <label>Size {index + 1}</label>
-                      <input 
-                        type="text" 
-                        value={sizeItem.size} 
-                        onChange={(e) => handleSizeChange(index, 'size', e.target.value)} 
+                      <input
+                        type="text"
+                        value={sizeItem.size}
+                        onChange={(e) => handleSizeChange(index, 'size', e.target.value)}
                         placeholder={`Size ${index + 1} (optional)`}
                         list={formData.category ? `sizes-${formData.category}` : undefined}
                       />
                     </div>
                     <div className="form-group">
                       <label>Price for Size {index + 1} (₹)</label>
-                      <input 
-                        type="number" 
-                        step="0.01" 
-                        min="0" 
-                        value={sizeItem.price} 
-                        onChange={(e) => handleSizeChange(index, 'price', e.target.value)} 
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={sizeItem.price}
+                        onChange={(e) => handleSizeChange(index, 'price', e.target.value)}
                         placeholder="Optional size-specific price"
                       />
                     </div>
@@ -893,17 +892,17 @@ const ProductUpload = () => {
             </div>
 
             <div className="form-actions">
-              <button 
-                type="button" 
-                onClick={resetForm} 
+              <button
+                type="button"
+                onClick={resetForm}
                 className="reset-btn"
                 disabled={isUploading}
               >
                 Reset Form
               </button>
-              <button 
-                type="submit" 
-                className="submit-btn" 
+              <button
+                type="submit"
+                className="submit-btn"
                 disabled={isUploading}
               >
                 {isUploading ? (

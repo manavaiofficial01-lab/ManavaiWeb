@@ -33,10 +33,10 @@ const FoodUpload = () => {
 
   // Predefined categories for food items
   const FOOD_CATEGORIES = [
-    "Biryani", "Pizza","Snacks", "Burger", "Fried Chicken", "Mutton", "Chicken", "Tea",
-    "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice", 
-    "Naan & Gravy", "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee", 
-    "Shakes", "Mojito", "Cake's", "Ice Cream", "Fresh Juice","Crispy","Sandwich","Sweets","Momos","Bday Cake" ,"Maggi", "Chilli Chicken","Pasta" ,"Mocktail","Tea",
+    "Biryani", "Pizza", "Snacks", "Burger", "Fried Chicken", "Mutton", "Chicken", "Tea",
+    "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice",
+    "Naan & Gravy", "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee",
+    "Shakes", "Mojito", "Cake's", "Ice Cream", "Fresh Juice", "Crispy", "Sandwich", "Sweets", "Momos", "Bday Cake", "Maggi", "Chilli Chicken", "Pasta", "Mocktail", "Tea",
   ];
 
   // Preparation time options
@@ -51,7 +51,7 @@ const FoodUpload = () => {
     const fetchRestaurants = async () => {
       try {
         setIsLoading(true);
-        
+
         // Fetch restaurants - simplified query
         const { data: restaurantsData, error: restaurantsError } = await supabase
           .from('restaurants')
@@ -81,7 +81,7 @@ const FoodUpload = () => {
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -101,15 +101,15 @@ const FoodUpload = () => {
   const validateFile = (file) => {
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
     const maxSize = 5 * 1024 * 1024; // 5MB
-    
+
     if (!validTypes.includes(file.type)) {
       throw new Error('Invalid file type. Please use JPEG, PNG, or WebP.');
     }
-    
+
     if (file.size > maxSize) {
       throw new Error('File size too large. Maximum 5MB allowed.');
     }
-    
+
     return true;
   };
 
@@ -139,13 +139,13 @@ const FoodUpload = () => {
   // Form validation
   const validateForm = () => {
     const errors = [];
-    
+
     if (!formData.name.trim()) errors.push('Food item name is required');
     if (!formData.price || parseFloat(formData.price) <= 0) errors.push('Valid price is required');
     if (!formData.category) errors.push('Category is required');
     if (!formData.restaurant_name) errors.push('Restaurant is required');
     if (!image) errors.push('Food image is required');
-    
+
     // Validate rating range
     if (formData.rating && (parseFloat(formData.rating) < 0 || parseFloat(formData.rating) > 5)) {
       errors.push('Rating must be between 0 and 5');
@@ -210,10 +210,10 @@ const FoodUpload = () => {
       }
 
       setMessage({ type: 'success', text: 'Food item uploaded successfully!' });
-      
+
       // Show alert after successful upload
       alert('✅ Food Item uploaded successfully!\n\nFood Details:\n• Name: ' + formData.name + '\n• Restaurant: ' + formData.restaurant_name + '\n• Category: ' + formData.category + '\n• Price: ₹' + formData.price + '\n• Profit: ₹' + formData.profit + '\n• Vegetarian: ' + (formData.veg ? 'Yes' : 'No'));
-      
+
       resetForm();
 
     } catch (error) {
@@ -250,14 +250,13 @@ const FoodUpload = () => {
 
   return (
     <>
-      <Navbar />
       <div className="food-upload-container">
         <div className="food-upload-form">
           <div className="form-header">
             <h2>Upload New Food Item</h2>
             <p className="form-subtitle">Add a new food item to your restaurant menu</p>
           </div>
-          
+
           {message.text && (
             <div className={`message ${message.type}`}>
               {message.text}
@@ -277,22 +276,22 @@ const FoodUpload = () => {
               <div className="form-grid">
                 <div className="form-group">
                   <label>Food Item Name *</label>
-                  <input 
-                    type="text" 
-                    name="name" 
-                    value={formData.name} 
-                    onChange={handleInputChange} 
-                    required 
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
                     placeholder="Enter food item name"
                   />
                 </div>
 
                 <div className="form-group">
                   <label>Restaurant *</label>
-                  <select 
-                    name="restaurant_name" 
-                    value={formData.restaurant_name} 
-                    onChange={handleInputChange} 
+                  <select
+                    name="restaurant_name"
+                    value={formData.restaurant_name}
+                    onChange={handleInputChange}
                     required
                   >
                     <option value="">Select Restaurant</option>
@@ -315,10 +314,10 @@ const FoodUpload = () => {
 
                 <div className="form-group">
                   <label>Category *</label>
-                  <select 
-                    name="category" 
-                    value={formData.category} 
-                    onChange={handleInputChange} 
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
                     required
                   >
                     <option value="">Select Category</option>
@@ -330,27 +329,27 @@ const FoodUpload = () => {
 
                 <div className="form-group">
                   <label>Current Price (₹) *</label>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    min="0.01" 
-                    name="price" 
-                    value={formData.price} 
-                    onChange={handleInputChange} 
-                    required 
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    required
                     placeholder="0.00"
                   />
                 </div>
 
                 <div className="form-group">
                   <label>Original Price (₹)</label>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    min="0.01" 
-                    name="original_price" 
-                    value={formData.original_price} 
-                    onChange={handleInputChange} 
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    name="original_price"
+                    value={formData.original_price}
+                    onChange={handleInputChange}
                     placeholder="Original price for discount"
                   />
                   <div className="field-info">
@@ -360,13 +359,13 @@ const FoodUpload = () => {
 
                 <div className="form-group">
                   <label>Profit (₹) *</label>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    name="profit" 
-                    value={formData.profit} 
-                    onChange={handleInputChange} 
-                    min="0" 
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="profit"
+                    value={formData.profit}
+                    onChange={handleInputChange}
+                    min="0"
                     required
                     placeholder="Auto-calculated"
                   />
@@ -375,21 +374,21 @@ const FoodUpload = () => {
 
                 <div className="form-group">
                   <label>Calories</label>
-                  <input 
-                    type="number" 
-                    name="calories" 
-                    value={formData.calories} 
-                    onChange={handleInputChange} 
-                    min="0" 
+                  <input
+                    type="number"
+                    name="calories"
+                    value={formData.calories}
+                    onChange={handleInputChange}
+                    min="0"
                     placeholder="e.g., 350"
                   />
                 </div>
 
                 <div className="form-group">
                   <label>Preparation Time</label>
-                  <select 
-                    name="prep_time" 
-                    value={formData.prep_time} 
+                  <select
+                    name="prep_time"
+                    value={formData.prep_time}
                     onChange={handleInputChange}
                   >
                     <option value="">Select preparation time</option>
@@ -401,38 +400,38 @@ const FoodUpload = () => {
 
                 <div className="form-group">
                   <label>Rating</label>
-                  <input 
-                    type="number" 
-                    step="0.1" 
-                    min="0" 
-                    max="5" 
-                    name="rating" 
-                    value={formData.rating} 
-                    onChange={handleInputChange} 
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    name="rating"
+                    value={formData.rating}
+                    onChange={handleInputChange}
                     placeholder="4.5"
                   />
                 </div>
 
                 <div className="form-group">
                   <label>Review Count</label>
-                  <input 
-                    type="number" 
-                    name="review_count" 
-                    value={formData.review_count} 
-                    onChange={handleInputChange} 
-                    min="0" 
+                  <input
+                    type="number"
+                    name="review_count"
+                    value={formData.review_count}
+                    onChange={handleInputChange}
+                    min="0"
                     placeholder="0"
                   />
                 </div>
 
                 <div className="form-group">
                   <label>Display Position</label>
-                  <input 
-                    type="number" 
-                    name="food_position" 
-                    value={formData.food_position} 
-                    onChange={handleInputChange} 
-                    min="0" 
+                  <input
+                    type="number"
+                    name="food_position"
+                    value={formData.food_position}
+                    onChange={handleInputChange}
+                    min="0"
                     placeholder="0"
                   />
                   <div className="field-info">Lower numbers appear first</div>
@@ -446,11 +445,11 @@ const FoodUpload = () => {
               <div className="checkbox-grid">
                 <div className="checkbox-group">
                   <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      name="veg" 
-                      checked={formData.veg} 
-                      onChange={handleInputChange} 
+                    <input
+                      type="checkbox"
+                      name="veg"
+                      checked={formData.veg}
+                      onChange={handleInputChange}
                     />
                     <span className="checkbox-custom"></span>
                     Vegetarian
@@ -459,11 +458,11 @@ const FoodUpload = () => {
 
                 <div className="checkbox-group">
                   <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      name="popular" 
-                      checked={formData.popular} 
-                      onChange={handleInputChange} 
+                    <input
+                      type="checkbox"
+                      name="popular"
+                      checked={formData.popular}
+                      onChange={handleInputChange}
                     />
                     <span className="checkbox-custom"></span>
                     Popular Item
@@ -472,11 +471,11 @@ const FoodUpload = () => {
 
                 <div className="checkbox-group">
                   <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      name="bestseller" 
-                      checked={formData.bestseller} 
-                      onChange={handleInputChange} 
+                    <input
+                      type="checkbox"
+                      name="bestseller"
+                      checked={formData.bestseller}
+                      onChange={handleInputChange}
                     />
                     <span className="checkbox-custom"></span>
                     Best Seller
@@ -489,18 +488,18 @@ const FoodUpload = () => {
             <div className="form-section">
               <h3>Food Image *</h3>
               <div className="form-group">
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleImageChange} 
-                  required 
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  required
                 />
                 <div className="file-info">
                   Accepted formats: JPEG, PNG, WebP | Maximum size: 5MB
                 </div>
                 {image && (
                   <div className="image-preview">
-                    <strong>Selected:</strong> {image.name} 
+                    <strong>Selected:</strong> {image.name}
                     ({(image.size / 1024 / 1024).toFixed(2)} MB)
                   </div>
                 )}
@@ -508,17 +507,17 @@ const FoodUpload = () => {
             </div>
 
             <div className="form-actions">
-              <button 
-                type="button" 
-                onClick={resetForm} 
+              <button
+                type="button"
+                onClick={resetForm}
                 className="reset-btn"
                 disabled={isUploading}
               >
                 Reset Form
               </button>
-              <button 
-                type="submit" 
-                className="submit-btn" 
+              <button
+                type="submit"
+                className="submit-btn"
                 disabled={isUploading || restaurants.length === 0}
               >
                 {isUploading ? (

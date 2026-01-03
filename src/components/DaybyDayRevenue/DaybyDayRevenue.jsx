@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import Navbar from '../Navbar/Navbar'
 import { supabase } from '../../../supabase';
 import "./DaybyDayRevenue.css"
 
@@ -55,11 +54,11 @@ const DaybyDayRevenue = () => {
       if (isNaN(date.getTime())) {
         return null;
       }
-      
+
       const istDateString = date.toLocaleDateString('en-CA', {
         timeZone: 'Asia/Kolkata'
       });
-      
+
       return istDateString;
     } catch (error) {
       console.error('Error converting to IST date:', error);
@@ -71,7 +70,7 @@ const DaybyDayRevenue = () => {
   const getTamilNaduTime = (dateString) => {
     try {
       const date = new Date(dateString);
-      
+
       if (isNaN(date.getTime())) {
         return {
           time: 'Invalid Time',
@@ -79,24 +78,24 @@ const DaybyDayRevenue = () => {
           fullDateTime: 'Invalid DateTime'
         };
       }
-      
+
       const timeOptions = {
         timeZone: 'Asia/Kolkata',
         hour: '2-digit',
         minute: '2-digit',
         hour12: true
       };
-      
+
       const dateOptions = {
         timeZone: 'Asia/Kolkata',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric'
       };
-      
+
       const time = date.toLocaleTimeString('en-IN', timeOptions);
       const dateFormatted = date.toLocaleDateString('en-IN', dateOptions);
-      
+
       return {
         time,
         date: dateFormatted,
@@ -164,7 +163,7 @@ const DaybyDayRevenue = () => {
         const price = parseFloat(item.price) || 0;
         const companyProfit = parseFloat(item.profit) || 0; // This is COMPANY earnings (from profit field)
         const restaurantEarnings = price - companyProfit; // This is RESTAURANT earnings
-        
+
         foodItemsMap.set(item.id, {
           id: item.id,
           name: item.name,
@@ -199,7 +198,7 @@ const DaybyDayRevenue = () => {
         const price = parseFloat(product.price) || 0;
         const companyProfit = parseFloat(product.profit) || 0; // This is COMPANY earnings
         const costOrMargin = price - companyProfit; // This is cost/margin
-        
+
         productsMap.set(product.id, {
           id: product.id,
           name: product.name,
@@ -224,10 +223,10 @@ const DaybyDayRevenue = () => {
     if (!item.product_id || !foodItemsMap.has(item.product_id)) {
       return 0;
     }
-    
+
     const foodItem = foodItemsMap.get(item.product_id);
     const quantity = parseInt(item.quantity) || 1;
-    
+
     // Company profit = profit_field_value × quantity
     return foodItem.companyProfit * quantity;
   };
@@ -237,10 +236,10 @@ const DaybyDayRevenue = () => {
     if (!item.product_id || !productsMap.has(item.product_id)) {
       return 0;
     }
-    
+
     const product = productsMap.get(item.product_id);
     const quantity = parseInt(item.quantity) || 1;
-    
+
     // Company profit = profit_field_value × quantity
     return product.companyProfit * quantity;
   };
@@ -268,20 +267,20 @@ const DaybyDayRevenue = () => {
 
   const fetchProfitData = async () => {
     if (!selectedDate) return;
-    
+
     try {
       setLoading(true);
-      
+
       // Fetch both food items and products in parallel
       const [foodItemsMap, productsMap] = await Promise.all([
         fetchFoodItems(),
         fetchProducts()
       ]);
-      
+
       // Get orders for the selected date (3-day window for timezone safety)
       const startDate = new Date(selectedDate);
       startDate.setDate(startDate.getDate() - 1);
-      
+
       const endDate = new Date(selectedDate);
       endDate.setDate(endDate.getDate() + 2);
 
@@ -300,7 +299,7 @@ const DaybyDayRevenue = () => {
           const istDate = getISTDate(order.created_at);
           return istDate === selectedDate && order.status === 'delivered';
         });
-        
+
         processProfitData(filteredOrders, foodItemsMap, productsMap);
       } else {
         processProfitData([], foodItemsMap, productsMap);
@@ -336,7 +335,7 @@ const DaybyDayRevenue = () => {
     let foodOrders = 0;
     let productOrders = 0;
     let totalItemsSold = 0;
-    
+
     const restaurantMap = new Map();
     const categoryMap = new Map();
 
@@ -345,43 +344,43 @@ const DaybyDayRevenue = () => {
       const orderAmount = parseFloat(order.total_amount) || 0; // This already includes delivery charges
       const deliveryCharges = parseFloat(order.delivery_charges) || 0;
       const driverEarnings = parseFloat(order.driver_order_earnings) || 0;
-      
+
       // Revenue = total_amount (which already includes delivery)
       const orderRevenue = orderAmount;
-      
+
       // Calculate admin earnings from delivery
       const adminEarnings = calculateAdminEarnings(deliveryCharges, driverEarnings);
-      
+
       // Parse order items
       const items = safeJsonParse(order.items);
       const orderItemsCount = calculateTotalItemsCount(items);
       const itemsTotalAmount = calculateTotalItemsAmount(items); // Sum of item prices × quantities
-      
+
       // Calculate company profit from items
       let orderCompanyProfit = 0;
       let itemsWithProfit = [];
-      
+
       items.forEach(item => {
         const quantity = parseInt(item.quantity) || 1;
         let itemCompanyProfit = 0;
         let itemDetails = null;
-        
+
         if (isFoodOrder) {
           itemCompanyProfit = calculateFoodItemCompanyProfit(item, foodItemsMap);
-          
+
           if (foodItemsMap.has(item.product_id)) {
             itemDetails = foodItemsMap.get(item.product_id);
           }
         } else {
           itemCompanyProfit = calculateProductCompanyProfit(item, productsMap);
-          
+
           if (productsMap.has(item.product_id)) {
             itemDetails = productsMap.get(item.product_id);
           }
         }
-        
+
         orderCompanyProfit += itemCompanyProfit;
-        
+
         itemsWithProfit.push({
           ...item,
           quantity: quantity,
@@ -390,10 +389,10 @@ const DaybyDayRevenue = () => {
           itemDetails: itemDetails
         });
       });
-      
+
       // Total order profit = company profit + admin earnings
       const totalOrderProfit = orderCompanyProfit + adminEarnings;
-      
+
       // Add to totals
       totalRevenue += orderRevenue;
       totalOrderAmountWithoutDelivery += itemsTotalAmount; // Sum of item prices only
@@ -403,7 +402,7 @@ const DaybyDayRevenue = () => {
       totalCompanyProfit += orderCompanyProfit;
       totalItemsSold += orderItemsCount;
       deliveredOrders++;
-      
+
       if (isFoodOrder) {
         foodOrders++;
       } else {
@@ -425,7 +424,7 @@ const DaybyDayRevenue = () => {
           items: 0,
           totalQuantity: 0
         };
-        
+
         currentRestaurant.revenue += orderRevenue;
         currentRestaurant.itemsAmount += itemsTotalAmount;
         currentRestaurant.deliveryCharges += deliveryCharges;
@@ -436,7 +435,7 @@ const DaybyDayRevenue = () => {
         currentRestaurant.orders += 1;
         currentRestaurant.items += items.length;
         currentRestaurant.totalQuantity += orderItemsCount;
-        
+
         restaurantMap.set(order.restaurant_name, currentRestaurant);
       }
 
@@ -456,7 +455,7 @@ const DaybyDayRevenue = () => {
         totalQuantity: 0,
         orderType: isFoodOrder ? 'Food' : 'Product'
       };
-      
+
       currentCategory.revenue += orderRevenue;
       currentCategory.itemsAmount += itemsTotalAmount;
       currentCategory.deliveryCharges += deliveryCharges;
@@ -467,7 +466,7 @@ const DaybyDayRevenue = () => {
       currentCategory.orders += 1;
       currentCategory.items += items.length;
       currentCategory.totalQuantity += orderItemsCount;
-      
+
       categoryMap.set(category, currentCategory);
 
       // Get Tamil Nadu time for the order
@@ -496,7 +495,7 @@ const DaybyDayRevenue = () => {
 
     const restaurantArray = Array.from(restaurantMap.values())
       .sort((a, b) => b.totalProfit - a.totalProfit);
-    
+
     const categoryArray = Array.from(categoryMap.values())
       .sort((a, b) => b.totalProfit - a.totalProfit);
 
@@ -553,20 +552,20 @@ const DaybyDayRevenue = () => {
             <button className="profit-modal-close" onClick={closeItemsModal}>×</button>
             <h3>Order Items - #{selectedOrder.receipt_reference}</h3>
             <p>
-              {selectedOrder.customer_name} • {selectedOrder.customer_phone} • 
+              {selectedOrder.customer_name} • {selectedOrder.customer_phone} •
               {selectedOrder.isFoodOrder ? ' 🍕 Food' : ' 📦 Product'}
             </p>
-            <p style={{fontSize: '0.8rem', margin: '4px 0 0 0', color: '#475569'}}>
+            <p style={{ fontSize: '0.8rem', margin: '4px 0 0 0', color: '#475569' }}>
               📅 {selectedOrder.fullDateTime} IST
             </p>
           </div>
-          
+
           <div className="profit-modal-body">
             <div className="profit-modal-items">
               {selectedOrder.items.map((item, index) => (
                 <div key={index} className="profit-modal-item">
-                  <img 
-                    src={item.product_image || '/placeholder-image.jpg'} 
+                  <img
+                    src={item.product_image || '/placeholder-image.jpg'}
                     alt={item.product_name}
                     className="profit-modal-item-image"
                     onError={(e) => {
@@ -576,7 +575,7 @@ const DaybyDayRevenue = () => {
                   <div className="profit-modal-item-details">
                     <div className="profit-modal-item-name">
                       {item.product_name}
-                      <small style={{display: 'block', color: '#64748b', fontSize: '0.75rem'}}>
+                      <small style={{ display: 'block', color: '#64748b', fontSize: '0.75rem' }}>
                         Quantity: {item.quantity}
                       </small>
                     </div>
@@ -595,8 +594,8 @@ const DaybyDayRevenue = () => {
                       {item.itemDetails && (
                         <>
                           <span className="profit-modal-item-profit-details">
-                            Price: {formatCurrency(item.itemDetails.price)} | 
-                            Company: {formatCurrency(item.itemDetails.companyProfit)} | 
+                            Price: {formatCurrency(item.itemDetails.price)} |
+                            Company: {formatCurrency(item.itemDetails.companyProfit)} |
                             Restaurant: {formatCurrency(item.itemDetails.restaurantEarnings || item.itemDetails.costOrMargin)} per item
                           </span>
                           <span className="profit-modal-item-company-profit profit-positive">
@@ -610,7 +609,7 @@ const DaybyDayRevenue = () => {
               ))}
             </div>
           </div>
-          
+
           <div className="profit-modal-footer">
             <div className="profit-modal-total">
               <span>Order Summary:</span>
@@ -633,7 +632,7 @@ const DaybyDayRevenue = () => {
                 {formatCurrency(selectedOrder.orderRevenue)}
               </span>
             </div>
-            <div className="profit-modal-total" style={{borderTop: '1px solid #e2e8f0', paddingTop: '8px'}}>
+            <div className="profit-modal-total" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px' }}>
               <span>Driver Earnings:</span>
               <span className="profit-modal-total-amount">
                 -{formatCurrency(selectedOrder.driverEarnings)}
@@ -651,7 +650,7 @@ const DaybyDayRevenue = () => {
                 +{formatCurrency(totalCompanyProfit)}
               </span>
             </div>
-            <div className="profit-modal-total" style={{borderTop: '2px solid #e2e8f0', paddingTop: '12px', fontWeight: 'bold'}}>
+            <div className="profit-modal-total" style={{ borderTop: '2px solid #e2e8f0', paddingTop: '12px', fontWeight: 'bold' }}>
               <span>Total Order Profit:</span>
               <span className="profit-modal-total-amount profit-total">
                 {formatCurrency(selectedOrder.totalOrderProfit)}
@@ -701,14 +700,14 @@ const DaybyDayRevenue = () => {
                 </span>
               </td>
               <td className="profit-order-items">
-                <div 
+                <div
                   className="profit-items-preview"
                   onClick={() => handleViewItems(order)}
                 >
                   <div className="profit-items-preview-content">
                     <span className="profit-items-preview-count">
                       {order.itemsCount} unit{order.itemsCount !== 1 ? 's' : ''}
-                      <small style={{display: 'block', fontSize: '0.75rem', color: '#64748b'}}>
+                      <small style={{ display: 'block', fontSize: '0.75rem', color: '#64748b' }}>
                         ({order.items.length} item{order.items.length !== 1 ? 's' : ''})
                       </small>
                     </span>
@@ -730,7 +729,7 @@ const DaybyDayRevenue = () => {
                 <strong>{formatCurrency(order.totalOrderProfit)}</strong>
               </td>
               <td>
-                <span 
+                <span
                   className="profit-status-badge"
                   style={{ backgroundColor: getStatusColor(order.status) }}
                 >
@@ -842,9 +841,9 @@ const DaybyDayRevenue = () => {
               </td>
               <td className="profit-performance-cell">
                 <div className="profit-performance-bar">
-                  <div 
+                  <div
                     className="profit-performance-fill"
-                    style={{ 
+                    style={{
                       width: `${Math.min((category.totalProfit / stats.totalOverallProfit) * 100, 100)}%`
                     }}
                   ></div>
@@ -861,7 +860,7 @@ const DaybyDayRevenue = () => {
   if (loading) {
     return (
       <>
-        <Navbar />
+
         <div className="profit-loading">
           <div className="profit-loading-spinner"></div>
           <p>Loading profit data...</p>
@@ -872,7 +871,7 @@ const DaybyDayRevenue = () => {
 
   return (
     <>
-      <Navbar />
+
       <div className="profit-container">
         {/* Header */}
         <div className="profit-header">
@@ -964,19 +963,19 @@ const DaybyDayRevenue = () => {
 
         {/* Navigation Tabs */}
         <div className="profit-tabs-navigation">
-          <button 
+          <button
             className={`profit-tab-button ${activeTab === 'orders' ? 'profit-active' : ''}`}
             onClick={() => setActiveTab('orders')}
           >
             📋 Order Profits ({profitData.length})
           </button>
-          <button 
+          <button
             className={`profit-tab-button ${activeTab === 'restaurants' ? 'profit-active' : ''}`}
             onClick={() => setActiveTab('restaurants')}
           >
             🏪 Restaurant Profits ({restaurantProfit.length})
           </button>
-          <button 
+          <button
             className={`profit-tab-button ${activeTab === 'categories' ? 'profit-active' : ''}`}
             onClick={() => setActiveTab('categories')}
           >
@@ -989,7 +988,7 @@ const DaybyDayRevenue = () => {
           {activeTab === 'orders' && (
             <div className="profit-orders-section">
               <h2>Order Profits - {getTamilNaduDay(selectedDate)}</h2>
-              
+
               {profitData.length === 0 ? (
                 <div className="profit-no-orders">
                   <p>No delivered orders found for selected date</p>
@@ -1003,7 +1002,7 @@ const DaybyDayRevenue = () => {
           {activeTab === 'restaurants' && (
             <div className="profit-section">
               <h2>Restaurant Profits - {getTamilNaduDay(selectedDate)}</h2>
-              
+
               {restaurantProfit.length === 0 ? (
                 <div className="profit-no-data">
                   <p>No restaurant profit data found for delivered orders on selected date</p>
@@ -1017,7 +1016,7 @@ const DaybyDayRevenue = () => {
           {activeTab === 'categories' && (
             <div className="profit-section">
               <h2>Category Profits - {getTamilNaduDay(selectedDate)}</h2>
-              
+
               {categoryProfit.length === 0 ? (
                 <div className="profit-no-data">
                   <p>No category profit data found for delivered orders on selected date</p>

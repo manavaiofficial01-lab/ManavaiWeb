@@ -12,16 +12,17 @@ const Navbar = () => {
   }, []);
 
   const menuItems = useMemo(() => [
-  { id: 1, name: 'Order Assign', icon: '📋', path: '/' },
-  { id: 2, name: 'Order Tracking', icon: '🚚', path: '/order-tracking' },
-  { id: 3, name: 'Driver Details', icon: '👨‍💼', path: '/driver-details' },
-  { id: 4, name: 'Driver Tracking', icon: '🧭', path: '/driver-tracking' }, // ← Inserted here
-  { id: 5, name: 'Day By Day Revenue', icon: '📈', path: '/revenue-daily' },
-  { id: 6, name: 'Product Upload', icon: '📤', path: '/product-upload' },
-  { id: 7, name: 'Product Management', icon: '📦', path: '/product-management' },
-  { id: 8, name: 'Food Upload', icon: '🍕', path: '/food-upload' },
-  { id: 9, name: 'Food Management', icon: '🍽️', path: '/food-management' },
-], []);
+    { id: 1, name: 'Manual Order Assign', icon: '📋', path: '/' },
+    { id: 10, name: 'AI Order Assignment', icon: '🤖', path: '/assignment' },
+    { id: 2, name: 'Order Tracking', icon: '🚚', path: '/order-tracking' },
+    { id: 3, name: 'Driver Details', icon: '👨‍💼', path: '/driver-details' },
+    { id: 4, name: 'Driver Tracking', icon: '🧭', path: '/driver-tracking' }, // ← Inserted here
+    { id: 5, name: 'Day By Day Revenue', icon: '📈', path: '/revenue-daily' },
+    { id: 6, name: 'Product Upload', icon: '📤', path: '/product-upload' },
+    { id: 7, name: 'Product Management', icon: '📦', path: '/product-management' },
+    { id: 8, name: 'Food Upload', icon: '🍕', path: '/food-upload' },
+    { id: 9, name: 'Food Management', icon: '🍽️', path: '/food-management' },
+  ], []);
 
 
 
@@ -63,7 +64,7 @@ const Navbar = () => {
           </button>
           <span className="navbar-brand">Manavai Admin</span>
         </div>
-        
+
         <div className="navbar-right">
           <div className="user-info">
             <span className="user-name">Admin User</span>
@@ -83,11 +84,11 @@ const Navbar = () => {
             ×
           </button>
         </div>
-        
+
         <div className="sidebar-menu">
           {menuItems.map(item => (
-            <div 
-              key={item.id} 
+            <div
+              key={item.id}
               className={`menu-item ${activeMenu === item.name ? 'active' : ''}`}
               onClick={() => handleMenuClick(item.name, item.path)}
               role="button"
@@ -103,7 +104,7 @@ const Navbar = () => {
             </div>
           ))}
         </div>
-        
+
         <div className="sidebar-footer">
           <div className="user-profile">
             <div className="profile-avatar">AU</div>
@@ -112,8 +113,8 @@ const Navbar = () => {
               <div className="profile-role">Administrator</div>
             </div>
           </div>
-          <div 
-            className="menu-item logout-item" 
+          <div
+            className="menu-item logout-item"
             onClick={handleLogout}
             role="button"
             tabIndex={0}

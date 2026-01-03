@@ -71,7 +71,7 @@ const ProductManagement = () => {
     const inStock = productList.filter(p => p.stock > 0).length;
     const outOfStock = productList.filter(p => p.stock === 0).length;
     const totalValue = productList.reduce((sum, product) => sum + (product.price * product.stock), 0);
-    
+
     setStats({
       total,
       inStock,
@@ -178,10 +178,10 @@ const ProductManagement = () => {
   const handleDeleteClick = async (productId) => {
     try {
       await deleteProduct(productId);
-      setProducts(prevProducts => 
+      setProducts(prevProducts =>
         prevProducts.filter(product => product.id !== productId)
       );
-      setFilteredProducts(prev => 
+      setFilteredProducts(prev =>
         prev.filter(product => product.id !== productId)
       );
       setDeleteConfirm(null);
@@ -248,15 +248,15 @@ const ProductManagement = () => {
 
     try {
       const updatedProduct = await updateProduct(editingProduct);
-      
+
       if (updatedProduct) {
-        setProducts(prevProducts => 
-          prevProducts.map(product => 
+        setProducts(prevProducts =>
+          prevProducts.map(product =>
             product.id === updatedProduct.id ? updatedProduct : product
           )
         );
-        setFilteredProducts(prevProducts => 
-          prevProducts.map(product => 
+        setFilteredProducts(prevProducts =>
+          prevProducts.map(product =>
             product.id === updatedProduct.id ? updatedProduct : product
           )
         );
@@ -302,7 +302,7 @@ const ProductManagement = () => {
 
     try {
       const newProduct = await createProduct(editingProduct);
-      
+
       if (newProduct) {
         setProducts(prev => [...prev, newProduct]);
         setFilteredProducts(prev => [...prev, newProduct]);
@@ -325,7 +325,6 @@ const ProductManagement = () => {
 
   return (
     <>
-      <Navbar />
       <div className="product-management">
         <div className="container">
           {error && (
@@ -346,14 +345,14 @@ const ProductManagement = () => {
                 <p>Are you sure you want to delete <strong>"{deleteConfirm.name}"</strong>?</p>
                 <p className="delete-warning">This action cannot be undone.</p>
                 <div className="delete-actions">
-                  <button 
+                  <button
                     className="delete-cancel-btn"
                     onClick={cancelDeleteConfirm}
                     disabled={loading}
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     className="delete-confirm-btn"
                     onClick={() => handleDeleteClick(deleteConfirm.id)}
                     disabled={loading}
@@ -371,7 +370,7 @@ const ProductManagement = () => {
                 <h1>Product Management</h1>
                 <p>Manage all products in your inventory</p>
               </div>
-              
+
               <div className="products-stats">
                 <div className="stat-card">
                   <div className="stat-icon">📦</div>
@@ -415,7 +414,7 @@ const ProductManagement = () => {
                   className="search-input"
                 />
                 {searchTerm && (
-                  <button 
+                  <button
                     className="clear-search"
                     onClick={() => setSearchTerm('')}
                   >
@@ -423,9 +422,9 @@ const ProductManagement = () => {
                   </button>
                 )}
               </div>
-              
+
               <div className="action-buttons-header">
-                <button 
+                <button
                   className="add-product-btn"
                   onClick={handleAddNewProduct}
                   disabled={loading || editingProduct}
@@ -491,7 +490,7 @@ const ProductManagement = () => {
                             />
                           </div>
                         </td>
-                        
+
                         <td>
                           <input
                             type="text"
@@ -501,7 +500,7 @@ const ProductManagement = () => {
                             className="edit-input"
                           />
                         </td>
-                        
+
                         <td>
                           {loadingCategories ? (
                             <div className="loading-categories">
@@ -521,7 +520,7 @@ const ProductManagement = () => {
                             </select>
                           )}
                         </td>
-                        
+
                         <td>
                           <div className="edit-input-container">
                             <span className="currency-symbol">₹</span>
@@ -536,7 +535,7 @@ const ProductManagement = () => {
                             />
                           </div>
                         </td>
-                        
+
                         <td>
                           <div className="edit-input-container">
                             <span className="currency-symbol">₹</span>
@@ -551,7 +550,7 @@ const ProductManagement = () => {
                             />
                           </div>
                         </td>
-                        
+
                         <td>
                           <input
                             type="number"
@@ -562,7 +561,7 @@ const ProductManagement = () => {
                             className="edit-input"
                           />
                         </td>
-                        
+
                         <td>
                           <input
                             type="number"
@@ -575,16 +574,16 @@ const ProductManagement = () => {
                             className="edit-input"
                           />
                         </td>
-                        
+
                         <td className="action-buttons">
-                          <button 
+                          <button
                             className="save-btn"
                             onClick={handleSaveNewProduct}
                             disabled={loading || !editingProduct.name}
                           >
                             {loading ? 'Saving...' : 'Create'}
                           </button>
-                          <button 
+                          <button
                             className="cancel-btn"
                             onClick={handleCancelNewProduct}
                             disabled={loading}
@@ -602,13 +601,13 @@ const ProductManagement = () => {
                             <div className="empty-icon">🔍</div>
                             <h3>{searchTerm ? 'No products found' : 'No products available'}</h3>
                             <p>
-                              {searchTerm 
-                                ? 'Try adjusting your search terms' 
+                              {searchTerm
+                                ? 'Try adjusting your search terms'
                                 : 'Add your first product to get started'
                               }
                             </p>
                             {!searchTerm && (
-                              <button 
+                              <button
                                 className="add-first-product-btn"
                                 onClick={handleAddNewProduct}
                               >
@@ -640,7 +639,7 @@ const ProductManagement = () => {
                                   />
                                 </div>
                               </td>
-                              
+
                               <td>
                                 <input
                                   type="text"
@@ -649,7 +648,7 @@ const ProductManagement = () => {
                                   className="edit-input"
                                 />
                               </td>
-                              
+
                               <td>
                                 {loadingCategories ? (
                                   <div className="loading-categories">
@@ -669,7 +668,7 @@ const ProductManagement = () => {
                                   </select>
                                 )}
                               </td>
-                              
+
                               <td>
                                 <div className="edit-input-container">
                                   <span className="currency-symbol">₹</span>
@@ -683,7 +682,7 @@ const ProductManagement = () => {
                                   />
                                 </div>
                               </td>
-                              
+
                               <td>
                                 <div className="edit-input-container">
                                   <span className="currency-symbol">₹</span>
@@ -697,7 +696,7 @@ const ProductManagement = () => {
                                   />
                                 </div>
                               </td>
-                              
+
                               <td>
                                 <input
                                   type="number"
@@ -707,7 +706,7 @@ const ProductManagement = () => {
                                   className="edit-input"
                                 />
                               </td>
-                              
+
                               <td>
                                 <input
                                   type="number"
@@ -719,16 +718,16 @@ const ProductManagement = () => {
                                   className="edit-input"
                                 />
                               </td>
-                              
+
                               <td className="action-buttons">
-                                <button 
+                                <button
                                   className="save-btn"
                                   onClick={handleSaveClick}
                                   disabled={loading}
                                 >
                                   {loading ? 'Saving...' : 'Save'}
                                 </button>
-                                <button 
+                                <button
                                   className="cancel-btn"
                                   onClick={handleCancelClick}
                                   disabled={loading}
@@ -741,8 +740,8 @@ const ProductManagement = () => {
                             <>
                               <td className="product-info">
                                 {product.main_image_url && (
-                                  <img 
-                                    src={product.main_image_url} 
+                                  <img
+                                    src={product.main_image_url}
                                     alt={product.name}
                                     className="product-image"
                                     onError={(e) => {
@@ -757,32 +756,32 @@ const ProductManagement = () => {
                                   )}
                                 </div>
                               </td>
-                              
+
                               <td className="product-brand">
                                 <span className={!product.brand ? 'no-brand' : ''}>
                                   {product.brand || 'No brand'}
                                 </span>
                               </td>
-                              
+
                               <td className="product-category">
                                 <span className="category-badge">{product.category || 'Uncategorized'}</span>
                               </td>
-                              
+
                               <td className="price-cell">
                                 <span className="price-amount">₹{product.price.toLocaleString()}</span>
                               </td>
-                              
+
                               <td className="profit-cell">
                                 <span className="profit-amount">₹{product.profit ? product.profit.toLocaleString() : 0}</span>
                               </td>
-                              
+
                               <td>
                                 <span className={`stock-badge ${product.stock > 0 ? 'in-stock' : 'out-of-stock'}`}>
                                   {product.stock}
                                   {product.stock > 0 && <span className="stock-dot"></span>}
                                 </span>
                               </td>
-                              
+
                               <td>
                                 <div className="rating">
                                   <span className="stars">
@@ -792,9 +791,9 @@ const ProductManagement = () => {
                                   <span className="rating-value">{product.rating || 0}</span>
                                 </div>
                               </td>
-                              
+
                               <td className="action-buttons">
-                                <button 
+                                <button
                                   className="edit-btn"
                                   onClick={() => handleEditClick(product)}
                                   disabled={loading}
@@ -802,7 +801,7 @@ const ProductManagement = () => {
                                   <span className="btn-icon">✏️</span>
                                   Edit
                                 </button>
-                                <button 
+                                <button
                                   className="delete-btn"
                                   onClick={() => startDeleteConfirm(product)}
                                   disabled={loading}
@@ -826,7 +825,7 @@ const ProductManagement = () => {
                 Showing {filteredProducts.length} of {products.length} products
               </div>
               <div className="footer-actions">
-                <button 
+                <button
                   className="refresh-btn"
                   onClick={fetchProducts}
                   disabled={loading}

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '../../../supabase';
-import './OrderAssign.css';
+import './ManualOrderAssign.css';
 import Navbar from '../Navbar/Navbar';
 
-const OrderAssign = () => {
+const ManualOrderAssign = () => {
   const [orders, setOrders] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -26,7 +26,7 @@ const OrderAssign = () => {
   const [selectedOrdersMap, setSelectedOrdersMap] = useState(new Set());
   const [pollingStatus, setPollingStatus] = useState('Active');
   const [newOrdersCount, setNewOrdersCount] = useState(0);
-  
+
   const audioRef = useRef(null);
   const pollingRef = useRef(null);
   const isFirstLoadRef = useRef(true);
@@ -118,9 +118,9 @@ const OrderAssign = () => {
     try {
       setSelectedOrder(order);
       setIsLocationModalOpen(true);
-      
+
       await loadGoogleMaps();
-      
+
       setTimeout(() => {
         if (mapRef.current) {
           initMap(order);
@@ -140,7 +140,7 @@ const OrderAssign = () => {
 
   const playNotificationSound = useCallback((orderCount = 1) => {
     if (!isAudioEnabled) return;
-    
+
     try {
       if (audioRef.current) {
         audioRef.current.volume = 1.0;
@@ -196,7 +196,7 @@ const OrderAssign = () => {
 
     const hasDriverName = order.driver_name && order.driver_name.trim() !== '';
     const hasDriverMobile = order.driver_mobile && order.driver_mobile.trim() !== '';
-    
+
     if (hasDriverName || hasDriverMobile) {
       return false;
     }
@@ -222,10 +222,10 @@ const OrderAssign = () => {
     if (!['confirmed', 'paid'].includes(order.status)) {
       throw new Error('Order is not in assignable status');
     }
-    
+
     const hasDriverName = order.driver_name && order.driver_name.trim() !== '';
     const hasDriverMobile = order.driver_mobile && order.driver_mobile.trim() !== '';
-    
+
     if (hasDriverName || hasDriverMobile) {
       throw new Error('Order already has a driver assigned');
     }
@@ -245,11 +245,11 @@ const OrderAssign = () => {
 
   const formatDeliveryTime = useCallback((deliveryTime) => {
     if (!deliveryTime) return null;
-    
+
     const deliveryDate = new Date(deliveryTime);
     const now = new Date();
     const isToday = deliveryDate.toDateString() === now.toDateString();
-    
+
     if (isToday) {
       return deliveryDate.toLocaleString('en-IN', {
         hour: '2-digit',
@@ -269,13 +269,13 @@ const OrderAssign = () => {
 
   const getTimeUntilDelivery = useCallback((deliveryTime) => {
     if (!deliveryTime) return null;
-    
+
     const deliveryDate = new Date(deliveryTime);
     const now = new Date();
     const diffMs = deliveryDate - now;
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (diffHours > 0) {
       return `${diffHours}h ${diffMinutes}m`;
     } else {
@@ -288,7 +288,7 @@ const OrderAssign = () => {
       alert('Phone number not available');
       return;
     }
-    
+
     const confirmed = window.confirm(`Call ${phoneNumber}?`);
     if (confirmed) {
       window.location.href = `tel:${phoneNumber}`;
@@ -300,7 +300,7 @@ const OrderAssign = () => {
       alert('Phone number not available');
       return;
     }
-    
+
     const message = encodeURIComponent(`Your order has been confirmed. We will deliver it soon.`);
     window.location.href = `sms:${phoneNumber}?body=${message}`;
   }, []);
@@ -321,7 +321,7 @@ const OrderAssign = () => {
       }));
 
       setDrivers(driversWithVehicle);
-      
+
       fetchDriverOrders(data || []);
     } catch (error) {
       console.error('Error fetching drivers:', error);
@@ -332,7 +332,7 @@ const OrderAssign = () => {
   const fetchDriverOrders = async (driversList) => {
     try {
       const ordersByDriver = {};
-      
+
       for (const driver of driversList) {
         const { data, error } = await supabase
           .from('orders')
@@ -345,7 +345,7 @@ const OrderAssign = () => {
           ordersByDriver[driver.id] = data;
         }
       }
-      
+
       setDriverOrders(ordersByDriver);
     } catch (error) {
       console.error('Error fetching driver orders:', error);
@@ -359,19 +359,19 @@ const OrderAssign = () => {
   const getDriverStatusBadge = useCallback((driver) => {
     const orderCount = getDriverOrderCount(driver.id);
     const isProcessing = orderCount > 0;
-    
+
     if (driver.status === 'offline') {
       return { text: 'Offline', className: 'status-offline', icon: '🔴' };
     }
-    
+
     if (isProcessing) {
-      return { 
-        text: `Processing (${orderCount})`, 
-        className: 'status-processing', 
-        icon: '🟡' 
+      return {
+        text: `Processing (${orderCount})`,
+        className: 'status-processing',
+        icon: '🟡'
       };
     }
-    
+
     return { text: 'Available', className: 'status-available', icon: '🟢' };
   }, [getDriverOrderCount]);
 
@@ -389,7 +389,7 @@ const OrderAssign = () => {
       if (isManualRefresh && !isPolling) {
         setLoading(true);
       }
-      
+
       setError(null);
 
       const { data, error } = await supabase
@@ -406,35 +406,35 @@ const OrderAssign = () => {
       const filteredData = (data || []).filter(order => {
         const hasDriverName = order.driver_name && order.driver_name.trim() !== '';
         const hasDriverMobile = order.driver_mobile && order.driver_mobile.trim() !== '';
-        
+
         if (hasDriverName || hasDriverMobile) {
           return false;
         }
-        
+
         if (order.status === 'paid' && order.payment_method !== 'Online Payment') {
           return false;
         }
-        
+
         return shouldShowOrder(order);
       });
-      
+
       setOrders(prevOrders => {
         const previousOrderIds = new Set(prevOrders.map(order => order.id));
         const newOrders = filteredData.filter(order => !previousOrderIds.has(order.id));
-        
+
         if (newOrders.length > 0 && !isFirstLoadRef.current && !isManualRefresh) {
           console.log(`🆕 New orders detected: ${newOrders.length} orders`);
           setNewOrdersCount(newOrders.length);
-          
+
           // Play sound notification
           playNotificationSound(Math.min(newOrders.length, 3));
-          
+
           // Show desktop notification
           showNotification(newOrders.length);
-          
+
           // Show browser tab notification
           document.title = `(${newOrders.length}) New Orders - Order Assignment`;
-          
+
           // Reset title after 5 seconds
           setTimeout(() => {
             if (document.title.includes('New Orders')) {
@@ -442,20 +442,20 @@ const OrderAssign = () => {
             }
           }, 5000);
         }
-        
+
         if (isFirstLoadRef.current) {
           isFirstLoadRef.current = false;
         }
-        
+
         return filteredData;
       });
 
       setLastChecked(new Date());
-      
+
       if (isPolling) {
         setPollingStatus('Active');
       }
-      
+
     } catch (error) {
       console.error('Error fetching orders:', error);
       setError('Failed to load orders. Please try again.');
@@ -471,21 +471,21 @@ const OrderAssign = () => {
 
   const startPolling = useCallback(() => {
     console.log('🔄 Starting 10-second polling...');
-    
+
     // Clear existing interval
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
     }
-    
+
     // Initial fetch
     fetchOrders(false, true);
-    
+
     // Set up 10-second polling interval
     pollingRef.current = setInterval(() => {
       console.log('🔄 Polling for new orders...');
       fetchOrders(false, true);
     }, 10000); // 10 seconds
-    
+
     // Poll drivers every 30 seconds
     setInterval(() => {
       fetchDrivers();
@@ -522,7 +522,7 @@ const OrderAssign = () => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    
+
     searchTimeoutRef.current = setTimeout(() => {
       setSearchTerm(value);
     }, 400);
@@ -541,15 +541,15 @@ const OrderAssign = () => {
   }, []);
 
   const openMultiAssignModal = useCallback(() => {
-    const selected = Array.from(selectedOrdersMap).map(id => 
+    const selected = Array.from(selectedOrdersMap).map(id =>
       orders.find(order => order.id === id)
     ).filter(order => order);
-    
+
     if (selected.length === 0) {
       alert('Please select orders to assign');
       return;
     }
-    
+
     setSelectedOrders(selected);
     setIsMultiAssignModalOpen(true);
   }, [selectedOrdersMap, orders]);
@@ -560,7 +560,7 @@ const OrderAssign = () => {
     try {
       setAssigning(true);
       setError(null);
-      
+
       const driver = drivers.find(d => d.id === parseInt(driverId));
       if (!driver) {
         throw new Error('Selected driver not found');
@@ -571,7 +571,7 @@ const OrderAssign = () => {
         validateOrderForAssignment(order);
       }
 
-      const updates = orderIds.map(orderId => 
+      const updates = orderIds.map(orderId =>
         supabase
           .from('orders')
           .update({
@@ -586,7 +586,7 @@ const OrderAssign = () => {
       );
 
       const results = await Promise.all(updates);
-      
+
       const hasError = results.some(result => result.error);
       if (hasError) {
         throw new Error('Failed to assign some orders');
@@ -594,7 +594,7 @@ const OrderAssign = () => {
 
       setOrders(prev => prev.filter(order => !orderIds.includes(order.id)));
       setSelectedOrdersMap(new Set());
-      
+
       if (selectedOrder) {
         setIsModalOpen(false);
         setSelectedOrder(null);
@@ -604,14 +604,14 @@ const OrderAssign = () => {
         setSelectedOrders([]);
       }
       setSelectedDriver('');
-      
+
       fetchDriverOrders(drivers);
-      
+
       alert(`Successfully assigned ${orderIds.length} order(s) to ${driver.driver_name}!`);
     } catch (error) {
       console.error('Error assigning driver:', error);
       setError(error.message || 'Failed to assign driver. Please try again.');
-      
+
       if (error.message.includes('concurrently') || error.message.includes('not available')) {
         fetchOrders(true);
       }
@@ -638,10 +638,10 @@ const OrderAssign = () => {
 
     try {
       setError(null);
-      
+
       const { error } = await supabase
         .from('orders')
-        .update({ 
+        .update({
           status: 'cancelled',
           updated_at: new Date().toISOString()
         })
@@ -716,7 +716,7 @@ const OrderAssign = () => {
 
   const filteredOrders = useMemo(() => {
     let filtered = orders;
-    
+
     // Apply tab filter - ONLY Normal or Scheduled
     if (activeTab === 'normal') {
       filtered = filtered.filter(order => isNormalOrder(order));
@@ -744,11 +744,11 @@ const OrderAssign = () => {
       if (b.id !== a.id) {
         return b.id - a.id;
       }
-      
+
       // Then handle scheduled orders
       const aScheduled = isScheduledOrder(a);
       const bScheduled = isScheduledOrder(b);
-      
+
       if (aScheduled && bScheduled) {
         return new Date(a.delivery_time) - new Date(b.delivery_time);
       } else if (aScheduled) {
@@ -756,13 +756,13 @@ const OrderAssign = () => {
       } else if (bScheduled) {
         return 1;
       }
-      
+
       // Finally sort by creation date
       return new Date(a.created_at) - new Date(b.created_at);
     });
   }, [orders, searchTerm, activeTab, isScheduledOrder, isNormalOrder]);
 
-  const allDrivers = useMemo(() => 
+  const allDrivers = useMemo(() =>
     drivers.map(driver => ({
       ...driver,
       orderCount: getDriverOrderCount(driver.id),
@@ -771,12 +771,12 @@ const OrderAssign = () => {
       if (a.status === 'online' && b.status !== 'online') return -1;
       if (a.status !== 'online' && b.status === 'online') return 1;
       return a.orderCount - b.orderCount;
-    }), 
+    }),
     [drivers, getDriverOrderCount, getDriverStatusBadge]
   );
 
-  const availableDrivers = useMemo(() => 
-    allDrivers.filter(driver => driver.status === 'online'), 
+  const availableDrivers = useMemo(() =>
+    allDrivers.filter(driver => driver.status === 'online'),
     [allDrivers]
   );
 
@@ -819,7 +819,7 @@ const OrderAssign = () => {
     };
 
     const statusInfo = getStatusDisplay();
-    
+
     return (
       <span className={`status-badge ${statusInfo.className}`}>
         {statusInfo.icon} {statusInfo.text}
@@ -829,7 +829,7 @@ const OrderAssign = () => {
 
   const PaymentMethodBadge = ({ paymentMethod }) => {
     const paymentInfo = getPaymentMethodBadge(paymentMethod);
-    
+
     return (
       <span className={`payment-badge ${paymentInfo.className}`}>
         {paymentInfo.icon} {paymentInfo.text}
@@ -839,12 +839,12 @@ const OrderAssign = () => {
 
   useEffect(() => {
     console.log('🚀 INITIALIZING ORDER ASSIGN COMPONENT');
-    
+
     // Request notification permission
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
-    
+
     fetchDrivers();
     fetchOrders();
 
@@ -854,7 +854,7 @@ const OrderAssign = () => {
     return () => {
       console.log('🧹 CLEANING UP ORDER ASSIGN COMPONENT');
       stopPolling();
-      
+
       if (soundTimeoutRef.current) {
         clearTimeout(soundTimeoutRef.current);
       }
@@ -883,7 +883,6 @@ const OrderAssign = () => {
 
   return (
     <>
-      <Navbar />
       <div className="order-assign-container">
         <audio ref={audioRef} preload="auto">
           <source src="/notification.mp3" type="audio/mpeg" />
@@ -916,21 +915,21 @@ const OrderAssign = () => {
                 className="search-input"
               />
               <div className="action-buttons-header">
-                <button 
+                <button
                   className={`audio-toggle-btn ${isAudioEnabled ? 'enabled' : 'disabled'}`}
                   onClick={toggleAudio}
                   title={isAudioEnabled ? 'Mute notifications' : 'Unmute notifications'}
                 >
                   {isAudioEnabled ? '🔊' : '🔇'}
                 </button>
-                <button 
+                <button
                   className="test-sound-btn"
                   onClick={testSound}
                   title="Test notification sound"
                 >
                   Test Sound
                 </button>
-                <button 
+                <button
                   className={`polling-toggle-btn ${pollingRef.current ? 'active' : 'paused'}`}
                   onClick={togglePolling}
                   title={pollingRef.current ? 'Stop auto-refresh (10s)' : 'Start auto-refresh (10s)'}
@@ -938,7 +937,7 @@ const OrderAssign = () => {
                   {pollingRef.current ? '⏸️' : '▶️'}
                 </button>
                 {stats.selectedCount > 0 && (
-                  <button 
+                  <button
                     className="btn-primary multi-assign-btn"
                     onClick={openMultiAssignModal}
                   >
@@ -946,7 +945,7 @@ const OrderAssign = () => {
                     Assign {stats.selectedCount} Orders
                   </button>
                 )}
-                <button 
+                <button
                   className="refresh-btn-primary"
                   onClick={handleManualRefresh}
                   disabled={loading}
@@ -1040,7 +1039,7 @@ const OrderAssign = () => {
               <span className="notification-text">
                 {newOrdersCount} new order{newOrdersCount > 1 ? 's' : ''} arrived!
               </span>
-              <button 
+              <button
                 className="notification-close"
                 onClick={() => setNewOrdersCount(0)}
               >
@@ -1053,13 +1052,13 @@ const OrderAssign = () => {
         {/* Main Orders Table Section */}
         <div className="orders-main-section">
           <div className="section-tabs">
-            <button 
+            <button
               className={`tab-btn ${activeTab === 'normal' ? 'active' : ''}`}
               onClick={() => setActiveTab('normal')}
             >
               Normal Orders ({stats.normalOrders})
             </button>
-            <button 
+            <button
               className={`tab-btn ${activeTab === 'scheduled' ? 'active' : ''}`}
               onClick={() => setActiveTab('scheduled')}
             >
@@ -1079,7 +1078,7 @@ const OrderAssign = () => {
                 <h3>No orders found</h3>
                 <p>New confirmed orders will appear here automatically.</p>
                 <p className="polling-info">
-                  Auto-refresh is {pollingRef.current ? 'active' : 'paused'} 
+                  Auto-refresh is {pollingRef.current ? 'active' : 'paused'}
                   {pollingRef.current && ' - checking every 10 seconds'}
                 </p>
               </div>
@@ -1088,7 +1087,7 @@ const OrderAssign = () => {
                 <thead className="orders-table-header">
                   <tr>
                     <th style={{ width: '50px' }}>
-                      <input 
+                      <input
                         type="checkbox"
                         checked={filteredOrders.length > 0 && filteredOrders.every(order => selectedOrdersMap.has(order.id))}
                         onChange={(e) => {
@@ -1125,11 +1124,11 @@ const OrderAssign = () => {
                     const deliveryTimeDisplay = formatDeliveryTime(order.delivery_time);
                     const timeUntilDelivery = getTimeUntilDelivery(order.delivery_time);
                     const isSelected = selectedOrdersMap.has(order.id);
-                    
+
                     return (
                       <tr key={order.id} className={`order-row ${isScheduled ? 'scheduled-order' : ''} ${isSelected ? 'selected-row' : ''}`}>
                         <td className="order-select">
-                          <input 
+                          <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleOrderSelection(order.id)}
@@ -1147,7 +1146,7 @@ const OrderAssign = () => {
                             </div>
                           )}
                         </td>
-                        
+
                         <td className="customer-info">
                           <div className="customer-name">{order.customer_name}</div>
                           <div className="customer-address">{order.delivery_address}</div>
@@ -1164,17 +1163,17 @@ const OrderAssign = () => {
                             </div>
                           )}
                         </td>
-                        
+
                         <td className="customer-contact">
                           <div className="contact-buttons">
-                            <button 
+                            <button
                               className="btn-call"
                               onClick={() => makeCall(order.customer_phone)}
                               title="Call customer"
                             >
                               📞 Call
                             </button>
-                            <button 
+                            <button
                               className="btn-sms"
                               onClick={() => sendSMS(order.customer_phone)}
                               title="Send SMS"
@@ -1186,14 +1185,14 @@ const OrderAssign = () => {
                             </div>
                           </div>
                         </td>
-                        
+
                         <td className="order-items">
                           <div className="items-count">{totalItems} items</div>
                           <div className="items-list-preview" title={getItemNames(order)}>
                             {getItemNames(order)}
                           </div>
                         </td>
-                        
+
                         <td className="order-amount">
                           <div className="amount-breakdown">
                             <div className="amount-row">
@@ -1214,12 +1213,12 @@ const OrderAssign = () => {
                             </div>
                           </div>
                         </td>
-                        
+
                         <td className="order-status">
                           <div className="order-age">{orderAge}m ago</div>
-                          <OrderStatusBadge 
-                            status={order.status} 
-                            paymentMethod={order.payment_method} 
+                          <OrderStatusBadge
+                            status={order.status}
+                            paymentMethod={order.payment_method}
                           />
                           {isScheduled && timeUntilDelivery && (
                             <div className="delivery-countdown">
@@ -1231,7 +1230,7 @@ const OrderAssign = () => {
                         <td className="payment-method">
                           <PaymentMethodBadge paymentMethod={order.payment_method} />
                         </td>
-                        
+
                         <td className="order-actions">
                           <button
                             className="btn-primary"
@@ -1281,7 +1280,7 @@ const OrderAssign = () => {
             <div className="modal">
               <div className="modal-header">
                 <h2>Assign Driver to Order #{selectedOrder.id}</h2>
-                <button 
+                <button
                   className="close-btn"
                   onClick={closeModal}
                   disabled={assigning}
@@ -1289,28 +1288,28 @@ const OrderAssign = () => {
                   ×
                 </button>
               </div>
-              
+
               <div className="modal-content">
                 <div className="order-summary">
                   <div className="order-header-info">
                     <h4>Order #{selectedOrder.id}</h4>
                     <div className="header-badges">
-                      <OrderStatusBadge 
-                        status={selectedOrder.status} 
-                        paymentMethod={selectedOrder.payment_method} 
+                      <OrderStatusBadge
+                        status={selectedOrder.status}
+                        paymentMethod={selectedOrder.payment_method}
                       />
                       <PaymentMethodBadge paymentMethod={selectedOrder.payment_method} />
                     </div>
                   </div>
-                  
+
                   <div className="customer-contact-modal">
-                    <button 
+                    <button
                       className="btn-call-modal"
                       onClick={() => makeCall(selectedOrder.customer_phone)}
                     >
                       📞 Call Customer
                     </button>
-                    <button 
+                    <button
                       className="btn-sms-modal"
                       onClick={() => sendSMS(selectedOrder.customer_phone)}
                     >
@@ -1320,7 +1319,7 @@ const OrderAssign = () => {
                       {selectedOrder.customer_phone}
                     </span>
                   </div>
-                  
+
                   {isScheduledOrder(selectedOrder) && (
                     <div className="scheduled-order-alert">
                       <span className="scheduled-icon-large">⏰</span>
@@ -1331,7 +1330,7 @@ const OrderAssign = () => {
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="summary-grid">
                     <div className="summary-item">
                       <label>Customer</label>
@@ -1349,7 +1348,7 @@ const OrderAssign = () => {
                       <label>Address</label>
                       <span>{selectedOrder.delivery_address}</span>
                     </div>
-                    
+
                     <div className="summary-item full-width">
                       <label>Amount Breakdown</label>
                       <div className="modal-amount-breakdown">
@@ -1390,7 +1389,7 @@ const OrderAssign = () => {
                       const statusBadge = getDriverStatusBadge(driver);
                       return (
                         <option key={driver.id} value={driver.id} disabled={driver.status === 'offline'}>
-                          {statusBadge.icon} {driver.driver_name} ({driver.driver_phone}) - 
+                          {statusBadge.icon} {driver.driver_name} ({driver.driver_phone}) -
                           {statusBadge.text} - {driver.orderCount} orders
                         </option>
                       );
@@ -1437,7 +1436,7 @@ const OrderAssign = () => {
             <div className="modal">
               <div className="modal-header">
                 <h2>Assign Multiple Orders ({selectedOrders.length})</h2>
-                <button 
+                <button
                   className="close-btn"
                   onClick={closeMultiAssignModal}
                   disabled={assigning}
@@ -1445,7 +1444,7 @@ const OrderAssign = () => {
                   ×
                 </button>
               </div>
-              
+
               <div className="modal-content">
                 <div className="order-summary">
                   <h4>Selected Orders</h4>
@@ -1455,9 +1454,9 @@ const OrderAssign = () => {
                         <div className="selected-order-header">
                           <div className="selected-order-id">Order #{order.id}</div>
                           <div className="selected-order-badges">
-                            <OrderStatusBadge 
-                              status={order.status} 
-                              paymentMethod={order.payment_method} 
+                            <OrderStatusBadge
+                              status={order.status}
+                              paymentMethod={order.payment_method}
                             />
                             <PaymentMethodBadge paymentMethod={order.payment_method} />
                           </div>
@@ -1475,7 +1474,7 @@ const OrderAssign = () => {
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="total-amount-summary">
                     <div className="total-amount-row">
                       <span>Total Orders:</span>
@@ -1519,7 +1518,7 @@ const OrderAssign = () => {
                       const statusBadge = getDriverStatusBadge(driver);
                       return (
                         <option key={driver.id} value={driver.id} disabled={driver.status === 'offline'}>
-                          {statusBadge.icon} {driver.driver_name} ({driver.driver_phone}) - 
+                          {statusBadge.icon} {driver.driver_name} ({driver.driver_phone}) -
                           {statusBadge.text} - {driver.orderCount} orders
                         </option>
                       );
@@ -1566,35 +1565,35 @@ const OrderAssign = () => {
             <div className="modal">
               <div className="modal-header">
                 <h2>Order Items - #{selectedOrder.id}</h2>
-                <button 
+                <button
                   className="close-btn"
                   onClick={closeModal}
                 >
                   ×
                 </button>
               </div>
-              
+
               <div className="modal-content">
                 <div className="order-summary">
                   <div className="order-header-info">
                     <h4>Order Total: ₹{getTotalAmount(selectedOrder).toLocaleString('en-IN')}</h4>
                     <div className="header-badges">
-                      <OrderStatusBadge 
-                        status={selectedOrder.status} 
-                        paymentMethod={selectedOrder.payment_method} 
+                      <OrderStatusBadge
+                        status={selectedOrder.status}
+                        paymentMethod={selectedOrder.payment_method}
                       />
                       <PaymentMethodBadge paymentMethod={selectedOrder.payment_method} />
                     </div>
                   </div>
-                  
+
                   <div className="customer-contact-modal">
-                    <button 
+                    <button
                       className="btn-call-modal"
                       onClick={() => makeCall(selectedOrder.customer_phone)}
                     >
                       📞 Call Customer
                     </button>
-                    <button 
+                    <button
                       className="btn-sms-modal"
                       onClick={() => sendSMS(selectedOrder.customer_phone)}
                     >
@@ -1604,7 +1603,7 @@ const OrderAssign = () => {
                       {selectedOrder.customer_phone}
                     </span>
                   </div>
-                  
+
                   {isScheduledOrder(selectedOrder) && (
                     <div className="scheduled-order-alert">
                       <span className="scheduled-icon-large">⏰</span>
@@ -1682,18 +1681,18 @@ const OrderAssign = () => {
             <div className="modal">
               <div className="modal-header">
                 <h2>Order Location - #{selectedOrder.id}</h2>
-                <button 
+                <button
                   className="close-btn"
                   onClick={closeLocationModal}
                 >
                   ×
                 </button>
               </div>
-              
+
               <div className="modal-content">
                 <div className="map-container">
-                  <div 
-                    ref={mapRef} 
+                  <div
+                    ref={mapRef}
                     className="map"
                     style={{ height: '300px', width: '100%', borderRadius: '8px' }}
                   >
@@ -1706,13 +1705,13 @@ const OrderAssign = () => {
                 <div className="location-details">
                   <h4>Customer Location</h4>
                   <div className="customer-contact-modal">
-                    <button 
+                    <button
                       className="btn-call-modal"
                       onClick={() => makeCall(selectedOrder.customer_phone)}
                     >
                       📞 Call Customer
                     </button>
-                    <button 
+                    <button
                       className="btn-sms-modal"
                       onClick={() => sendSMS(selectedOrder.customer_phone)}
                     >
@@ -1732,7 +1731,7 @@ const OrderAssign = () => {
                     </>
                   )}
                   <div className="delivery-fee-display">
-                    <strong>Delivery Fee:</strong> 
+                    <strong>Delivery Fee:</strong>
                     <span className="delivery-fee-amount">
                       ₹{getDeliveryCharges(selectedOrder).toLocaleString('en-IN')}
                     </span>
@@ -1765,4 +1764,4 @@ const OrderAssign = () => {
   );
 };
 
-export default OrderAssign;
+export default ManualOrderAssign;

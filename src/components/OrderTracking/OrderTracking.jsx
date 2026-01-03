@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../../supabase';
-import Navbar from '../Navbar/Navbar';
 import './OrderTracking.css';
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyCwunFlQtMKPeJ2chyXPm1AKF07SvvqUX0";
@@ -1003,13 +1002,6 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
                 <strong>Phone:</strong> {order.customer_phone}
               </div>
               <div className="order-tracking-info-item">
-                <strong>Verified:</strong> {order.customer_verified ? (
-                  <span className="status-verified success" style={{ fontSize: '10px' }}>Yes</span>
-                ) : (
-                  <span className="status-verified pending" style={{ fontSize: '10px' }}>No</span>
-                )}
-              </div>
-              <div className="order-tracking-info-item">
                 <strong>Address:</strong> {order.delivery_address}
               </div>
               {order.customer_lat && order.customer_lon && (
@@ -1034,13 +1026,6 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
               <h3>Restaurant & Delivery</h3>
               <div className="order-tracking-info-item">
                 <strong>Restaurant:</strong> {order.restaurant_name || 'N/A'}
-              </div>
-              <div className="order-tracking-info-item">
-                <strong>Vendor Accepted:</strong> {order.vendor_accepted ? (
-                  <span className="status-verified success" style={{ fontSize: '10px' }}>Yes</span>
-                ) : (
-                  <span className="status-verified pending" style={{ fontSize: '10px' }}>No</span>
-                )}
               </div>
 
               {order.driver_name && (
@@ -1089,18 +1074,6 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
             {paymentStatus.details && (
               <div className="order-tracking-info-item">
                 <strong>Details:</strong> {paymentStatus.details}
-              </div>
-            )}
-
-            {order.cash > 0 && (
-              <div className="order-tracking-info-item">
-                <strong>Cash Collected:</strong> {formatCurrency(order.cash)}
-              </div>
-            )}
-
-            {order.upi > 0 && (
-              <div className="order-tracking-info-item">
-                <strong>UPI Collected:</strong> {formatCurrency(order.upi)}
               </div>
             )}
 
@@ -1262,7 +1235,6 @@ const OrderTracking = () => {
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapOrder, setMapOrder] = useState(null);
   const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
-  const [showDriverCollectionModal, setShowDriverCollectionModal] = useState(false);
 
   // Load Google Maps API
   useEffect(() => {
@@ -1371,12 +1343,20 @@ const OrderTracking = () => {
 
   // Get unique drivers for filter
   const uniqueDrivers = useMemo(() => {
-    // Use the comprehensive driver list directly from the database
-    return drivers.map(driver => ({
-      name: driver.driver_name,
-      phone: driver.driver_phone
-    })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [drivers]);
+    const driversWithOrders = orders
+      .filter(order => order.driver_name)
+      .map(order => ({
+        name: order.driver_name,
+        phone: order.driver_mobile
+      }));
+
+    // Remove duplicates
+    const unique = Array.from(
+      new Map(driversWithOrders.map(item => [item.phone, item])).values()
+    );
+
+    return unique.sort((a, b) => a.name.localeCompare(b.name));
+  }, [orders]);
 
   const fetchOrders = async () => {
     try {
@@ -1620,145 +1600,6 @@ const OrderTracking = () => {
     setSelectedOrderForAction(null);
   };
 
-  // Driver Collection Summary Modal
-  const DriverCollectionModal = ({ orders, drivers, onClose, formatCurrency }) => {
-    // Aggregate data
-    const driverStats = useMemo(() => {
-      const stats = {};
-
-      // Iterate through orders to build collections list
-      orders.forEach(order => {
-        // Skip unassigned
-        if (!order.driver_name) return;
-
-        // STRICTLY only count DELIVERED orders
-        const status = order.status?.toLowerCase() || '';
-        if (status !== 'delivered') {
-          return;
-        }
-
-        // Use driver_mobile as unique key, fallback to name
-        const key = order.driver_mobile || order.driver_name;
-
-        if (!stats[key]) {
-          // Try to find status from drivers list if available
-          const driverInfo = drivers?.find(d => d.driver_phone === key);
-
-          stats[key] = {
-            name: order.driver_name,
-            mobile: order.driver_mobile || '',
-            ordersCount: 0,
-            cash: 0,
-            upi: 0,
-            total: 0,
-            status: driverInfo?.status || '' // Optional: enrich if possible
-          };
-        }
-
-        const cash = parseFloat(order.cash || 0);
-        const upi = parseFloat(order.upi || 0);
-
-        stats[key].ordersCount += 1;
-        stats[key].cash += cash;
-        stats[key].upi += upi;
-        stats[key].total += (cash + upi);
-      });
-
-      // Convert to array and sort by Total Collected (Desc)
-      return Object.values(stats).sort((a, b) => b.total - a.total);
-    }, [orders, drivers]);
-
-    const grandTotal = driverStats.reduce((acc, curr) => ({
-      cash: acc.cash + curr.cash,
-      upi: acc.upi + curr.upi,
-      total: acc.total + curr.total
-    }), { cash: 0, upi: 0, total: 0 });
-
-    const handleBackdropClick = (e) => {
-      if (e.target === e.currentTarget) onClose();
-    };
-
-    return (
-      <div className="order-tracking-modal-backdrop" onClick={handleBackdropClick}>
-        <div className="order-tracking-modal-content" style={{ maxWidth: '800px' }}>
-          <div className="order-tracking-modal-header">
-            <h2>Driver Collection Summary</h2>
-            <button className="order-tracking-close-btn" onClick={onClose}>×</button>
-          </div>
-
-          <div className="order-tracking-modal-body">
-            <div className="driver-collection-table-container">
-              <table className="order-tracking-orders-table">
-                <thead>
-                  <tr>
-                    <th>Driver Name</th>
-                    <th style={{ textAlign: 'center' }}>Orders</th>
-                    <th style={{ textAlign: 'right' }}>Cash Collected</th>
-                    <th style={{ textAlign: 'right' }}>UPI Collected</th>
-                    <th style={{ textAlign: 'right' }}>Total Collected</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {driverStats.length > 0 ? (
-                    driverStats.map((stat, index) => (
-                      <tr key={index}>
-                        <td>
-                          <div style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            {stat.name}
-                            {stat.status && (
-                              <span
-                                style={{
-                                  width: '8px',
-                                  height: '8px',
-                                  borderRadius: '50%',
-                                  backgroundColor: stat.status === 'online' ? '#22c55e' : '#cbd5e1',
-                                  display: 'inline-block',
-                                  title: stat.status
-                                }}
-                              />
-                            )}
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>{stat.mobile}</div>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>{stat.ordersCount}</td>
-                        <td style={{ textAlign: 'right', color: '#059669', fontFamily: 'monospace' }}>{formatCurrency(stat.cash)}</td>
-                        <td style={{ textAlign: 'right', color: '#7c3aed', fontFamily: 'monospace' }}>{formatCurrency(stat.upi)}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(stat.total)}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="5" style={{ textAlign: 'center', padding: '30px' }}>
-                        No driver collection data available for the current filter.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-                {driverStats.length > 0 && (
-                  <tfoot>
-                    <tr style={{ background: '#f8fafc', borderTop: '2px solid #e2e8f0' }}>
-                      <td style={{ fontWeight: 'bold' }}>GRAND TOTAL</td>
-                      <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{driverStats.reduce((a, b) => a + b.ordersCount, 0)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#059669' }}>{formatCurrency(grandTotal.cash)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#7c3aed' }}>{formatCurrency(grandTotal.upi)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '15px' }}>{formatCurrency(grandTotal.total)}</td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
-
-            <div className="order-tracking-modal-actions" style={{ justifyContent: 'flex-end', marginTop: '20px' }}>
-              <button onClick={onClose} className="order-tracking-action-btn order-tracking-secondary">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const getOrdersForSelectedDate = () => {
     if (!selectedDate) return [];
     return orders.filter(order => {
@@ -1916,7 +1757,7 @@ const OrderTracking = () => {
   if (loading) {
     return (
       <>
-        <Navbar />
+
         <div className="order-tracking-loading-container">
           <div className="order-tracking-loading-spinner"></div>
           <p>Loading orders...</p>
@@ -1927,7 +1768,6 @@ const OrderTracking = () => {
 
   return (
     <>
-      <Navbar />
       <div className="order-tracking">
         {error && (
           <div className="order-tracking-error-banner">
@@ -1958,16 +1798,8 @@ const OrderTracking = () => {
                 Today
               </button>
             )}
-            <button
-              onClick={() => setShowDriverCollectionModal(true)}
-              className="order-tracking-toggle-btn"
-              style={{ backgroundColor: '#10b981', color: 'white', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}
-            >
-              <span>💰</span> Collections
-            </button>
           </div>
         </div>
-
 
         {/* Enhanced Filters */}
         <div className="order-tracking-filters-section">
@@ -2089,11 +1921,16 @@ const OrderTracking = () => {
           <table className="order-tracking-orders-table">
             <thead>
               <tr>
-                <th style={{ width: '120px' }}>Order Details</th>
-                <th style={{ minWidth: '250px' }}>Route Details</th>
-                <th style={{ minWidth: '200px' }}>Driver Info</th>
-                <th style={{ minWidth: '180px', textAlign: 'right' }}>Financials</th>
-                <th style={{ width: '140px', textAlign: 'center' }}>Status</th>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Restaurant</th>
+                <th>Driver</th>
+                <th>Payment Type</th>
+                <th>Driver Status</th>
+                <th>Amount</th>
+                <th>Payment Status</th>
+                <th>Status</th>
+                <th>Date</th>
               </tr>
             </thead>
             <tbody>
@@ -2110,111 +1947,90 @@ const OrderTracking = () => {
 
                 return (
                   <tr key={order.id} className="order-tracking-order-row" onClick={() => openOrderDetails(order)}>
-                    {/* 1. Order Identity */}
                     <td>
-                      <div className="order-identity-cell">
-                        <span className="order-id-large">#{order.receipt_reference || order.id}</span>
-                        <span className="order-date-small">{formatDate(order.created_at)}</span>
+                      <strong>#{order.id}</strong>
+                      <div className="order-tracking-order-meta">
                         <span className={`order-tracking-payment-method order-tracking-payment-${paymentMethod?.replace(' ', '-')}`}>
                           {paymentType}
                         </span>
                       </div>
                     </td>
-
-                    {/* 2. Route Details (Restaurant -> Customer) */}
                     <td>
-                      <div className="route-cell">
-                        {/* Restaurant */}
-                        <div className="route-point restaurant">
-                          <div className="route-entity-name">
-                            {order.restaurant_name || 'N/A'}
-                            {order.vendor_accepted ? (
-                              <span className="verified-badge-mini success" title="Vendor Accepted">✓ ACC</span>
-                            ) : (
-                              <span className="verified-badge-mini pending" title="Vendor Pending">-</span>
-                            )}
+                      <div className="order-tracking-customer-info">
+                        <span className="order-tracking-customer-name">{order.customer_name}</span>
+                        <span className="order-tracking-customer-phone">{order.customer_phone}</span>
+                        {order.customer_lat && order.customer_lon && (
+                          <div className="order-tracking-location-info">
+                            <span className="order-tracking-location-coords">
+                              📍 {order.customer_lat.toFixed(4)}, {order.customer_lon.toFixed(4)}
+                            </span>
                           </div>
-                        </div>
-
-                        {/* Customer */}
-                        <div className="route-point customer">
-                          <div className="route-entity-name">
-                            {order.customer_name}
-                            {order.customer_verified ? (
-                              <span className="verified-badge-mini success" title="Customer Verified">✓ VER</span>
-                            ) : (
-                              <span className="verified-badge-mini pending" title="Verification Pending">-</span>
-                            )}
-                          </div>
-                          <div className="route-address" title={order.delivery_address}>{order.delivery_address}</div>
-                        </div>
-
-                        {order.delivery_distance_km && (
-                          <span className="order-tracking-distance" style={{ alignSelf: 'flex-start', marginLeft: '12px' }}>
-                            📏 {order.delivery_distance_km} km
-                          </span>
                         )}
                       </div>
                     </td>
-
-                    {/* 3. Driver Info */}
                     <td>
-                      <div className="driver-cell">
+                      <div className="order-tracking-restaurant-info">
+                        <span className="order-tracking-restaurant-name">{order.restaurant_name || 'N/A'}</span>
+                        {order.delivery_distance_km && (
+                          <span className="order-tracking-distance">{order.delivery_distance_km} km</span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="order-tracking-driver-info">
                         {order.driver_name ? (
                           <>
-                            <div className="driver-info-compact">
-                              <div className="driver-avatar-placeholder">👤</div>
-                              <div>
-                                <div className="driver-name">{order.driver_name}</div>
-                                <div className="driver-phone" style={{ fontSize: '11px' }}>{order.driver_mobile}</div>
-                              </div>
-                            </div>
-                            <span className={`order-tracking-driver-status-badge ${getDriverStatusClass(order.driver_status)}`}>
-                              {formatDriverStatus(order.driver_status)}
-                            </span>
-                            {order.pickup_proof_timestamp && (
-                              <div className="order-tracking-pickup-proof-time">
-                                📸 {getISTTime(order.pickup_proof_timestamp)}
-                              </div>
-                            )}
+                            <span className="order-tracking-driver-name">{order.driver_name}</span>
+                            <span className="order-tracking-driver-phone">{order.driver_mobile}</span>
                           </>
                         ) : (
                           <span className="order-tracking-no-driver">Not assigned</span>
                         )}
                       </div>
                     </td>
-
-                    {/* 4. Financials */}
                     <td>
-                      <div className="financials-cell">
-                        <span className="amount-large">{formatCurrency(order.total_amount)}</span>
-                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
-                          {renderPaymentStatus(order)}
-                        </div>
-
-                        {(order.cash > 0 || order.upi > 0) && (
-                          <div className="collection-breakdown">
-                            {order.cash > 0 && (
-                              <span className="collection-item">💵 Cash: {formatCurrency(order.cash)}</span>
-                            )}
-                            {order.upi > 0 && (
-                              <span className="collection-item">📱 UPI: {formatCurrency(order.upi)}</span>
-                            )}
+                      <div className="order-tracking-payment-type-info">
+                        <span className={`payment-type-badge payment-type-${paymentType.toLowerCase().replace(' ', '-')}`}>
+                          {paymentType}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="order-tracking-driver-status-cell">
+                        <span className={`order-tracking-driver-status-badge ${getDriverStatusClass(order.driver_status)}`}>
+                          {formatDriverStatus(order.driver_status)}
+                        </span>
+                        {order.pickup_proof_timestamp && (
+                          <div className="order-tracking-pickup-proof-time">
+                            📸 {getISTTime(order.pickup_proof_timestamp)}
                           </div>
                         )}
                       </div>
                     </td>
-
-                    {/* 5. Status & Actions */}
+                    <td className="order-tracking-amount">
+                      {formatCurrency(order.total_amount)}
+                      {order.delivery_charges && (
+                        <div className="order-tracking-delivery-charge">+₹{order.delivery_charges} delivery</div>
+                      )}
+                    </td>
                     <td>
-                      <div className="status-cell-compact">
-                        <span className={`order-tracking-status-badge order-tracking-status-${normalizeStatus(order.status)}`}>
-                          {normalizeStatus(order.status).toUpperCase()}
-                        </span>
-                        {order.otp && normalizeStatus(order.status) !== 'delivered' && (
-                          <div className="order-tracking-otp-badge">OTP: {order.otp}</div>
-                        )}
-                      </div>
+                      {renderPaymentStatus(order)}
+                    </td>
+                    <td>
+                      <span className={`order-tracking-status-badge order-tracking-status-${normalizeStatus(order.status)}`}>
+                        {normalizeStatus(order.status).toUpperCase()}
+                      </span>
+                      {order.otp && normalizeStatus(order.status) !== 'delivered' && (
+                        <div className="order-tracking-otp-badge">OTP: {order.otp}</div>
+                      )}
+                    </td>
+                    <td>
+                      {formatDate(order.created_at)}
+                      {order.delivery_time && (
+                        <div className="order-tracking-delivery-time">
+                          Deliver by: {formatDate(order.delivery_time)}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -2300,16 +2116,6 @@ const OrderTracking = () => {
           <MapModal
             order={mapOrder}
             onClose={closeMapModal}
-          />
-        )}
-
-        {/* Driver Collection Modal */}
-        {showDriverCollectionModal && (
-          <DriverCollectionModal
-            orders={filteredOrders}
-            drivers={drivers}
-            onClose={() => setShowDriverCollectionModal(false)}
-            formatCurrency={formatCurrency}
           />
         )}
       </div>

@@ -18,11 +18,11 @@ const FoodManagement = () => {
   const [editingCategory, setEditingCategory] = useState(null);
 
   // Predefined categories
-  const foodCategories = [ "Offers",
-    "Biryani", "Pizza","Snacks", "Burger", "Fried Chicken", "Mutton", "Chicken", 
-    "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice", 
-    "Naan & Gravy", "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee", 
-    "Shakes", "Mojito", "Cake's", "Ice Cream", "Fresh Juice","Crispy","Sandwich","Sweets","Momos","Bday Cake" ,"Tea","Maggi", "Chilli Chicken","Pasta" ,"Mocktail"
+  const foodCategories = ["Offers",
+    "Biryani", "Pizza", "Snacks", "Burger", "Fried Chicken", "Mutton", "Chicken",
+    "Sea Foods", "South Indian", "Dosa", "Parotta", "Fried Rice",
+    "Naan & Gravy", "Noodles", "Veg", "Rolls", "Soup", "Tea", "Coffee",
+    "Shakes", "Mojito", "Cake's", "Ice Cream", "Fresh Juice", "Crispy", "Sandwich", "Sweets", "Momos", "Bday Cake", "Tea", "Maggi", "Chilli Chicken", "Pasta", "Mocktail"
   ];
 
   // Time slots
@@ -341,9 +341,9 @@ const FoodManagement = () => {
     try {
       setLoading(true);
 
-      const updatedFood = { 
-        ...foodItem, 
-        [timeSlot]: !foodItem[timeSlot] 
+      const updatedFood = {
+        ...foodItem,
+        [timeSlot]: !foodItem[timeSlot]
       };
       const result = await updateFoodItem(updatedFood);
 
@@ -366,9 +366,9 @@ const FoodManagement = () => {
     try {
       setLoading(true);
 
-      const updatedFood = { 
-        ...foodItem, 
-        stock: !foodItem.stock 
+      const updatedFood = {
+        ...foodItem,
+        stock: !foodItem.stock
       };
       const result = await updateFoodItem(updatedFood);
 
@@ -389,7 +389,7 @@ const FoodManagement = () => {
   // Bulk time slot actions
   const handleBulkTimeSlotAction = async (timeSlot, value) => {
     if (!selectedRestaurant) return;
-    
+
     try {
       await bulkUpdateTimeSlots(filteredFoodItems, timeSlot, value);
     } catch (error) {
@@ -400,7 +400,7 @@ const FoodManagement = () => {
   // Bulk stock action
   const handleBulkStockAction = async (stockStatus) => {
     if (!selectedRestaurant) return;
-    
+
     try {
       await bulkUpdateStockStatus(filteredFoodItems, stockStatus);
     } catch (error) {
@@ -432,15 +432,15 @@ const FoodManagement = () => {
   // Enhanced filter logic
   const filteredFoodItems = foodItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.category.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = !searchCategory || 
-                           item.category.toLowerCase() === searchCategory.toLowerCase();
-    
-    const matchesType = !searchType || 
-                       (searchType === 'veg' && item.veg) ||
-                       (searchType === 'non-veg' && !item.veg);
-    
+      item.category.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesCategory = !searchCategory ||
+      item.category.toLowerCase() === searchCategory.toLowerCase();
+
+    const matchesType = !searchType ||
+      (searchType === 'veg' && item.veg) ||
+      (searchType === 'non-veg' && !item.veg);
+
     return matchesSearch && matchesCategory && matchesType;
   });
 
@@ -458,7 +458,6 @@ const FoodManagement = () => {
 
   return (
     <>
-      <Navbar />
       <div className="food-management">
         <div className="container">
           {error && (
@@ -661,7 +660,7 @@ const FoodManagement = () => {
                       <h4>Bulk Actions</h4>
                       <p>Apply changes to all filtered items ({filteredFoodItems.length} items)</p>
                     </div>
-                    
+
                     <div className="bulk-action-groups">
                       {/* Time Slot Bulk Actions */}
                       <div className="bulk-action-group">
@@ -735,7 +734,7 @@ const FoodManagement = () => {
                     </button>
                   )}
                 </div>
-                
+
                 <div className="filter-controls">
                   {/* Category Filter */}
                   <div className="filter-group">
@@ -874,8 +873,8 @@ const FoodManagement = () => {
                             <div className="empty-state">
                               <div className="empty-icon">🍕</div>
                               <h3>{
-                                searchTerm || searchCategory || searchType 
-                                  ? 'No food items match your search' 
+                                searchTerm || searchCategory || searchType
+                                  ? 'No food items match your search'
                                   : 'No food items in this restaurant'
                               }</h3>
                               <p>
@@ -947,7 +946,7 @@ const FoodManagement = () => {
                                 </div>
                               ) : (
                                 <div className="category-display">
-                                  <span 
+                                  <span
                                     className="category-value"
                                     onClick={() => handleCategoryEdit(item)}
                                     title="Click to edit category"

@@ -138,7 +138,7 @@ const DriverTracking = () => {
     if (currentDriver && currentDriver.status === 'online' && isAutoUpdating) {
       // Update location immediately
       getCurrentLocation();
-      
+
       // Set up interval for auto location updates
       locationTimerRef.current = setInterval(() => {
         getCurrentLocation();
@@ -184,11 +184,11 @@ const DriverTracking = () => {
     const R = 6371; // Earth's radius in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
@@ -238,7 +238,7 @@ const DriverTracking = () => {
         if (newMarkers[driver.id]) {
           // Update existing marker position
           newMarkers[driver.id].setPosition(position);
-          
+
           // Update marker color based on service area
           newMarkers[driver.id].setIcon({
             url: '/bike.png',
@@ -346,7 +346,7 @@ const DriverTracking = () => {
         (position) => {
           const { latitude, longitude } = position.coords;
           updateDriverLocation(latitude, longitude);
-          
+
           // Center map on current location
           if (map) {
             map.setCenter({ lat: latitude, lng: longitude });
@@ -370,7 +370,7 @@ const DriverTracking = () => {
     if (!currentDriver) return;
 
     const newStatus = currentDriver.status === 'online' ? 'offline' : 'online';
-    
+
     const { error } = await supabase
       .from('driver')
       .update({
@@ -421,7 +421,6 @@ const DriverTracking = () => {
 
   return (
     <>
-      <Navbar />
       <div className="driver-tracking-container">
         <div className="tracking-header">
           <div className="header-left">
@@ -437,20 +436,20 @@ const DriverTracking = () => {
                     {currentDriver.status}
                   </span>
                 </div>
-                <button 
+                <button
                   className={`status-toggle-btn ${currentDriver.status}`}
                   onClick={toggleOnlineStatus}
                 >
                   Go {currentDriver.status === 'online' ? 'Offline' : 'Online'}
                 </button>
-                <button 
+                <button
                   className="update-location-btn"
                   onClick={getCurrentLocation}
                   disabled={currentDriver.status !== 'online'}
                 >
                   Update My Location
                 </button>
-                <button 
+                <button
                   className="center-map-btn"
                   onClick={centerOnManapparai}
                 >
@@ -459,7 +458,7 @@ const DriverTracking = () => {
               </>
             )}
             <div className="refresh-controls">
-              <button 
+              <button
                 className={`refresh-btn ${isAutoUpdating ? 'auto-updating' : ''}`}
                 onClick={handleRefresh}
               >
@@ -469,7 +468,7 @@ const DriverTracking = () => {
                 <span className="timer-label">Next update:</span>
                 <span className="timer-value">{formatTime(timeLeft)}</span>
               </div>
-              <button 
+              <button
                 className={`auto-update-btn ${isAutoUpdating ? 'active' : ''}`}
                 onClick={toggleAutoUpdate}
               >
@@ -505,9 +504,9 @@ const DriverTracking = () => {
             {drivers
               .filter(driver => driver.status === 'online')
               .map(driver => {
-                const withinServiceArea = driver.latitude && driver.longitude && 
+                const withinServiceArea = driver.latitude && driver.longitude &&
                   isWithinServiceArea(driver.latitude, driver.longitude);
-                const distance = driver.latitude && driver.longitude ? 
+                const distance = driver.latitude && driver.longitude ?
                   calculateDistance(driver.latitude, driver.longitude, MANAPPARAI_CENTER.lat, MANAPPARAI_CENTER.lng) : null;
 
                 return (
@@ -516,7 +515,7 @@ const DriverTracking = () => {
                       <img src="/bike.png" alt="Driver" />
                     </div>
                     <div className="driver-info">
-                      <h4 
+                      <h4
                         className="driver-name-clickable"
                         onClick={() => handleDriverCardClick(driver)}
                       >
@@ -553,7 +552,7 @@ const DriverTracking = () => {
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2>Driver Details</h2>
-                <button 
+                <button
                   className="modal-close-btn"
                   onClick={() => setShowDriverModal(false)}
                 >
@@ -621,7 +620,7 @@ const DriverTracking = () => {
                 </div>
               </div>
               <div className="modal-footer">
-                <button 
+                <button
                   className="modal-close-button"
                   onClick={() => setShowDriverModal(false)}
                 >
