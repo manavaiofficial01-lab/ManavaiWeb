@@ -295,8 +295,12 @@ const DaybyDayRevenue = () => {
 
       if (orders) {
         // Filter orders by IST date and delivered status
-        const filteredOrders = orders.filter(order => {
+        const filteredOrders = orders.map(order => ({
+          ...order,
+          status: order.status ? order.status.toLowerCase() : 'processing'
+        })).filter(order => {
           const istDate = getISTDate(order.created_at);
+          // Check for 'delivered' status case-insensitively (already lowercased above)
           return istDate === selectedDate && order.status === 'delivered';
         });
 
@@ -472,10 +476,19 @@ const DaybyDayRevenue = () => {
       // Get Tamil Nadu time for the order
       const tamilNaduTime = getTamilNaduTime(order.created_at);
 
+      // Collection Amount Calculation for comparison
+      const cashCol = parseFloat(order.cash) || 0;
+      const upiCol = parseFloat(order.upi) || 0;
+      const pMethod = (order.payment_method || '').toLowerCase();
+      const isOnlineOrder = pMethod.includes('online') || pMethod.includes('card') || pMethod.includes('wallet');
+      const onlineCol = isOnlineOrder ? orderRevenue : 0;
+      const collectionAmount = cashCol + upiCol + onlineCol;
+
       return {
         ...order,
         items: itemsWithProfit,
         orderRevenue,
+        collectionAmount, // Added for UI comparison
         itemsTotalAmount, // NEW: Total of item prices only
         deliveryCharges,
         driverEarnings,
@@ -717,7 +730,14 @@ const DaybyDayRevenue = () => {
               </td>
               <td className="profit-items-amount">{formatCurrency(order.itemsTotalAmount)}</td> {/* Items Amount */}
               <td className="profit-delivery-charges">{formatCurrency(order.deliveryCharges)}</td>
-              <td className="profit-revenue">{formatCurrency(order.orderRevenue)}</td> {/* Total Revenue */}
+              <td className="profit-revenue">
+                {formatCurrency(order.orderRevenue)}
+                {Math.abs(order.collectionAmount - order.orderRevenue) > 1 && (
+                  <div style={{ fontSize: '0.75rem', color: order.collectionAmount > order.orderRevenue ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
+                    (Coll: {formatCurrency(order.collectionAmount)})
+                  </div>
+                )}
+              </td> {/* Total Revenue */}
               <td className="profit-driver-earnings">-{formatCurrency(order.driverEarnings)}</td>
               <td className="profit-admin-earnings profit-positive">
                 +{formatCurrency(order.adminEarnings)}

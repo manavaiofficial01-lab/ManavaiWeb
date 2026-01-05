@@ -1211,6 +1211,279 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
   );
 };
 
+// Collections Modal Component
+// Collections Modal Component
+// Collections Modal Component
+const CollectionsModal = ({ date, orders, drivers, onClose, formatCurrency }) => {
+  // Calculate collection stats for the specific date
+  const stats = useMemo(() => {
+    // Filter orders for the selected date AND delivered status
+    const daysOrders = orders.filter(order => {
+      // Use the same date comparison logic as the main component
+      try {
+        const orderDate = new Date(order.created_at);
+        const istDateString = orderDate.toLocaleDateString('en-CA', {
+          timeZone: 'Asia/Kolkata'
+        });
+
+        // Also check if time is after 12 AM (standard check in this app)
+        const istTime = orderDate.toLocaleTimeString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        const [hours, minutes] = istTime.split(':').map(Number);
+        const isAfterMidnight = hours >= 0 && minutes >= 0;
+
+        // Check if status is delivered
+        const normalizeStatus = (status) => {
+          if (!status) return 'processing';
+          const statusMap = {
+            'accessing': 'processing', 'processing': 'processing', 'confirmed': 'processing',
+            'paid': 'processing', 'shipped': 'shipped', 'delivered': 'delivered', 'cancelled': 'cancelled'
+          };
+          return statusMap[status.toLowerCase()] || 'processing';
+        };
+
+        const isDelivered = normalizeStatus(order.status) === 'delivered';
+
+        return istDateString === date && isAfterMidnight && isDelivered;
+      } catch (e) {
+        return false;
+      }
+    });
+
+    let totalDriverCash = 0;
+    let totalDriverUpi = 0;
+    let totalOnlineRevenue = 0;
+
+    // Group by Driver - Initialize with ALL drivers from the DB
+    const driverStatsMap = {};
+
+    // Initialize stats for all known drivers
+    drivers.forEach(driver => {
+      if (driver.driver_phone) {
+        driverStatsMap[driver.driver_phone] = {
+          name: driver.driver_name,
+          phone: driver.driver_phone,
+          cash: 0,
+          upi: 0,
+          online: 0,
+          online: 0,
+          total: 0,
+          expectedRevenue: 0,
+          ordersCount: 0
+        };
+      }
+    });
+
+    daysOrders.forEach(order => {
+      // Determine stats for this order
+      const cashAmt = Number(order.cash || 0);
+      const upiAmt = Number(order.upi || 0);
+
+      const paymentMethod = order.payment_method?.toLowerCase() || '';
+      const isOnline = paymentMethod.includes('online') ||
+        paymentMethod.includes('card') ||
+        paymentMethod.includes('wallet');
+      const onlineAmt = isOnline ? Number(order.total_amount || 0) : 0;
+
+      // Global Totals
+      totalDriverCash += cashAmt;
+      totalDriverUpi += upiAmt;
+      totalOnlineRevenue += onlineAmt;
+
+      // Match order to driver using phone number
+      const driverPhone = order.driver_mobile;
+
+      if (driverPhone) {
+        // If driver isn't in our map (maybe deleted or new?), add them
+        if (!driverStatsMap[driverPhone]) {
+          driverStatsMap[driverPhone] = {
+            name: order.driver_name || 'Unknown',
+            phone: driverPhone,
+            cash: 0,
+            upi: 0,
+            online: 0,
+            total: 0,
+            expectedRevenue: 0,
+            ordersCount: 0
+          };
+        }
+
+        const driverStats = driverStatsMap[driverPhone];
+        driverStats.cash += cashAmt;
+        driverStats.upi += upiAmt;
+        driverStats.online += onlineAmt;
+        driverStats.total += Number(order.total_amount || 0);
+        driverStats.expectedRevenue += Number(order.total_amount || 0);
+        driverStats.ordersCount += 1;
+      }
+    });
+
+    // Convert map to array and sort by total revenue desc
+    const driverStatsList = Object.values(driverStatsMap).sort((a, b) => b.total - a.total);
+
+    // Calculate expected total revenue (sum of order amounts)
+    const expectedRevenue = daysOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+    const discrepancy = (totalDriverCash + totalDriverUpi + totalOnlineRevenue) - expectedRevenue;
+
+    return {
+      totalDriverCash,
+      totalDriverUpi,
+      totalOnlineRevenue,
+      totalRevenue: totalDriverCash + totalDriverUpi + totalOnlineRevenue,
+      expectedRevenue,
+      discrepancy,
+      count: daysOrders.length,
+      driverStatsList
+    };
+  }, [date, orders, drivers]);
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const getDayLabel = (dateStr) => {
+    try {
+      const dateObj = new Date(dateStr);
+      return dateObj.toLocaleDateString('en-IN', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  return (
+    <div className="order-tracking-modal-backdrop" onClick={handleBackdropClick}>
+      <div className="order-tracking-modal-content collections-modal" style={{ maxWidth: '800px', width: '90%' }}>
+        <div className="order-tracking-modal-header">
+          <h2>
+            <span style={{ marginRight: '10px' }}>📊</span>
+            Collections for {getDayLabel(date)}
+          </h2>
+          <button className="order-tracking-close-btn" onClick={onClose}>×</button>
+        </div>
+
+        <div className="order-tracking-modal-body">
+          {/* Summary Cards */}
+          <div className="collections-summary-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px',
+            marginBottom: '24px'
+          }}>
+            <div className="collections-summary-card" style={{
+              background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+              padding: '16px', borderRadius: '12px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+            }}>
+              <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '4px' }}>Total Collections</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2d3436' }}>{formatCurrency(stats.totalRevenue)}</div>
+              <div style={{ fontSize: '11px', color: '#adb5bd' }}>
+                Exp: {formatCurrency(stats.expectedRevenue)}
+                {stats.discrepancy !== 0 && (
+                  <span style={{
+                    marginLeft: '4px',
+                    color: stats.discrepancy > 0 ? '#28a745' : '#dc3545',
+                    fontWeight: 'bold'
+                  }}>
+                    ({stats.discrepancy > 0 ? '+' : ''}{formatCurrency(stats.discrepancy)})
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="collections-summary-card" style={{
+              background: '#d4edda', padding: '16px', borderRadius: '12px', textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '12px', color: '#155724', marginBottom: '4px' }}>Total Driver Cash</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>{formatCurrency(stats.totalDriverCash)}</div>
+            </div>
+            <div className="collections-summary-card" style={{
+              background: '#cce5ff', padding: '16px', borderRadius: '12px', textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '12px', color: '#004085', marginBottom: '4px' }}>Total Driver UPI</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#007bff' }}>{formatCurrency(stats.totalDriverUpi)}</div>
+            </div>
+            <div className="collections-summary-card" style={{
+              background: '#e2e3e5', padding: '16px', borderRadius: '12px', textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '12px', color: '#383d41', marginBottom: '4px' }}>Total Online</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#6c757d' }}>{formatCurrency(stats.totalOnlineRevenue)}</div>
+            </div>
+          </div>
+
+          <h3 style={{ marginBottom: '16px', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>👤</span> Driver-wise Collection Summary
+          </h3>
+
+          <div className="collections-table-container" style={{ overflowX: 'auto', maxHeight: '400px', overflowY: 'auto' }}>
+            <table className="order-tracking-orders-table" style={{ fontSize: '14px' }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '12px', position: 'sticky', top: 0, background: '#f8f9fa', zIndex: 1 }}>Driver Name</th>
+                  <th style={{ padding: '12px', position: 'sticky', top: 0, background: '#f8f9fa', zIndex: 1, textAlign: 'center' }}>Orders</th>
+                  <th style={{ padding: '12px', position: 'sticky', top: 0, background: '#f8f9fa', zIndex: 1, textAlign: 'right' }}>Cash Collected</th>
+                  <th style={{ padding: '12px', position: 'sticky', top: 0, background: '#f8f9fa', zIndex: 1, textAlign: 'right' }}>UPI Collected</th>
+                  <th style={{ padding: '12px', position: 'sticky', top: 0, background: '#f8f9fa', zIndex: 1, textAlign: 'right' }}>Online Orders</th>
+                  <th style={{ padding: '12px', position: 'sticky', top: 0, background: '#f8f9fa', zIndex: 1, textAlign: 'right' }}>Total Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.driverStatsList.map((driver, index) => (
+                  <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: '12px' }}>
+                      <div style={{ fontWeight: '600', color: '#2d3436' }}>{driver.name}</div>
+                      <div style={{ fontSize: '11px', color: '#adb5bd' }}>{driver.phone}</div>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <span style={{
+                        background: driver.ordersCount > 0 ? '#e9ecef' : '#f8f9fa',
+                        color: driver.ordersCount > 0 ? '#212529' : '#adb5bd',
+                        padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold'
+                      }}>
+                        {driver.ordersCount}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: driver.cash > 0 ? '#28a745' : '#dee2e6' }}>
+                      {driver.cash > 0 ? formatCurrency(driver.cash) : '0'}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: driver.upi > 0 ? '#007bff' : '#dee2e6' }}>
+                      {driver.upi > 0 ? formatCurrency(driver.upi) : '0'}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'right', color: driver.online > 0 ? '#6c757d' : '#dee2e6' }}>
+                      {driver.online > 0 ? formatCurrency(driver.online) : '0'}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: driver.total > 0 ? '#212529' : '#dee2e6' }}>
+                      {driver.total > 0 ? formatCurrency(driver.total) : '0'}
+                    </td>
+                  </tr>
+                ))}
+                {stats.driverStatsList.length === 0 && (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: '#6c757d' }}>
+                      No drivers found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="order-tracking-modal-actions" style={{ marginTop: '24px' }}>
+            <button onClick={onClose} className="order-tracking-action-btn order-tracking-secondary" style={{ width: '100%' }}>
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main OrderTracking Component
 const OrderTracking = () => {
   const [orders, setOrders] = useState([]);
@@ -1233,6 +1506,7 @@ const OrderTracking = () => {
   const [driverFilter, setDriverFilter] = useState('all');
   const [showCalendar, setShowCalendar] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
+  const [showCollectionsModal, setShowCollectionsModal] = useState(false);
   const [mapOrder, setMapOrder] = useState(null);
   const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
 
@@ -1600,6 +1874,8 @@ const OrderTracking = () => {
     setSelectedOrderForAction(null);
   };
 
+
+
   const getOrdersForSelectedDate = () => {
     if (!selectedDate) return [];
     return orders.filter(order => {
@@ -1794,9 +2070,19 @@ const OrderTracking = () => {
               </button>
             </div>
             {viewMode === 'calendar' && (
-              <button onClick={goToToday} className="order-tracking-toggle-btn order-tracking-today-btn">
-                Today
-              </button>
+              <>
+                <button
+                  onClick={() => setShowCollectionsModal(true)}
+                  className="order-tracking-toggle-btn order-tracking-collections-btn"
+                  title="View Daily Collections"
+                  style={{ marginRight: '8px', backgroundColor: '#6c5ce7', color: 'white', border: 'none' }}
+                >
+                  📊 Collections
+                </button>
+                <button onClick={goToToday} className="order-tracking-toggle-btn order-tracking-today-btn">
+                  Today
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -1928,7 +2214,8 @@ const OrderTracking = () => {
                 <th>Payment Type</th>
                 <th>Driver Status</th>
                 <th>Amount</th>
-                <th>Payment Status</th>
+                <th>Cash</th>
+                <th>UPI</th>
                 <th>Status</th>
                 <th>Date</th>
               </tr>
@@ -2014,7 +2301,15 @@ const OrderTracking = () => {
                       )}
                     </td>
                     <td>
-                      {renderPaymentStatus(order)}
+                      {order.cash || 0}
+                      {(order.payment_method?.toLowerCase().includes('cash') || order.payment_method?.toLowerCase().includes('cod')) &&
+                        normalizeStatus(order.status) === 'delivered' &&
+                        Math.abs((Number(order.cash || 0) + Number(order.upi || 0)) - Number(order.total_amount)) > 1 && (
+                          <span title={`Mismatch! Total: ${order.total_amount}, Collected: ${(Number(order.cash || 0) + Number(order.upi || 0))}`} style={{ marginLeft: '4px', cursor: 'help' }}>⚠️</span>
+                        )}
+                    </td>
+                    <td>
+                      {order.upi || 0}
                     </td>
                     <td>
                       <span className={`order-tracking-status-badge order-tracking-status-${normalizeStatus(order.status)}`}>
@@ -2116,6 +2411,17 @@ const OrderTracking = () => {
           <MapModal
             order={mapOrder}
             onClose={closeMapModal}
+          />
+        )}
+
+        {/* Collections Modal */}
+        {showCollectionsModal && selectedDate && (
+          <CollectionsModal
+            date={selectedDate}
+            orders={orders}
+            drivers={drivers}
+            onClose={() => setShowCollectionsModal(false)}
+            formatCurrency={formatCurrency}
           />
         )}
       </div>

@@ -215,37 +215,49 @@ const AiOrderAssignment = () => {
         if (!isAutoMode || orders.length === 0 || drivers.length === 0) return;
 
         const autoAssignLoop = async () => {
+            // Keep a local track of assignments made in this specific loop iteration
+            // to prevent overloading a driver before the next fetchDrivers sync
+            const localDriverBusyCounts = {};
+
             for (const order of orders) {
                 // Skip if already processing
                 if (processingOrders.has(order.id)) continue;
 
                 const allDrivers = getDriversWithDistance(order);
                 if (allDrivers.length > 0) {
-                    // 1. Try to find the closest driver with 0 active orders
-                    const freeDrivers = allDrivers.filter(d => (d.activeOrderCount || 0) === 0);
+                    // Combine database count with local loop count
+                    const getEffectiveCount = (d) => (d.activeOrderCount || 0) + (localDriverBusyCounts[d.driver_name] || 0);
+
+                    // 1. Try to find the closest driver who is completely free (0 orders)
+                    const freeDrivers = allDrivers.filter(d => getEffectiveCount(d) === 0);
 
                     let targetDriver = null;
                     if (freeDrivers.length > 0) {
                         targetDriver = freeDrivers[0]; // Closest among the free ones
-                        console.log(`Auto-Pilot: Closest free driver found: ${targetDriver.driver_name}`);
+                        console.log(`Auto-Pilot: Closest free driver found for Order #${order.id}: ${targetDriver.driver_name}`);
                     } else {
-                        // 2. All drivers are busy, pick a random online driver
-                        const randomIndex = Math.floor(Math.random() * allDrivers.length);
-                        targetDriver = allDrivers[randomIndex];
-                        console.log(`Auto-Pilot: All drivers busy, picking random: ${targetDriver.driver_name}`);
+                        // 2. All drivers are busy, find the one with the LEAST number of orders
+                        // Sort by order count, then by distance as a tie-breaker
+                        const leastBusyDrivers = [...allDrivers].sort((a, b) => {
+                            const countA = getEffectiveCount(a);
+                            const countB = getEffectiveCount(b);
+                            if (countA !== countB) return countA - countB;
+                            return a.distance - b.distance; // Tie-breaker: closest
+                        });
+
+                        targetDriver = leastBusyDrivers[0];
+                        console.log(`Auto-Pilot: All drivers busy. Assigning Order #${order.id} to least busy: ${targetDriver.driver_name} (${getEffectiveCount(targetDriver)} orders)`);
                     }
 
-                    // Mark as processing to prevent duplicate attempts
-                    setProcessingOrders(prev => new Set(prev).add(order.id));
+                    if (targetDriver) {
+                        // Mark as processing locally to prevent duplicate attempts in this session
+                        setProcessingOrders(prev => new Set(prev).add(order.id));
 
-                    await assignDriver(order.id, targetDriver, true); // true = silent mode
+                        // Increment local count so the next order in this loop doesn't ignore this assignment
+                        localDriverBusyCounts[targetDriver.driver_name] = (localDriverBusyCounts[targetDriver.driver_name] || 0) + 1;
 
-                    // Remove from processing (though it should disappear from orders list shortly)
-                    setProcessingOrders(prev => {
-                        const next = new Set(prev);
-                        next.delete(order.id);
-                        return next;
-                    });
+                        await assignDriver(order.id, targetDriver, true); // true = silent mode
+                    }
                 }
             }
         };
