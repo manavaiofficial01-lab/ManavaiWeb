@@ -13,7 +13,6 @@ const AiOrderAssignment = () => {
     const [isAutoMode, setIsAutoMode] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [assignmentStatus, setAssignmentStatus] = useState(null);
-    const [activeTab, setActiveTab] = useState('regular'); // 'regular' or 'scheduled'
     const [processingOrders, setProcessingOrders] = useState(new Set());
     const isFirstLoadRef = useRef(true);
     const audioRef = useRef(null);
@@ -39,22 +38,13 @@ const AiOrderAssignment = () => {
             let query = supabase
                 .from('orders')
                 .select('*')
-                .is('driver_name', null)
-                .in('status', ['confirmed', 'processing', 'prepared', 'ready_for_pickup'])
+                .or('driver_name.is.null,driver_name.eq.""')
+                .or('driver_mobile.is.null,driver_mobile.eq.""')
+                .in('status', ['confirmed', 'paid', 'processing', 'prepared', 'ready_for_pickup'])
                 .neq('status', 'cancelled')
                 .neq('status', 'delivered');
 
-            if (activeTab === 'scheduled') {
-                // Scheduled orders
-                query = query
-                    .not('delivery_time', 'is', null)
-                    .order('delivery_time', { ascending: true });
-            } else {
-                // Regular orders (exclude scheduled)
-                query = query
-                    .is('delivery_time', null)
-                    .order('created_at', { ascending: false });
-            }
+            query = query.order('created_at', { ascending: false });
 
             const { data, error } = await query;
             if (error) throw error;
@@ -125,7 +115,7 @@ const AiOrderAssignment = () => {
             orderSub.unsubscribe();
             driverSub.unsubscribe();
         };
-    }, [activeTab]); // Refetch when tab changes
+    }, []); // Removed activeTab dependency
 
     // Calculate distance details for a specific order against all drivers
     const getDriversWithDistance = (order) => {
@@ -258,20 +248,6 @@ const AiOrderAssignment = () => {
                 <div className="assignment-header">
                     <div className="header-left">
                         <h1>Order Assignment</h1>
-                        <div className="tabs">
-                            <button
-                                className={`tab-btn ${activeTab === 'regular' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('regular')}
-                            >
-                                Regular
-                            </button>
-                            <button
-                                className={`tab-btn ${activeTab === 'scheduled' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('scheduled')}
-                            >
-                                Scheduled
-                            </button>
-                        </div>
                     </div>
 
                     <div className="assignment-mode-toggle">
@@ -296,12 +272,11 @@ const AiOrderAssignment = () => {
                     {/* Orders List */}
                     <div className="assignment-section orders-section">
                         <h2>
-                            {activeTab === 'scheduled' ? 'Scheduled Orders' : 'Unassigned Orders'}
-                            ({orders.length})
+                            Unassigned Orders ({orders.length})
                         </h2>
                         {isAutoMode && <div className="auto-pilot-indicator">Scanning for orders... 📡</div>}
                         {orders.length === 0 ? (
-                            <div className="no-data">No {activeTab} orders</div>
+                            <div className="no-data">No unassigned orders found</div>
                         ) : (
                             <div className="orders-list">
                                 {orders.map(order => (
@@ -313,8 +288,8 @@ const AiOrderAssignment = () => {
                                         <div className="order-card-header">
                                             <span className="order-id">#{order.id}</span>
                                             <span className="order-time">
-                                                {activeTab === 'scheduled' && '🕒 '}
-                                                {activeTab === 'scheduled'
+                                                {order.delivery_time && '🕒 '}
+                                                {order.delivery_time
                                                     ? new Date(order.delivery_time).toLocaleString()
                                                     : new Date(order.created_at).toLocaleTimeString()
                                                 }
