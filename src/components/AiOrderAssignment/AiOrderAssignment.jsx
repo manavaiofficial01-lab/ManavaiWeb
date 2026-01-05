@@ -75,14 +75,39 @@ const AiOrderAssignment = () => {
     // Fetch Online Drivers
     const fetchDrivers = async () => {
         try {
-            const { data, error } = await supabase
+            // Fetch online drivers
+            const { data: onlineDrivers, error: driverError } = await supabase
                 .from('driver')
                 .select('*')
                 .eq('status', 'online')
                 .order('last_active', { ascending: false });
 
-            if (error) throw error;
-            setDrivers(data || []);
+            if (driverError) throw driverError;
+
+            // Fetch active orders to determine which drivers are busy
+            const { data: activeOrders, error: orderError } = await supabase
+                .from('orders')
+                .select('driver_name')
+                .in('status', ['confirmed', 'paid', 'processing', 'prepared', 'ready_for_pickup', 'shipped'])
+                .not('driver_name', 'is', null);
+
+            if (orderError) throw orderError;
+
+            // Count active orders per driver
+            const orderCounts = {};
+            activeOrders.forEach(order => {
+                if (order.driver_name) {
+                    orderCounts[order.driver_name] = (orderCounts[order.driver_name] || 0) + 1;
+                }
+            });
+
+            // Map counts back to online drivers
+            const processedDrivers = (onlineDrivers || []).map(driver => ({
+                ...driver,
+                activeOrderCount: orderCounts[driver.driver_name] || 0
+            }));
+
+            setDrivers(processedDrivers);
         } catch (error) {
             console.error('Error fetching drivers:', error);
         }
@@ -194,15 +219,26 @@ const AiOrderAssignment = () => {
                 // Skip if already processing
                 if (processingOrders.has(order.id)) continue;
 
-                const availableDrivers = getDriversWithDistance(order);
-                if (availableDrivers.length > 0) {
-                    const bestDriver = availableDrivers[0];
+                const allDrivers = getDriversWithDistance(order);
+                if (allDrivers.length > 0) {
+                    // 1. Try to find the closest driver with 0 active orders
+                    const freeDrivers = allDrivers.filter(d => (d.activeOrderCount || 0) === 0);
+
+                    let targetDriver = null;
+                    if (freeDrivers.length > 0) {
+                        targetDriver = freeDrivers[0]; // Closest among the free ones
+                        console.log(`Auto-Pilot: Closest free driver found: ${targetDriver.driver_name}`);
+                    } else {
+                        // 2. All drivers are busy, pick a random online driver
+                        const randomIndex = Math.floor(Math.random() * allDrivers.length);
+                        targetDriver = allDrivers[randomIndex];
+                        console.log(`Auto-Pilot: All drivers busy, picking random: ${targetDriver.driver_name}`);
+                    }
 
                     // Mark as processing to prevent duplicate attempts
                     setProcessingOrders(prev => new Set(prev).add(order.id));
 
-                    console.log(`Auto-assigning order ${order.id} to ${bestDriver.driver_name}`);
-                    await assignDriver(order.id, bestDriver, true); // true = silent mode
+                    await assignDriver(order.id, targetDriver, true); // true = silent mode
 
                     // Remove from processing (though it should disappear from orders list shortly)
                     setProcessingOrders(prev => {
