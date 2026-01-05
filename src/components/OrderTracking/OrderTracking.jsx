@@ -1466,7 +1466,7 @@ const OrderTracking = () => {
         .update({
           driver_name: driver.driver_name,
           driver_mobile: driver.driver_phone,
-          driver_status: 'partner_accepted', // Default status when assigned
+          driver_status: 'order_placed', // Changed from partner_accepted
           updated_at: new Date().toISOString()
         })
         .eq('id', orderId);
@@ -1481,7 +1481,7 @@ const OrderTracking = () => {
               ...order,
               driver_name: driver.driver_name,
               driver_mobile: driver.driver_phone,
-              driver_status: 'partner_accepted'
+              driver_status: 'order_placed'
             }
             : order
         )

@@ -577,6 +577,7 @@ const ManualOrderAssign = () => {
           .update({
             driver_name: driver.driver_name,
             driver_mobile: driver.driver_phone,
+            driver_status: 'order_placed',
             status: 'processing',
             updated_at: new Date().toISOString()
           })
