@@ -11,24 +11,32 @@ import FoodManagement from './components/FoodManagement/FoodManagement';
 import DriverTracking from './components/DriverTracking/DriverTracking';
 import ManualOrderAssign from './components/ManualOrderAssign/ManualOrderAssign';
 import AiOrderAssignment from './components/AiOrderAssignment/AiOrderAssignment';
-const App = () => {
-  return (
-    <>
-      <Navbar />
-      <Routes>
-        <Route path='/' element={<ManualOrderAssign />} />
-        <Route path='/order-tracking' element={<OrderTracking />} />
-        <Route path='/driver-details' element={<DriverDetails />} />
-        <Route path='/revenue-daily' element={<DaybyDayRevenue />} />
-        <Route path="/product-upload" element={<ProductUpload />} />
-        <Route path='/food-upload' element={<FoodUpload />} />
-        <Route path='/product-management' element={<ProductManagement />} />
-        <Route path='/food-management' element={<FoodManagement />} />
-        <Route path='/driver-tracking' element={<DriverTracking />} />
-        <Route path='/assignment' element={<AiOrderAssignment />} />
-      </Routes>
-    </>
+import Login from './components/Login/Login';
+import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider } from './context/AuthContext';
 
+const App = () => {
+  const location = useLocation();
+  const isLoginPage = location.pathname === '/login';
+
+  return (
+    <AuthProvider>
+      {!isLoginPage && <Navbar />}
+      <Routes>
+        <Route path='/login' element={<Login />} />
+
+        <Route path='/' element={<ProtectedRoute><ManualOrderAssign /></ProtectedRoute>} />
+        <Route path='/order-tracking' element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
+        <Route path='/driver-details' element={<ProtectedRoute><DriverDetails /></ProtectedRoute>} />
+        <Route path='/revenue-daily' element={<ProtectedRoute><DaybyDayRevenue /></ProtectedRoute>} />
+        <Route path="/product-upload" element={<ProtectedRoute><ProductUpload /></ProtectedRoute>} />
+        <Route path='/food-upload' element={<ProtectedRoute><FoodUpload /></ProtectedRoute>} />
+        <Route path='/product-management' element={<ProtectedRoute><ProductManagement /></ProtectedRoute>} />
+        <Route path='/food-management' element={<ProtectedRoute><FoodManagement /></ProtectedRoute>} />
+        <Route path='/driver-tracking' element={<ProtectedRoute><DriverTracking /></ProtectedRoute>} />
+        <Route path='/assignment' element={<ProtectedRoute><AiOrderAssignment /></ProtectedRoute>} />
+      </Routes>
+    </AuthProvider>
   )
 }
 

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import './Navbar.css';
 
 const Navbar = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const toggleSidebar = useCallback(() => {
     setIsSidebarOpen(prev => !prev);
@@ -38,10 +40,14 @@ const Navbar = () => {
     navigate(path);
   }, [navigate]);
 
-  const handleLogout = useCallback(() => {
-    console.log('Logout clicked');
-    // Add logout logic here
-  }, []);
+  const handleLogout = useCallback(async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  }, [logout, navigate]);
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -67,7 +73,7 @@ const Navbar = () => {
 
         <div className="navbar-right">
           <div className="user-info">
-            <span className="user-name">Admin User</span>
+            <span className="user-name">{user?.email?.split('@')[0] || 'Admin User'}</span>
             <span className="user-status">● Online</span>
           </div>
         </div>
@@ -107,10 +113,18 @@ const Navbar = () => {
 
         <div className="sidebar-footer">
           <div className="user-profile">
-            <div className="profile-avatar">AU</div>
+            <div className="profile-avatar-container">
+              <div className="profile-avatar">
+                {user?.email?.charAt(0).toUpperCase() || 'A'}
+              </div>
+              <div className="status-indicator"></div>
+            </div>
             <div className="profile-info">
-              <div className="profile-name">Admin User</div>
-              <div className="profile-role">Administrator</div>
+              <div className="profile-name-row">
+                <div className="profile-name">{user?.email?.split('@')[0] || 'Admin User'}</div>
+                <div className="admin-badge">Verified</div>
+              </div>
+              <div className="profile-role">{user?.email || 'Administrator'}</div>
             </div>
           </div>
           <div
