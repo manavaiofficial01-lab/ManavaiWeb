@@ -953,7 +953,9 @@ const CalendarPicker = ({ selectedDate, onDateSelect, onClose }) => {
 };
 
 // Order Modal Component
-const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCurrency, formatDate, onShowMap, onAssignDriver, onChangeRestaurant }) => {
+// Order Modal Component
+const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCurrency, formatDate, onShowMap, onAssignDriver, onChangeRestaurant, onMarkAsDelivered }) => {
+
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -1188,19 +1190,30 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
             </button>
 
             {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped') && (
-              <button
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to cancel this order?')) {
-                    onStatusUpdate(order.id, 'cancelled');
-                    onClose();
-                  }
-                }}
-                className="order-tracking-action-btn order-tracking-danger"
-              >
-                <span style={{ marginRight: '8px' }}>❌</span>
-                Cancel Order
-              </button>
+              <>
+                <button
+                  onClick={() => onMarkAsDelivered(order)}
+                  className="order-tracking-action-btn order-tracking-success"
+                  style={{ backgroundColor: '#10b981', color: 'white' }}
+                >
+                  <span style={{ marginRight: '8px' }}>✅</span>
+                  Mark as Delivered
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to cancel this order?')) {
+                      onStatusUpdate(order.id, 'cancelled');
+                      onClose();
+                    }
+                  }}
+                  className="order-tracking-action-btn order-tracking-danger"
+                >
+                  <span style={{ marginRight: '8px' }}>❌</span>
+                  Cancel Order
+                </button>
+              </>
             )}
+
             <button onClick={onClose} className="order-tracking-action-btn order-tracking-secondary">
               Close
             </button>
@@ -1484,7 +1497,151 @@ const CollectionsModal = ({ date, orders, drivers, onClose, formatCurrency }) =>
   );
 };
 
+// Delivered Payment Modal Component
+const DeliveredPaymentModal = ({ order, onClose, onConfirm }) => {
+  const [paymentType, setPaymentType] = useState('cash');
+  const [amount, setAmount] = useState(order.total_amount || 0);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleConfirm = async () => {
+    if (!amount || amount <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await onConfirm(order.id, paymentType, amount);
+      onClose();
+    } catch (error) {
+      console.error('Error confirming delivery:', error);
+      alert('Failed to confirm delivery');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  return (
+    <div className="order-tracking-modal-backdrop" onClick={handleBackdropClick}>
+      <div className="order-tracking-modal-content" style={{ maxWidth: '400px', width: '90%' }}>
+        <div className="order-tracking-modal-header">
+          <h2>
+            <span style={{ marginRight: '10px' }}>💰</span>
+            Collect Payment
+          </h2>
+          <button className="order-tracking-close-btn" onClick={onClose}>×</button>
+        </div>
+        <div className="order-tracking-modal-body">
+          <div style={{ marginBottom: '20px', padding: '12px', background: '#f8f9fa', borderRadius: '8px' }}>
+            <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>Order Reference</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold' }}>#{order.receipt_reference}</div>
+            <div style={{ marginTop: '8px', fontSize: '14px', color: '#666' }}>Total Amount: <strong>₹{order.total_amount}</strong></div>
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px' }}>How was the payment collected?</label>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setPaymentType('cash')}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: paymentType === 'cash' ? '#10b981' : 'white',
+                  color: paymentType === 'cash' ? 'white' : '#666',
+                  border: `2px solid ${paymentType === 'cash' ? '#10b981' : '#e2e8f0'}`,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <span>💵</span> Cash
+              </button>
+              <button
+                onClick={() => setPaymentType('upi')}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: paymentType === 'upi' ? '#3b82f6' : 'white',
+                  color: paymentType === 'upi' ? 'white' : '#666',
+                  border: `2px solid ${paymentType === 'upi' ? '#3b82f6' : '#e2e8f0'}`,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <span>📱</span> UPI
+              </button>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px' }}>Exact Amount Collected (₹)</label>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '16px',
+                outline: 'none',
+                transition: 'border-color 0.2s'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+              onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+            />
+          </div>
+
+          <div className="order-tracking-modal-actions" style={{ flexDirection: 'column', gap: '10px' }}>
+            <button
+              onClick={handleConfirm}
+              className="order-tracking-action-btn"
+              disabled={submitting}
+              style={{
+                width: '100%',
+                padding: '14px',
+                backgroundColor: '#10b981',
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: '16px'
+              }}
+            >
+              {submitting ? 'Updating Order...' : 'Confirm Delivery & Payment'}
+            </button>
+            <button
+              onClick={onClose}
+              className="order-tracking-action-btn order-tracking-secondary"
+              style={{ width: '100%', padding: '12px' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main OrderTracking Component
+
 const OrderTracking = () => {
   const [orders, setOrders] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -1507,7 +1664,9 @@ const OrderTracking = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [showCollectionsModal, setShowCollectionsModal] = useState(false);
+  const [showDeliveredPaymentModal, setShowDeliveredPaymentModal] = useState(false);
   const [mapOrder, setMapOrder] = useState(null);
+
   const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
 
   // Load Google Maps API
@@ -1520,7 +1679,7 @@ const OrderTracking = () => {
 
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
     script.async = true;
     script.defer = true;
     script.onload = () => {
@@ -1727,11 +1886,52 @@ const OrderTracking = () => {
           order.id === orderId ? { ...order, status: newStatus } : order
         )
       );
+
+      // Also update selected order if it's open
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(prev => ({ ...prev, status: newStatus }));
+      }
     } catch (error) {
       console.error('Error updating order status:', error);
       setError('Failed to update status');
     }
   };
+
+  const handleMarkAsDelivered = async (orderId, paymentType, amount) => {
+    try {
+      const updateData = {
+        status: 'delivered',
+        updated_at: new Date().toISOString(),
+        [paymentType]: Number(amount),
+        cash_collected: true,
+        cash_collected_amount: Number(amount)
+      };
+
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId ? { ...order, ...updateData } : order
+        )
+      );
+
+      // Update selected order if it's open
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(prev => ({ ...prev, ...updateData }));
+      }
+
+      setIsModalOpen(false); // Close the order details modal
+    } catch (error) {
+      console.error('Error marking as delivered:', error);
+      throw error;
+    }
+  };
+
 
   const assignDriverToOrder = async (orderId, driver) => {
     try {
@@ -1873,6 +2073,17 @@ const OrderTracking = () => {
     setShowChangeRestaurantModal(false);
     setSelectedOrderForAction(null);
   };
+
+  const openDeliveredPaymentModal = (order) => {
+    setSelectedOrderForAction(order);
+    setShowDeliveredPaymentModal(true);
+  };
+
+  const closeDeliveredPaymentModal = () => {
+    setShowDeliveredPaymentModal(false);
+    setSelectedOrderForAction(null);
+  };
+
 
 
 
@@ -2382,8 +2593,10 @@ const OrderTracking = () => {
             onShowMap={openMapModal}
             onAssignDriver={openDriverAssignmentModal}
             onChangeRestaurant={openChangeRestaurantModal}
+            onMarkAsDelivered={openDeliveredPaymentModal}
           />
         )}
+
 
         {/* Driver Assignment Modal */}
         {showDriverAssignmentModal && selectedOrderForAction && (
@@ -2405,6 +2618,16 @@ const OrderTracking = () => {
             onUpdateRestaurant={updateRestaurantForOrder}
           />
         )}
+
+        {/* Delivered Payment Modal */}
+        {showDeliveredPaymentModal && selectedOrderForAction && (
+          <DeliveredPaymentModal
+            order={selectedOrderForAction}
+            onClose={closeDeliveredPaymentModal}
+            onConfirm={handleMarkAsDelivered}
+          />
+        )}
+
 
         {/* Map Modal */}
         {showMapModal && mapOrder && googleMapsLoaded && (
