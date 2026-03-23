@@ -580,6 +580,223 @@ const ChangeRestaurantModal = ({ order, restaurants, onClose, onUpdateRestaurant
   );
 };
 
+const ChangeItemsModal = ({ order, onClose, onUpdateItems }) => {
+  const [items, setItems] = useState(order.items ? [...order.items] : []);
+  const [availableFoodItems, setAvailableFoodItems] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [restaurantFilter, setRestaurantFilter] = useState(order.restaurant_name || '');
+  const [loading, setLoading] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    fetchFoodItems();
+  }, []);
+
+  const fetchFoodItems = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('food_items')
+        .select('*')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      setAvailableFoodItems(data || []);
+    } catch (error) {
+      console.error('Error fetching food items:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateTotal = () => {
+    return items.reduce((sum, item) => sum + (Number(item.price) * (item.quantity || 1)), 0);
+  };
+
+  const handleUpdateItem = (index, field, value) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setItems(newItems);
+  };
+
+  const handleRemoveItem = (index) => {
+    setItems(items.filter((_, i) => i !== index));
+  };
+
+  const handleAddNewItem = (foodItem) => {
+    setItems([...items, {
+      id: Math.random().toString(36).substr(2, 9),
+      product_id: foodItem.id,
+      product_name: foodItem.name,
+      price: Number(foodItem.price),
+      original_price: Number(foodItem.original_price || foodItem.price),
+      product_image: foodItem.image_url,
+      quantity: 1,
+      veg: foodItem.veg,
+      category: foodItem.category,
+      restaurant_name: foodItem.restaurant_name
+    }]);
+  };
+
+  const handleSave = async () => {
+    if (items.length === 0) {
+      alert('Order must have at least one item');
+      return;
+    }
+    setUpdating(true);
+    try {
+      const newTotal = calculateTotal() + (Number(order.delivery_charges) || 0);
+
+      // Determine the restaurant name for the order based on items
+      // We take the restaurant of the FIRST item as the order's primary restaurant
+      const primaryRestaurant = items[0]?.restaurant_name || order.restaurant_name;
+
+      await onUpdateItems(order.id, items, newTotal, primaryRestaurant);
+      onClose();
+    } catch (error) {
+      console.error('Error updating items:', error);
+      alert('Failed to update items');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const filteredFood = availableFoodItems.filter(f => {
+    const matchesSearch = f.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRestaurant = !restaurantFilter || 
+                             f.restaurant_name?.toLowerCase().includes(restaurantFilter.toLowerCase());
+    return matchesSearch && matchesRestaurant;
+  });
+
+  // Get unique restaurants from available food items for a helper dropdown or filter
+  const uniqueRestaurants = [...new Set(availableFoodItems.map(f => f.restaurant_name).filter(Boolean))].sort();
+
+  return (
+    <div className="order-tracking-modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="order-tracking-modal-content change-items-modal" style={{ maxWidth: '1000px' }}>
+        <div className="order-tracking-modal-header">
+          <h2>Edit Order Items - #{order.receipt_reference}</h2>
+          <button className="order-tracking-close-btn" onClick={onClose}>×</button>
+        </div>
+
+        <div className="order-tracking-modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          {/* Left Column: Current Items */}
+          <div className="current-items-section">
+            <h3 style={{ marginBottom: '16px' }}>Current Items</h3>
+            <div className="edit-items-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '500px', overflowY: 'auto' }}>
+              {items.map((item, index) => (
+                <div key={index} className="edit-item-card" style={{ display: 'flex', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <img src={item.product_image} alt="" style={{ width: '50px', height: '50px', borderRadius: '4px', objectFit: 'cover' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: '600', fontSize: '14px' }}>{item.product_name}</div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>{item.restaurant_name || 'No Restaurant Info'}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => handleUpdateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                        style={{ width: '50px', padding: '4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                      />
+                      <span style={{ fontSize: '14px', color: '#64748b' }}>× ₹{item.price}</span>
+                      <strong style={{ marginLeft: 'auto', fontSize: '14px' }}>₹{Number(item.price) * (item.quantity || 1)}</strong>
+                    </div>
+                  </div>
+                  <button onClick={() => handleRemoveItem(index)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }} title="Remove">×</button>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '20px', padding: '16px', background: '#f1f5f9', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span>Subtotal:</span>
+                <span>₹{calculateTotal()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span>Delivery Charges:</span>
+                <span>₹{order.delivery_charges || 0}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '18px', color: '#1e293b', borderTop: '1px solid #cbd5e1', paddingTop: '8px' }}>
+                <span>New Total:</span>
+                <span>₹{calculateTotal() + (Number(order.delivery_charges) || 0)}</span>
+              </div>
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '8px', textAlign: 'right' }}>
+                Order Restaurant: <strong>{items[0]?.restaurant_name || order.restaurant_name}</strong>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+              <button onClick={onClose} className="order-tracking-action-btn order-tracking-secondary" style={{ flex: 1 }}>Cancel</button>
+              <button onClick={handleSave} className="order-tracking-action-btn order-tracking-primary" style={{ flex: 2, background: '#3b82f6', color: 'white' }} disabled={updating}>
+                {updating ? 'Saving Changes...' : 'Save Order Changes'}
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: Search & Add Items */}
+          <div className="add-items-section">
+            <h3 style={{ marginBottom: '16px' }}>Add Products</h3>
+            
+            <div className="search-filters" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              <div style={{ flex: 2 }}>
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px' }}
+                />
+              </div>
+              <div style={{ flex: 3 }}>
+                <select
+                  value={restaurantFilter}
+                  onChange={(e) => setRestaurantFilter(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', backgroundColor: 'white' }}
+                >
+                  <option value="">All Restaurants</option>
+                  {uniqueRestaurants.map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+              {(searchTerm || restaurantFilter) && (
+                <button 
+                  onClick={() => {setSearchTerm(''); setRestaurantFilter('');}}
+                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', padding: '0 12px', cursor: 'pointer' }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            <div className="available-items-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '500px', overflowY: 'auto' }}>
+              {loading ? (
+                <p>Loading products...</p>
+              ) : filteredFood.map(food => (
+                <div key={food.id} className="food-select-card" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', border: '1px solid #f1f5f9', borderRadius: '8px' }}>
+                  <img src={food.image_url} alt="" style={{ width: '45px', height: '45px', borderRadius: '4px', objectFit: 'cover' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600' }}>{food.name}</div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>
+                      ₹{food.price} • {food.category}
+                      <div style={{ color: '#3b82f6', fontWeight: '500' }}>{food.restaurant_name}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleAddNewItem(food)}
+                    style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    + Add
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Map Modal Component
 const MapModal = ({ order, onClose }) => {
   const mapRef = React.useRef(null);
@@ -954,7 +1171,7 @@ const CalendarPicker = ({ selectedDate, onDateSelect, onClose }) => {
 
 // Order Modal Component
 // Order Modal Component
-const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCurrency, formatDate, onShowMap, onAssignDriver, onChangeRestaurant, onMarkAsDelivered }) => {
+const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCurrency, formatDate, onShowMap, onAssignDriver, onChangeRestaurant, onChangeItems, onMarkAsDelivered }) => {
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -1171,6 +1388,16 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
               </button>
             )}
 
+            {/* Change Items Button */}
+            <button
+              onClick={() => onChangeItems(order)}
+              className="order-tracking-action-btn"
+              style={{ backgroundColor: '#6366f1', color: 'white' }}
+            >
+              <span style={{ marginRight: '8px' }}>📝</span>
+              Edit Items
+            </button>
+
             {/* Change Restaurant Button */}
             <button
               onClick={() => onChangeRestaurant(order)}
@@ -1293,14 +1520,19 @@ const CollectionsModal = ({ date, orders, drivers, onClose, formatCurrency }) =>
 
     daysOrders.forEach(order => {
       // Determine stats for this order
-      const cashAmt = Number(order.cash || 0);
-      const upiAmt = Number(order.upi || 0);
-
       const paymentMethod = order.payment_method?.toLowerCase() || '';
       const isOnline = paymentMethod.includes('online') ||
         paymentMethod.includes('card') ||
-        paymentMethod.includes('wallet');
+        paymentMethod.includes('wallet') ||
+        order.razorpay_payment_id ||
+        order.payment_completed_at;
+
       const onlineAmt = isOnline ? Number(order.total_amount || 0) : 0;
+      
+      // If it's an online order, we ignore the cash/upi columns to prevent double counting
+      // as the online revenue already covers the total amount.
+      const cashAmt = isOnline ? 0 : Number(order.cash || 0);
+      const upiAmt = isOnline ? 0 : Number(order.upi || 0);
 
       // Global Totals
       totalDriverCash += cashAmt;
@@ -1654,6 +1886,7 @@ const OrderTracking = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDriverAssignmentModal, setShowDriverAssignmentModal] = useState(false);
   const [showChangeRestaurantModal, setShowChangeRestaurantModal] = useState(false);
+  const [showChangeItemsModal, setShowChangeItemsModal] = useState(false);
   const [selectedOrderForAction, setSelectedOrderForAction] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -1931,6 +2164,86 @@ const OrderTracking = () => {
     }
   };
 
+  const handleMarkAsDeliveredDirectly = async (orderId) => {
+    try {
+      const updateData = {
+        status: 'delivered',
+        updated_at: new Date().toISOString(),
+        payment_verified: true,
+        cash: 0,
+        upi: 0,
+        cash_collected: true,
+        cash_collected_amount: 0 // No physical cash collected by driver for online orders
+      };
+
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId ? { ...order, ...updateData } : order
+        )
+      );
+
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(prev => ({ ...prev, ...updateData }));
+      }
+
+      setIsModalOpen(false);
+      alert('Order marked as delivered successfully.');
+    } catch (error) {
+      console.error('Error marking as delivered directly:', error);
+      alert('Failed to update order status');
+    }
+  };
+
+  const updateOrderItems = async (orderId, newItems, newTotal, primaryRestaurant) => {
+    try {
+      const updateData = {
+        items: newItems,
+        total_amount: newTotal,
+        updated_at: new Date().toISOString()
+      };
+
+      if (primaryRestaurant) {
+        updateData.restaurant_name = primaryRestaurant;
+      }
+
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      // Update local state
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? {
+              ...order,
+              ...updateData
+            }
+            : order
+        )
+      );
+
+      // Also update selectedOrder if it's the one open
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(prev => ({ ...prev, ...updateData }));
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating order items:', error);
+      throw error;
+    }
+  };
+
 
   const assignDriverToOrder = async (orderId, driver) => {
     try {
@@ -2074,12 +2387,37 @@ const OrderTracking = () => {
   };
 
   const openDeliveredPaymentModal = (order) => {
-    setSelectedOrderForAction(order);
-    setShowDeliveredPaymentModal(true);
+    // Check if order was paid online
+    const paymentMethod = order.payment_method?.toLowerCase() || '';
+    const isOnline = paymentMethod.includes('online') ||
+      paymentMethod.includes('card') ||
+      paymentMethod.includes('upi') ||
+      paymentMethod.includes('wallet') ||
+      order.razorpay_payment_id ||
+      order.payment_completed_at;
+
+    if (isOnline) {
+      if (window.confirm(`This order (#${order.receipt_reference}) was paid ONLINE. Mark as Delivered?`)) {
+        handleMarkAsDeliveredDirectly(order.id);
+      }
+    } else {
+      setSelectedOrderForAction(order);
+      setShowDeliveredPaymentModal(true);
+    }
   };
 
   const closeDeliveredPaymentModal = () => {
     setShowDeliveredPaymentModal(false);
+    setSelectedOrderForAction(null);
+  };
+
+  const openChangeItemsModal = (order) => {
+    setSelectedOrderForAction(order);
+    setShowChangeItemsModal(true);
+  };
+
+  const closeChangeItemsModal = () => {
+    setShowChangeItemsModal(false);
     setSelectedOrderForAction(null);
   };
 
@@ -2592,6 +2930,7 @@ const OrderTracking = () => {
             onShowMap={openMapModal}
             onAssignDriver={openDriverAssignmentModal}
             onChangeRestaurant={openChangeRestaurantModal}
+            onChangeItems={openChangeItemsModal}
             onMarkAsDelivered={openDeliveredPaymentModal}
           />
         )}
@@ -2615,6 +2954,15 @@ const OrderTracking = () => {
             restaurants={restaurants}
             onClose={closeChangeRestaurantModal}
             onUpdateRestaurant={updateRestaurantForOrder}
+          />
+        )}
+
+        {/* Change Items Modal */}
+        {showChangeItemsModal && selectedOrderForAction && (
+          <ChangeItemsModal
+            order={selectedOrderForAction}
+            onClose={closeChangeItemsModal}
+            onUpdateItems={updateOrderItems}
           />
         )}
 
