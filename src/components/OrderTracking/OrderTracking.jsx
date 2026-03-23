@@ -588,6 +588,16 @@ const ChangeItemsModal = ({ order, onClose, onUpdateItems }) => {
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
 
+  // Determine the base delivery charge per restaurant from the original order data
+  // We infer the base by dividing the current charge by the number of restaurants in the original items list
+  const baseDeliveryCharge = useMemo(() => {
+    const currentCharge = Number(order.delivery_charges || 0);
+    const initialItems = order.items ? (typeof order.items === 'string' ? JSON.parse(order.items) : order.items) : [];
+    const uniqueRestos = new Set(initialItems.map(i => i.restaurant_name).filter(Boolean));
+    const restoCount = Math.max(1, uniqueRestos.size);
+    return currentCharge / restoCount;
+  }, [order]);
+
   useEffect(() => {
     fetchFoodItems();
   }, []);
@@ -610,6 +620,22 @@ const ChangeItemsModal = ({ order, onClose, onUpdateItems }) => {
 
   const calculateTotal = () => {
     return items.reduce((sum, item) => sum + (Number(item.price) * (item.quantity || 1)), 0);
+  };
+
+  const getNewDeliveryCharges = () => {
+    const uniqueRestaurantNames = new Set(items.map(item => item.restaurant_name).filter(Boolean));
+    const restaurantCount = Math.max(1, uniqueRestaurantNames.size);
+    return baseDeliveryCharge * restaurantCount;
+  };
+
+  const isMultiRestaurant = () => {
+    const uniqueRestaurantNames = new Set(items.map(item => item.restaurant_name).filter(Boolean));
+    return uniqueRestaurantNames.size > 1;
+  };
+
+  const getMultiplier = () => {
+    const uniqueRestaurantNames = new Set(items.map(item => item.restaurant_name).filter(Boolean));
+    return uniqueRestaurantNames.size;
   };
 
   const handleUpdateItem = (index, field, value) => {
@@ -644,13 +670,14 @@ const ChangeItemsModal = ({ order, onClose, onUpdateItems }) => {
     }
     setUpdating(true);
     try {
-      const newTotal = calculateTotal() + (Number(order.delivery_charges) || 0);
+      const newDeliveryCharges = getNewDeliveryCharges();
+      const newTotal = calculateTotal() + newDeliveryCharges;
 
       // Determine the restaurant name for the order based on items
       // We take the restaurant of the FIRST item as the order's primary restaurant
       const primaryRestaurant = items[0]?.restaurant_name || order.restaurant_name;
 
-      await onUpdateItems(order.id, items, newTotal, primaryRestaurant);
+      await onUpdateItems(order.id, items, newTotal, primaryRestaurant, newDeliveryCharges);
       onClose();
     } catch (error) {
       console.error('Error updating items:', error);
@@ -713,11 +740,14 @@ const ChangeItemsModal = ({ order, onClose, onUpdateItems }) => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span>Delivery Charges:</span>
-                <span>₹{order.delivery_charges || 0}</span>
+                <span style={{ color: isMultiRestaurant() ? '#ef4444' : 'inherit', fontWeight: isMultiRestaurant() ? '600' : 'normal' }}>
+                  ₹{getNewDeliveryCharges()}
+                  {isMultiRestaurant() && <span style={{ fontSize: '10px', marginLeft: '4px' }}>({getMultiplier()}x Multi-Resto)</span>}
+                </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '18px', color: '#1e293b', borderTop: '1px solid #cbd5e1', paddingTop: '8px' }}>
                 <span>New Total:</span>
-                <span>₹{calculateTotal() + (Number(order.delivery_charges) || 0)}</span>
+                <span>₹{calculateTotal() + getNewDeliveryCharges()}</span>
               </div>
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '8px', textAlign: 'right' }}>
                 Order Restaurant: <strong>{items[0]?.restaurant_name || order.restaurant_name}</strong>
@@ -2201,7 +2231,7 @@ const OrderTracking = () => {
     }
   };
 
-  const updateOrderItems = async (orderId, newItems, newTotal, primaryRestaurant) => {
+  const updateOrderItems = async (orderId, newItems, newTotal, primaryRestaurant, newDeliveryCharges) => {
     try {
       const updateData = {
         items: newItems,
@@ -2211,6 +2241,10 @@ const OrderTracking = () => {
 
       if (primaryRestaurant) {
         updateData.restaurant_name = primaryRestaurant;
+      }
+
+      if (newDeliveryCharges !== undefined) {
+        updateData.delivery_charges = newDeliveryCharges;
       }
 
       const { error } = await supabase
