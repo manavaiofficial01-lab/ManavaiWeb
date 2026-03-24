@@ -12,6 +12,8 @@ import DriverTracking from './components/DriverTracking/DriverTracking';
 import ManualOrderAssign from './components/ManualOrderAssign/ManualOrderAssign';
 import AiOrderAssignment from './components/AiOrderAssignment/AiOrderAssignment';
 import Login from './components/Login/Login';
+import RestaurantUpload from './components/RestaurantManagement/RestaurantUpload';
+import RestaurantManagement from './components/RestaurantManagement/RestaurantManagement';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 
@@ -35,6 +37,8 @@ const App = () => {
         <Route path='/food-management' element={<ProtectedRoute><FoodManagement /></ProtectedRoute>} />
         <Route path='/driver-tracking' element={<ProtectedRoute><DriverTracking /></ProtectedRoute>} />
         <Route path='/assignment' element={<ProtectedRoute><AiOrderAssignment /></ProtectedRoute>} />
+        <Route path='/restaurant-upload' element={<ProtectedRoute><RestaurantUpload /></ProtectedRoute>} />
+        <Route path='/restaurant-management' element={<ProtectedRoute><RestaurantManagement /></ProtectedRoute>} />
       </Routes>
     </AuthProvider>
   )

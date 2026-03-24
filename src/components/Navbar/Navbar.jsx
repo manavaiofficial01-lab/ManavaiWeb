@@ -24,6 +24,8 @@ const Navbar = () => {
     { id: 7, name: 'Product Management', icon: '📦', path: '/product-management' },
     { id: 8, name: 'Food Upload', icon: '🍕', path: '/food-upload' },
     { id: 9, name: 'Food Management', icon: '🍽️', path: '/food-management' },
+    { id: 11, name: 'Restaurant Upload', icon: '🏪', path: '/restaurant-upload' },
+    { id: 12, name: 'Restaurant Management', icon: '⚙️', path: '/restaurant-management' },
   ], []);
 
 

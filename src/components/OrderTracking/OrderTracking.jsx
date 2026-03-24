@@ -580,7 +580,7 @@ const ChangeRestaurantModal = ({ order, restaurants, onClose, onUpdateRestaurant
   );
 };
 
-const ChangeItemsModal = ({ order, onClose, onUpdateItems }) => {
+const ChangeItemsModal = ({ order, restaurants, onClose, onUpdateItems }) => {
   const [items, setItems] = useState(order.items ? [...order.items] : []);
   const [availableFoodItems, setAvailableFoodItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -598,17 +598,34 @@ const ChangeItemsModal = ({ order, onClose, onUpdateItems }) => {
     return currentCharge / restoCount;
   }, [order]);
 
+  // Use useEffect to fetch food items whenever search or restaurant filter changes
   useEffect(() => {
-    fetchFoodItems();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      fetchFoodItems(searchTerm, restaurantFilter);
+    }, 300);
 
-  const fetchFoodItems = async () => {
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, restaurantFilter]);
+
+  const fetchFoodItems = async (search = '', restaurant = '') => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('food_items')
-        .select('*')
-        .order('name', { ascending: true });
+        .select('*');
+      
+      if (restaurant) {
+        query = query.eq('restaurant_name', restaurant);
+      }
+
+      if (search) {
+        query = query.ilike('name', `%${search}%`);
+      }
+
+      const { data, error } = await query
+        .order('name', { ascending: true })
+        .limit(200); // Limit to 200 per search for performance, while ensuring we find relevant items
+      
       if (error) throw error;
       setAvailableFoodItems(data || []);
     } catch (error) {
@@ -687,15 +704,13 @@ const ChangeItemsModal = ({ order, onClose, onUpdateItems }) => {
     }
   };
 
-  const filteredFood = availableFoodItems.filter(f => {
-    const matchesSearch = f.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRestaurant = !restaurantFilter || 
-                             f.restaurant_name?.toLowerCase().includes(restaurantFilter.toLowerCase());
-    return matchesSearch && matchesRestaurant;
-  });
+  // When using server-side filtering, filteredFood is the same as availableFoodItems
+  const filteredFood = availableFoodItems;
 
-  // Get unique restaurants from available food items for a helper dropdown or filter
-  const uniqueRestaurants = [...new Set(availableFoodItems.map(f => f.restaurant_name).filter(Boolean))].sort();
+  // Get unique restaurants from the passed restaurants prop
+  const uniqueRestaurants = useMemo(() => {
+    return [...new Set(restaurants.map(r => r.name).filter(Boolean))].sort();
+  }, [restaurants]);
 
   return (
     <div className="order-tracking-modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -2995,6 +3010,7 @@ const OrderTracking = () => {
         {showChangeItemsModal && selectedOrderForAction && (
           <ChangeItemsModal
             order={selectedOrderForAction}
+            restaurants={restaurants}
             onClose={closeChangeItemsModal}
             onUpdateItems={updateOrderItems}
           />
