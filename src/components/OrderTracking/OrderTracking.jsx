@@ -1229,7 +1229,8 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
         const { count, error } = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
-          .eq('customer_phone', order.customer_phone);
+          .eq('customer_phone', order.customer_phone)
+          .eq('status', 'delivered');
 
         if (error) throw error;
         setCustomerOrderCount(count);
@@ -1305,7 +1306,7 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
               }}>
                 <span style={{ fontSize: '18px' }}>🛍️</span>
                 <span>
-                  <strong>Total Orders:</strong> {loadingCount ? (
+                  <strong>Total Delivered Orders:</strong> {loadingCount ? (
                     <span className="count-loading-spinner" style={{ fontSize: '12px', color: '#64748b' }}>Calculating...</span>
                   ) : (
                     <span style={{
