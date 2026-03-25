@@ -1217,6 +1217,31 @@ const CalendarPicker = ({ selectedDate, onDateSelect, onClose }) => {
 // Order Modal Component
 // Order Modal Component
 const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCurrency, formatDate, onShowMap, onAssignDriver, onChangeRestaurant, onChangeItems, onMarkAsDelivered }) => {
+  const [customerOrderCount, setCustomerOrderCount] = useState(null);
+  const [loadingCount, setLoadingCount] = useState(false);
+
+  useEffect(() => {
+    const fetchCustomerOrderCount = async () => {
+      if (!order?.customer_phone) return;
+
+      setLoadingCount(true);
+      try {
+        const { count, error } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('customer_phone', order.customer_phone);
+
+        if (error) throw error;
+        setCustomerOrderCount(count);
+      } catch (error) {
+        console.error('Error fetching customer order count:', error);
+      } finally {
+        setLoadingCount(false);
+      }
+    };
+
+    fetchCustomerOrderCount();
+  }, [order?.customer_phone]);
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -1267,6 +1292,29 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
               </div>
               <div className="order-tracking-info-item">
                 <strong>Address:</strong> {order.delivery_address}
+              </div>
+              <div className="order-tracking-info-item" style={{
+                marginTop: '10px',
+                padding: '8px',
+                backgroundColor: '#f0f9ff',
+                borderRadius: '6px',
+                border: '1px solid #bae6fd',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '18px' }}>🛍️</span>
+                <span>
+                  <strong>Total Orders:</strong> {loadingCount ? (
+                    <span className="count-loading-spinner" style={{ fontSize: '12px', color: '#64748b' }}>Calculating...</span>
+                  ) : (
+                    <span style={{
+                      fontWeight: 'bold',
+                      color: '#0369a1',
+                      fontSize: '15px'
+                    }}>{customerOrderCount !== null ? customerOrderCount : 'N/A'}</span>
+                  )}
+                </span>
               </div>
               {order.customer_lat && order.customer_lon && (
                 <div className="order-tracking-info-item order-tracking-location-item">
@@ -1495,6 +1543,7 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
     </div>
   );
 };
+
 
 // Collections Modal Component
 // Collections Modal Component
