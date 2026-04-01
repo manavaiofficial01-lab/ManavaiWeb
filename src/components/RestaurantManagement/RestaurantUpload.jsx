@@ -11,8 +11,10 @@ const RestaurantUpload = () => {
   const [success, setSuccess] = useState(false);
   const [imageFile, setImageFile] = useState(null);
 
+  const generateRandomId = () => Math.floor(Math.random() * 99999) + 1;
+
   const [formData, setFormData] = useState({
-    id: '',
+    id: generateRandomId().toString(),
     name: '',
     open_time: '11:00 AM',
     close_time: '11:00 PM',
@@ -167,7 +169,7 @@ const RestaurantUpload = () => {
       alert('Restaurant added successfully!');
       // Reset form (except some defaults)
       setFormData({
-        id: '',
+        id: generateRandomId().toString(),
         name: '',
         open_time: '11:00 AM',
         close_time: '11:00 PM',
@@ -210,7 +212,7 @@ const RestaurantUpload = () => {
               <h3>Basic Information</h3>
               <div className="input-group">
                 <label>Restaurant ID *</label>
-                <input type="text" name="id" value={formData.id} onChange={handleInputChange} placeholder="e.g. 1, resto_614" required />
+                <input type="text" name="id" value={formData.id} onChange={handleInputChange} placeholder="Auto-generated ID" required />
               </div>
               <div className="input-group">
                 <label>Restaurant Name *</label>
