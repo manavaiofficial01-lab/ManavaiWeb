@@ -17,6 +17,7 @@ import RestaurantManagement from './components/RestaurantManagement/RestaurantMa
 import Analytics from './components/Analytics/Analytics';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
+import PromoBannerManager from './components/PromoBannerManager/PromoBannerManager';
 
 const App = () => {
   const location = useLocation();
@@ -41,6 +42,7 @@ const App = () => {
         <Route path='/restaurant-upload' element={<ProtectedRoute><RestaurantUpload /></ProtectedRoute>} />
         <Route path='/restaurant-management' element={<ProtectedRoute><RestaurantManagement /></ProtectedRoute>} />
         <Route path='/analytics' element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+        <Route path='/promo-banners' element={<ProtectedRoute><PromoBannerManager /></ProtectedRoute>} />
       </Routes>
     </AuthProvider>
   )

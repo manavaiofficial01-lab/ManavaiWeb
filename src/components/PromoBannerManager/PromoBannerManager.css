@@ -1,0 +1,421 @@
+/* src/components/PromoBannerManager/PromoBannerManager.css */
+
+/* -------------------------------------------------
+   Global premium theme – uses Inter font, dark mode,
+   and glass‑morphism utilities.
+   ------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+/* Global light background */
+html, body {
+  background: #f8fafc;
+  min-height: 100vh;
+  color: #1e293b;
+}
+
+:root {
+  --bg-gradient: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(203, 213, 225, 0.5);
+  --primary: #ea580c;
+  --primary-dark: #c2410c;
+  --text-primary: #1e293b;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+}
+
+/* Base container - full page dark background */
+.promo-manager {
+  font-family: 'Inter', sans-serif;
+  color: var(--text-primary);
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+/* Full page background wrapper */
+.promo-manager::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #f8fafc;
+  z-index: -1;
+}
+
+/* Title with gradient text */
+.title {
+  font-size: 2.4rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--primary);
+}
+
+/* Toast notification */
+.toast {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #ffffff !important;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  box-shadow: 0 8px 32px rgba(34, 197, 94, 0.3);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Light card */
+.glass {
+  background: #ffffff;
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.glass h2, .glass h3 {
+  color: var(--primary);
+}
+
+/* Form layout */
+.banner-form {
+  padding: 2rem;
+  margin-bottom: 2.5rem;
+}
+.banner-form .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+.banner-form label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.banner-form .switch-label {
+  margin-bottom: 0.5rem;
+}
+.banner-form input,
+.banner-form select {
+  margin-top: 0.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--input-border);
+  border-radius: 10px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+.banner-form input:hover,
+.banner-form select:hover {
+  border-color: var(--primary);
+}
+.banner-form input:focus,
+.banner-form select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+}
+.banner-form input::placeholder {
+  color: #94a3b8;
+}
+
+/* Dropdown options - light theme */
+.banner-form select option {
+  background: #ffffff;
+  color: var(--text-primary);
+}
+
+/* Dropdown arrow - dark color for light theme */
+.banner-form select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23334155' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+/* Image upload */
+.image-upload-label {
+  grid-column: 1 / -1;
+}
+
+.image-upload-area {
+  margin-top: 0.5rem;
+  height: 200px;
+  border: 2px dashed var(--input-border);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.image-upload-area:hover {
+  border-color: var(--primary);
+  background: #fff7ed;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.upload-icon {
+  font-size: 2.5rem;
+  opacity: 0.7;
+}
+
+.image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+/* Switch (checkbox) */
+.switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #ccc;
+  border-radius: 12px;
+  transition: background 0.3s;
+}
+.slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+.switch input:checked + .slider {
+  background: var(--primary);
+}
+.switch input:checked + .slider::before {
+  transform: translateX(20px);
+}
+
+/* Slider background color for light theme */
+.slider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #cbd5e1;
+  border-radius: 12px;
+  transition: background 0.3s;
+}
+
+/* Primary button */
+.btn-primary {
+  align-self: flex-end;
+  padding: 0.7rem 1.4rem;
+  background: var(--primary);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(255, 126, 95, 0.3);
+}
+
+/* Section header */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.section-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.banner-count {
+  background: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  border: 1px solid var(--input-border);
+}
+
+/* Banner list */
+.banner-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.75rem;
+}
+
+.banner-card {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: #ffffff;
+}
+
+.banner-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.banner-card .image-container {
+  position: relative;
+  overflow: hidden;
+  height: 180px;
+}
+
+.banner-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.banner-card:hover img {
+  transform: scale(1.08);
+}
+
+.banner-card .status-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.banner-card .status-badge.active {
+  background: rgba(72, 187, 120, 0.9);
+  color: #fff;
+}
+
+.banner-card .status-badge.inactive {
+  background: rgba(160, 174, 192, 0.9);
+  color: #1a202c;
+}
+
+.banner-card .delete-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--danger);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.banner-card:hover .delete-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.banner-card .delete-btn:hover {
+  background: var(--danger-hover);
+  transform: scale(1.1);
+}
+
+.banner-card .info {
+  padding: 1rem 1.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.banner-card .info .meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.banner-card .info .meta .separator {
+  color: #cbd5e1;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-muted);
+  background: #ffffff;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
+  .title {
+    font-size: 2rem;
+  }
+  .banner-form .grid {
+    grid-template-columns: 1fr;
+  }
+  .promo-manager {
+    padding: 1rem;
+  }
+}
