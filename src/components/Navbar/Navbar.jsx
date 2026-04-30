@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../../supabase';
 import './Navbar.css';
 
 const Navbar = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [pendingPayouts, setPendingPayouts] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
@@ -12,6 +14,40 @@ const Navbar = () => {
   const toggleSidebar = useCallback(() => {
     setIsSidebarOpen(prev => !prev);
   }, []);
+
+  const fetchPendingPayouts = useCallback(async () => {
+    try {
+      const { count, error } = await supabase
+        .from('payout_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      
+      if (!error) {
+        setPendingPayouts(count || 0);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPendingPayouts();
+    
+    // Subscribe to changes in payout_requests
+    const channel = supabase
+      .channel('navbar_payout_updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payout_requests' }, () => {
+        fetchPendingPayouts();
+      })
+      .subscribe();
+
+    const interval = setInterval(fetchPendingPayouts, 30000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [fetchPendingPayouts]);
 
   const menuItems = useMemo(() => [
     { id: 1, name: 'Manual Order Assign', icon: '📋', path: '/' },
@@ -72,6 +108,9 @@ const Navbar = () => {
         <div className="navbar-left">
           <button className="menu-btn" onClick={toggleSidebar} aria-label="Toggle menu">
             ☰
+            {pendingPayouts > 0 && (
+              <span className="navbar-badge">{pendingPayouts}</span>
+            )}
           </button>
           <span className="navbar-brand">Manavai Admin</span>
         </div>
@@ -111,7 +150,12 @@ const Navbar = () => {
               }}
             >
               <span className="menu-icon">{item.icon}</span>
-              <span className="menu-text">{item.name}</span>
+              <span className="menu-text">
+                {item.name}
+                {item.id === 3 && pendingPayouts > 0 && (
+                  <span className="sidebar-badge">{pendingPayouts}</span>
+                )}
+              </span>
             </div>
           ))}
         </div>

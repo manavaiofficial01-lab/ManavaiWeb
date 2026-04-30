@@ -15,6 +15,8 @@ create table public.driver (
   app_version text null,
   last_active timestamp with time zone null default now(),
   daily_duty_hours numeric null default 10,
+  duty_start_time text null default '09:00',
+  duty_end_time text null default '21:00',
   zone text null,
   radius_in_km bigint null,
   constraint driver_pkey primary key (id),

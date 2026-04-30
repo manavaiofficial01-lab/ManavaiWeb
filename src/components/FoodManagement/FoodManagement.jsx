@@ -85,9 +85,7 @@ const FoodManagement = () => {
       setLoading(true);
       setError('');
 
-      const { data, error } = await supabase
-        .from('food_items')
-        .update({
+      const updatePayload = {
           name: foodItem.name,
           price: foodItem.price,
           original_price: foodItem.original_price,
@@ -107,7 +105,15 @@ const FoodManagement = () => {
           night: foodItem.night,
           stock: foodItem.stock,
           updated_at: new Date().toISOString()
-        })
+      };
+
+      if (foodItem.limit_per_user_total !== undefined) {
+        updatePayload.limit_per_user_total = foodItem.limit_per_user_total;
+      }
+
+      const { data, error } = await supabase
+        .from('food_items')
+        .update(updatePayload)
         .eq('id', foodItem.id)
         .select();
 
@@ -115,8 +121,10 @@ const FoodManagement = () => {
 
       return data?.[0];
     } catch (error) {
-      console.error('Error updating food item:', error);
-      setError('Failed to update food item');
+      console.error('CRITICAL: Error updating food item:', error);
+      const errorMsg = error?.message || error?.details || 'Unknown database error';
+      setError(`Save failed: ${errorMsg}`);
+      alert(`Error saving to database: ${errorMsg}`);
       throw error;
     } finally {
       setLoading(false);
@@ -271,9 +279,21 @@ const FoodManagement = () => {
     if (!editingFood) return;
 
     try {
+      // Use == to allow string/number comparison for IDs
+      const originalItem = foodItems.find(item => item.id == editingFood.id);
+      const limitChanged = originalItem && Number(originalItem.limit_per_user_total) !== Number(editingFood.limit_per_user_total);
+
       const updatedFood = await updateFoodItem(editingFood);
 
       if (updatedFood) {
+        // If the limit was changed, reset history and carts as requested
+        if (limitChanged && Number(updatedFood.limit_per_user_total) > 0) {
+          const prodId = Number(updatedFood.id);
+          await supabase.from('user_product_usage').delete().eq('product_id', prodId);
+          await supabase.from('cart_items').delete().eq('product_id', prodId);
+          alert(`Limit changed to ${updatedFood.limit_per_user_total}! Purchase history and carts have been reset for "${updatedFood.name}".`);
+        }
+
         setFoodItems(prevItems =>
           prevItems.map(item =>
             item.id === updatedFood.id ? updatedFood : item
@@ -298,8 +318,8 @@ const FoodManagement = () => {
         ...prev,
         [field]: field === 'price' || field === 'original_price' || field === 'profit' || field === 'rating'
           ? parseFloat(value) || 0
-          : field === 'review_count' || field === 'calories' || field === 'food_position'
-            ? parseInt(value) || 0
+          : field === 'review_count' || field === 'calories' || field === 'food_position' || field === 'limit_per_user_total'
+            ? (value === '' ? 0 : parseInt(value, 10) || 0)
             : field === 'veg' || field === 'popular' || field === 'bestseller' || field === 'stock' ||
               field === 'morning' || field === 'afternoon' || field === 'evening' || field === 'night'
               ? Boolean(value)
@@ -861,6 +881,7 @@ const FoodManagement = () => {
                         <th>Type</th>
                         <th>Time Slots</th>
                         <th>Stock</th>
+                        <th style={{ minWidth: '90px' }}>User Limit</th>
                         <th>Status</th>
                         <th>Position</th>
                         <th>Actions</th>
@@ -1047,6 +1068,20 @@ const FoodManagement = () => {
                                     </span>
                                   </label>
                                 </td>
+                                <td>
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '70px' }}>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={editingFood.limit_per_user_total !== undefined ? editingFood.limit_per_user_total : 0}
+                                      onChange={(e) => handleFieldChange('limit_per_user_total', e.target.value)}
+                                      className="edit-input"
+                                      title="0 = Unlimited"
+                                      style={{ width: '60px', textAlign: 'center' }}
+                                    />
+                                    <div style={{ fontSize: '10px', color: '#666', marginTop: '4px', whiteSpace: 'nowrap' }}>0 = Unlimited</div>
+                                  </div>
+                                </td>
                                 <td className="status-actions">
                                   <div className="toggle-buttons">
                                     <button
@@ -1141,6 +1176,11 @@ const FoodManagement = () => {
                                   >
                                     {item.stock ? '✅ In Stock' : '❌ Out of Stock'}
                                   </button>
+                                </td>
+                                <td>
+                                  <span className="limit-value">
+                                    {item.limit_per_user_total > 0 ? `Max ${item.limit_per_user_total}` : 'Unlimited'}
+                                  </span>
                                 </td>
                                 <td className="status-actions">
                                   <div className="toggle-buttons">

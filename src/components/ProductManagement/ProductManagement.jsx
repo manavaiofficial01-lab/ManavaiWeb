@@ -98,6 +98,7 @@ const ProductManagement = () => {
           rating: parseFloat(product.rating) || 0,
           reviews: parseInt(product.reviews) || 0,
           discount: product.discount,
+          limit_per_user_total: parseInt(product.limit_per_user_total) || 0,
           main_image_url: product.main_image_url,
           updated_at: new Date().toISOString()
         })
@@ -157,6 +158,7 @@ const ProductManagement = () => {
           rating: parseFloat(productData.rating) || 0,
           reviews: parseInt(productData.reviews) || 0,
           discount: productData.discount || '',
+          limit_per_user_total: parseInt(productData.limit_per_user_total) || 0,
           main_image_url: productData.main_image_url || '',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -247,9 +249,21 @@ const ProductManagement = () => {
     if (!editingProduct) return;
 
     try {
+      // Use == to allow string/number comparison for IDs
+      const originalProduct = products.find(p => p.id == editingProduct.id);
+      const limitChanged = originalProduct && Number(originalProduct.limit_per_user_total) !== Number(editingProduct.limit_per_user_total);
+
       const updatedProduct = await updateProduct(editingProduct);
 
       if (updatedProduct) {
+        // Reset history if limit changed
+        if (limitChanged && Number(updatedProduct.limit_per_user_total) > 0) {
+          const prodId = Number(updatedProduct.id);
+          await supabase.from('user_product_usage').delete().eq('product_id', prodId);
+          await supabase.from('cart_items').delete().eq('product_id', prodId);
+          alert(`Limit changed! History and carts reset for "${updatedProduct.name}".`);
+        }
+
         setProducts(prevProducts =>
           prevProducts.map(product =>
             product.id === updatedProduct.id ? updatedProduct : product
@@ -276,7 +290,11 @@ const ProductManagement = () => {
     if (editingProduct) {
       setEditingProduct(prev => ({
         ...prev,
-        [field]: value
+        [field]: field === 'price' || field === 'profit' || field === 'rating'
+          ? parseFloat(value) || 0
+          : field === 'reviews' || field === 'stock' || field === 'limit_per_user_total'
+            ? parseInt(value) || 0
+            : value
       }));
     }
   };
@@ -293,6 +311,7 @@ const ProductManagement = () => {
       rating: 0,
       reviews: 0,
       discount: '',
+      limit_per_user_total: 0,
       main_image_url: ''
     });
   };
@@ -466,6 +485,9 @@ const ProductManagement = () => {
                       <th onClick={() => handleSort('rating')} className="sortable-header">
                         Rating {getSortIcon('rating')}
                       </th>
+                      <th onClick={() => handleSort('limit_per_user_total')} className="sortable-header">
+                        Limit {getSortIcon('limit_per_user_total')}
+                      </th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -571,6 +593,17 @@ const ProductManagement = () => {
                             placeholder="Rating"
                             value={editingProduct.rating}
                             onChange={(e) => handleFieldChange('rating', e.target.value)}
+                            className="edit-input"
+                          />
+                        </td>
+
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="Limit (0=Unl)"
+                            value={editingProduct.limit_per_user_total}
+                            onChange={(e) => handleFieldChange('limit_per_user_total', e.target.value)}
                             className="edit-input"
                           />
                         </td>
@@ -784,12 +817,14 @@ const ProductManagement = () => {
 
                               <td>
                                 <div className="rating">
-                                  <span className="stars">
-                                    {"★".repeat(Math.floor(product.rating || 0))}
-                                    {"☆".repeat(5 - Math.floor(product.rating || 0))}
-                                  </span>
                                   <span className="rating-value">{product.rating || 0}</span>
                                 </div>
+                              </td>
+
+                              <td>
+                                <span className="limit-badge">
+                                  {product.limit_per_user_total > 0 ? `Max ${product.limit_per_user_total}` : 'Unlimited'}
+                                </span>
                               </td>
 
                               <td className="action-buttons">

@@ -24,7 +24,8 @@ const FoodUpload = () => {
     calories: '',
     prep_time: '',
     profit: '0',
-    food_position: '0'
+    food_position: '0',
+    limit_per_user_total: '0'
   });
 
   const [image, setImage] = useState(null);
@@ -172,6 +173,7 @@ const FoodUpload = () => {
       image_url: imageUrl,
       profit: parseFloat(formData.profit) || 0,
       food_position: parseInt(formData.food_position) || 0,
+      limit_per_user_total: parseInt(formData.limit_per_user_total) || 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -241,7 +243,8 @@ const FoodUpload = () => {
       calories: '',
       prep_time: '',
       profit: '0',
-      food_position: '0'
+      food_position: '0',
+      limit_per_user_total: '0'
     });
     setImage(null);
     document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
@@ -435,6 +438,19 @@ const FoodUpload = () => {
                     placeholder="0"
                   />
                   <div className="field-info">Lower numbers appear first</div>
+                </div>
+
+                <div className="form-group">
+                  <label>Lifetime Limit per User</label>
+                  <input
+                    type="number"
+                    name="limit_per_user_total"
+                    value={formData.limit_per_user_total}
+                    onChange={handleInputChange}
+                    min="0"
+                    placeholder="0 for unlimited"
+                  />
+                  <div className="field-info">Max quantity a user can buy ever (0 = No limit)</div>
                 </div>
               </div>
             </div>

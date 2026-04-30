@@ -27,6 +27,7 @@ const ProductUpload = () => {
     reviews: '0',
     stock: '0',
     profit: '0',
+    limit_per_user_total: '0',
     warehouse: '',
     zone: ''
   });
@@ -367,6 +368,7 @@ const ProductUpload = () => {
       stock: parseInt(formData.stock) || 0,
       main_image_url: imageUrls.mainImage,
       profit: parseFloat(formData.profit) || 0,
+      limit_per_user_total: parseInt(formData.limit_per_user_total) || 0,
       warehouse: formData.warehouse.trim() || null,
       zone: formData.zone.trim() || null,
       created_at: new Date().toISOString(),
@@ -697,6 +699,18 @@ const ProductUpload = () => {
                     min="0"
                     placeholder="0"
                   />
+                </div>
+                <div className="form-group">
+                  <label>Lifetime Limit per User</label>
+                  <input
+                    type="number"
+                    name="limit_per_user_total"
+                    value={formData.limit_per_user_total}
+                    onChange={handleInputChange}
+                    min="0"
+                    placeholder="0 for unlimited"
+                  />
+                  <div className="field-info">Max quantity a user can buy ever (0 = No limit)</div>
                 </div>
               </div>
               <div className="form-group full-width">
