@@ -752,6 +752,17 @@ const ProductManagement = () => {
                                 />
                               </td>
 
+                              <td>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="Limit (0=Unl)"
+                                  value={editingProduct.limit_per_user_total}
+                                  onChange={(e) => handleFieldChange('limit_per_user_total', e.target.value)}
+                                  className="edit-input"
+                                />
+                              </td>
+
                               <td className="action-buttons">
                                 <button
                                   className="save-btn"
