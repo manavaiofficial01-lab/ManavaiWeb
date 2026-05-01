@@ -1650,7 +1650,6 @@ const CollectionsModal = ({ date, orders, drivers, onClose, formatCurrency }) =>
           cash: 0,
           upi: 0,
           online: 0,
-          online: 0,
           total: 0,
           expectedRevenue: 0,
           ordersCount: 0
