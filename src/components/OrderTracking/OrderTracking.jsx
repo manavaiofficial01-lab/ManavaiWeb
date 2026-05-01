@@ -1411,35 +1411,80 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
 
           {/* Order Items */}
           <div className="order-tracking-items-section">
-            <h3>Order Items ({order.items?.length || 0})</h3>
-            <div className="order-tracking-items-list">
-              {order.items?.map((item, index) => (
-                <div key={index} className="order-tracking-item-card">
-                  <img
-                    src={item.product_image}
-                    alt={item.product_name}
-                    className="order-tracking-item-image"
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/60x60?text=No+Image';
-                    }}
-                  />
-                  <div className="order-tracking-item-details">
-                    <div className="order-tracking-item-name">{item.product_name}</div>
-                    <div className="order-tracking-item-meta">
-                      <span className="order-tracking-item-quantity">Qty: {item.quantity}</span>
-                      <span className="order-tracking-item-price">{formatCurrency(item.price)}</span>
-                    </div>
-                    {item.original_price && item.original_price > item.price && (
-                      <div className="order-tracking-item-discount">
-                        <span className="order-tracking-original-price">{formatCurrency(item.original_price)}</span>
-                        <span className="order-tracking-discount-badge">
-                          Save {formatCurrency(item.original_price - item.price)}
-                        </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0 }}>Order Items ({order.items?.length || 0})</h3>
+              {order.is_modified && (
+                <span className={`order-modification-badge ${order.modified_by === 'admin' ? 'admin' : ''}`}>
+                  {order.modified_by === 'admin' ? '🛠️ Modified by Admin' : '🚗 Modified by Driver'}
+                </span>
+              )}
+            </div>
+
+            {order.is_modified && order.original_items && (
+              <>
+                <div className="order-modified-info">
+                  <span>ℹ️ This order was modified. Below is the comparison between original and changed items.</span>
+                </div>
+                
+                {/* Original Items (Disabled look) */}
+                <div className="order-items-container original">
+                  <div className="order-tracking-items-list">
+                    {(Array.isArray(order.original_items) ? order.original_items : safeParseItems(order.original_items)).map((item, index) => (
+                      <div key={`orig-${index}`} className="order-tracking-item-card original-item-card">
+                        <img
+                          src={item.product_image}
+                          alt={item.product_name}
+                          className="order-tracking-item-image"
+                          style={{ opacity: 0.6 }}
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/60x60?text=No+Image';
+                          }}
+                        />
+                        <div className="order-tracking-item-details">
+                          <div className="order-tracking-item-name" style={{ color: '#64748b' }}>{item.product_name}</div>
+                          <div className="order-tracking-item-meta">
+                            <span className="order-tracking-item-quantity">Qty: {item.quantity}</span>
+                            <span className="order-tracking-item-price">{formatCurrency(item.price)}</span>
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
                 </div>
-              ))}
+              </>
+            )}
+
+            {/* Current Items */}
+            <div className={order.is_modified ? "order-items-container current" : ""}>
+              <div className="order-tracking-items-list">
+                {order.items?.map((item, index) => (
+                  <div key={index} className="order-tracking-item-card">
+                    <img
+                      src={item.product_image}
+                      alt={item.product_name}
+                      className="order-tracking-item-image"
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/60x60?text=No+Image';
+                      }}
+                    />
+                    <div className="order-tracking-item-details">
+                      <div className="order-tracking-item-name">{item.product_name}</div>
+                      <div className="order-tracking-item-meta">
+                        <span className="order-tracking-item-quantity">Qty: {item.quantity}</span>
+                        <span className="order-tracking-item-price">{formatCurrency(item.price)}</span>
+                      </div>
+                      {item.original_price && item.original_price > item.price && (
+                        <div className="order-tracking-item-discount">
+                          <span className="order-tracking-original-price">{formatCurrency(item.original_price)}</span>
+                          <span className="order-tracking-discount-badge">
+                            Save {formatCurrency(item.original_price - item.price)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -2298,11 +2343,23 @@ const OrderTracking = () => {
 
   const updateOrderItems = async (orderId, newItems, newTotal, primaryRestaurant, newDeliveryCharges) => {
     try {
+      // Find the current order to see if it was already modified
+      const currentOrder = orders.find(o => o.id === orderId);
+      const isFirstModification = !currentOrder?.is_modified;
+
       const updateData = {
         items: newItems,
         total_amount: newTotal,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        is_modified: true,
+        modified_by: 'admin',
+        modified_at: new Date().toISOString()
       };
+
+      // If it's the first time modifying, save current items as original_items
+      if (isFirstModification) {
+        updateData.original_items = currentOrder?.items || [];
+      }
 
       if (primaryRestaurant) {
         updateData.restaurant_name = primaryRestaurant;
@@ -2325,7 +2382,9 @@ const OrderTracking = () => {
           order.id === orderId
             ? {
               ...order,
-              ...updateData
+              ...updateData,
+              // If it's the first modification, we need to ensure local state has original_items
+              original_items: isFirstModification ? order.items : order.original_items
             }
             : order
         )
@@ -2333,7 +2392,11 @@ const OrderTracking = () => {
 
       // Also update selectedOrder if it's the one open
       if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder(prev => ({ ...prev, ...updateData }));
+        setSelectedOrder(prev => ({ 
+          ...prev, 
+          ...updateData,
+          original_items: isFirstModification ? prev.items : prev.original_items
+        }));
       }
 
       return { success: true };
