@@ -3197,3 +3197,30 @@
   filter: grayscale(0.5);
   background: #f8fafc !important;
 }
+
+/* Individual Item Change Button */
+.order-tracking-item-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.order-tracking-item-change-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #6366f1;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+.order-tracking-item-change-btn:hover {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+}

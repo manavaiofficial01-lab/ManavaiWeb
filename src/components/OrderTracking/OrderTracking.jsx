@@ -1244,6 +1244,35 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
     fetchCustomerOrderCount();
   }, [order?.customer_phone]);
 
+  const [modifications, setModifications] = useState([]);
+  const [loadingMods, setLoadingMods] = useState(false);
+
+  useEffect(() => {
+    const fetchModifications = async () => {
+      if (!order?.id) return;
+      setLoadingMods(true);
+      try {
+        const { data, error } = await supabase
+          .from('order_modifications')
+          .select('*')
+          .eq('order_id', order.id)
+          .order('created_at', { ascending: true });
+        
+        if (error) throw error;
+        setModifications(data || []);
+      } catch (error) {
+        console.error('Error fetching modifications:', error);
+      } finally {
+        setLoadingMods(false);
+      }
+    };
+    fetchModifications();
+  }, [order?.id]);
+
+  const isModified = modifications.length > 0;
+  const originalItems = isModified ? modifications[0].old_items : null;
+  const lastMod = isModified ? modifications[modifications.length - 1] : null;
+
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -1269,6 +1298,11 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
               <span className={`order-tracking-status-badge order-tracking-status-${normalizeStatus(order.status)}`}>
                 {normalizeStatus(order.status).toUpperCase()}
               </span>
+              {isModified && (
+                <span className={`order-modification-badge ${lastMod.modified_by === 'admin' ? 'admin' : ''}`}>
+                  {lastMod.modified_by === 'admin' ? '🛠️ Modified by Admin' : '🚗 Modified by Driver'}
+                </span>
+              )}
               <span className={`order-tracking-payment-status ${getPaymentStatusClass(paymentStatus.status)}`}>
                 {paymentStatus.label}
               </span>
@@ -1413,14 +1447,9 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
           <div className="order-tracking-items-section">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ margin: 0 }}>Order Items ({order.items?.length || 0})</h3>
-              {order.is_modified && (
-                <span className={`order-modification-badge ${order.modified_by === 'admin' ? 'admin' : ''}`}>
-                  {order.modified_by === 'admin' ? '🛠️ Modified by Admin' : '🚗 Modified by Driver'}
-                </span>
-              )}
             </div>
 
-            {order.is_modified && order.original_items && (
+            {isModified && originalItems && (
               <>
                 <div className="order-modified-info">
                   <span>ℹ️ This order was modified. Below is the comparison between original and changed items.</span>
@@ -1429,7 +1458,7 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
                 {/* Original Items (Disabled look) */}
                 <div className="order-items-container original">
                   <div className="order-tracking-items-list">
-                    {(Array.isArray(order.original_items) ? order.original_items : safeParseItems(order.original_items)).map((item, index) => (
+                    {(Array.isArray(originalItems) ? originalItems : safeParseItems(originalItems)).map((item, index) => (
                       <div key={`orig-${index}`} className="order-tracking-item-card original-item-card">
                         <img
                           src={item.product_image}
@@ -1455,7 +1484,7 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
             )}
 
             {/* Current Items */}
-            <div className={order.is_modified ? "order-items-container current" : ""}>
+            <div className={isModified ? "order-items-container current" : ""}>
               <div className="order-tracking-items-list">
                 {order.items?.map((item, index) => (
                   <div key={index} className="order-tracking-item-card">
@@ -1468,7 +1497,15 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
                       }}
                     />
                     <div className="order-tracking-item-details">
-                      <div className="order-tracking-item-name">{item.product_name}</div>
+                      <div className="order-tracking-item-header-row">
+                        <div className="order-tracking-item-name">{item.product_name}</div>
+                        <button
+                          onClick={() => onChangeItems(order)}
+                          className="order-tracking-item-change-btn"
+                        >
+                          Change Product
+                        </button>
+                      </div>
                       <div className="order-tracking-item-meta">
                         <span className="order-tracking-item-quantity">Qty: {item.quantity}</span>
                         <span className="order-tracking-item-price">{formatCurrency(item.price)}</span>
@@ -2222,8 +2259,50 @@ const OrderTracking = () => {
   const subscribeToOrders = () => {
     try {
       return supabase
-        .channel('orders-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchOrders)
+        .channel('orders-realtime-admin')
+        .on(
+          'postgres_changes', 
+          { event: '*', schema: 'public', table: 'orders' }, 
+          (payload) => {
+            console.log('Real-time update received:', payload);
+            
+            if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+              const updatedOrder = {
+                ...payload.new,
+                items: safeParseItems(payload.new.items),
+                status: normalizeStatus(payload.new.status)
+              };
+
+              setOrders(prevOrders => {
+                const index = prevOrders.findIndex(o => o.id === updatedOrder.id);
+                if (index !== -1) {
+                  // Update existing order
+                  const newOrders = [...prevOrders];
+                  newOrders[index] = updatedOrder;
+                  return newOrders;
+                } else if (payload.eventType === 'INSERT') {
+                  // Add new order to top
+                  return [updatedOrder, ...prevOrders];
+                }
+                return prevOrders;
+              });
+
+              // CRITICAL: Update the modal if this order is currently being viewed
+              setSelectedOrder(prev => {
+                if (prev && prev.id === updatedOrder.id) {
+                  return updatedOrder;
+                }
+                return prev;
+              });
+            } else if (payload.eventType === 'DELETE') {
+              setOrders(prevOrders => prevOrders.filter(o => o.id !== payload.old.id));
+              setSelectedOrder(prev => {
+                if (prev && prev.id === payload.old.id) return null;
+                return prev;
+              });
+            }
+          }
+        )
         .subscribe();
     } catch (error) {
       console.error('Error setting up subscription:', error);
@@ -2349,15 +2428,25 @@ const OrderTracking = () => {
       const updateData = {
         items: newItems,
         total_amount: newTotal,
-        updated_at: new Date().toISOString(),
-        is_modified: true,
-        modified_by: 'admin',
-        modified_at: new Date().toISOString()
+        updated_at: new Date().toISOString()
       };
 
-      // If it's the first time modifying, save current items as original_items
-      if (isFirstModification) {
-        updateData.original_items = currentOrder?.items || [];
+      // Record in history table
+      const { error: historyError } = await supabase
+        .from('order_modifications')
+        .insert({
+          order_id: orderId,
+          old_items: currentOrder.items,
+          new_items: newItems,
+          old_total: currentOrder.total_amount,
+          new_total: newTotal,
+          modified_by: 'admin',
+          modifier_id: 'admin@manavai.com', // Placeholder or use actual admin session
+          created_at: new Date().toISOString()
+        });
+
+      if (historyError) {
+        console.warn('⚠️ History recording failed but proceeding:', historyError);
       }
 
       if (primaryRestaurant) {
