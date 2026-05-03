@@ -1244,6 +1244,96 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
     fetchCustomerOrderCount();
   }, [order?.customer_phone]);
 
+  const [syncingLimits, setSyncingLimits] = useState(false);
+
+  // Helper to normalize user IDs (especially phone numbers) for consistent limit tracking
+  const normalizeUserId = (id) => {
+    if (!id || typeof id !== 'string') return id;
+    // If it looks like a UUID, keep it as is
+    if (id.includes('-') && id.length > 20) return id;
+    // Strip all non-numeric characters and keep last 10 digits for Indian phone numbers
+    const clean = id.replace(/\D/g, '');
+    return clean.length >= 10 ? clean.slice(-10) : clean;
+  };
+
+  const syncProductUsage = async () => {
+    const rawIdentifier = order?.customer_phone || order?.user_id;
+    const identifier = normalizeUserId(rawIdentifier);
+    if (!identifier) {
+      alert('No user identifier found for this order.');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to sync product limits for user ${identifier}? This will update their purchase history count based on all delivered orders.`)) {
+      return;
+    }
+
+    setSyncingLimits(true);
+    try {
+      // 1. Fetch all delivered orders for this user using either phone or user_id
+      // We search for both normalized and raw identifiers to be thorough
+      const { data: deliveredOrders, error: ordersError } = await supabase
+        .from('orders')
+        .select('items, customer_phone, user_id')
+        .or(`customer_phone.ilike.%${identifier},user_id.ilike.%${identifier}`)
+        .eq('status', 'delivered');
+
+      if (ordersError) throw ordersError;
+
+      // 2. Calculate totals per product
+      const productTotals = {};
+      deliveredOrders.forEach(ord => {
+        // Double check this order actually belongs to our normalized user
+        const ordPhone = normalizeUserId(ord.customer_phone);
+        const ordUser = normalizeUserId(ord.user_id);
+        if (ordPhone !== identifier && ordUser !== identifier) return;
+
+        const items = safeParseItems(ord.items);
+        items.forEach(item => {
+          const productId = (item.product_id || item.id || item.productId)?.toString();
+          const quantity = parseInt(item.quantity || 1);
+          if (productId) {
+            productTotals[productId] = (productTotals[productId] || 0) + quantity;
+          }
+        });
+      });
+
+      console.log('📊 Calculated totals for sync:', productTotals);
+
+      // 3. Update user_product_usage table
+      // First, delete existing records for this user to ensure a clean sync
+      const { error: deleteError } = await supabase
+        .from('user_product_usage')
+        .delete()
+        .eq('user_id', identifier);
+
+      if (deleteError) throw deleteError;
+
+      const productIds = Object.keys(productTotals);
+      
+      if (productIds.length > 0) {
+        const insertData = productIds.map(productId => ({
+          user_id: identifier,
+          product_id: productId,
+          total_purchased: productTotals[productId]
+        }));
+
+        const { error: insertError } = await supabase
+          .from('user_product_usage')
+          .insert(insertData);
+
+        if (insertError) throw insertError;
+      }
+
+      alert(`Successfully synced ${productIds.length} product limits for user ${identifier}!`);
+    } catch (err) {
+      console.error('Error syncing limits:', err);
+      alert('Failed to sync limits: ' + err.message);
+    } finally {
+      setSyncingLimits(false);
+    }
+  };
+
   const [modifications, setModifications] = useState([]);
   const [loadingMods, setLoadingMods] = useState(false);
 
@@ -1351,6 +1441,27 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
                   )}
                 </span>
               </div>
+              <button 
+                onClick={syncProductUsage}
+                disabled={syncingLimits}
+                style={{
+                  marginTop: '10px',
+                  padding: '8px 12px',
+                  backgroundColor: syncingLimits ? '#e2e8f0' : '#fef2f2',
+                  color: syncingLimits ? '#64748b' : '#ef4444',
+                  borderRadius: '6px',
+                  border: '1px solid ' + (syncingLimits ? '#cbd5e1' : '#fecaca'),
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  cursor: syncingLimits ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  width: 'fit-content'
+                }}
+              >
+                {syncingLimits ? '🔄 Syncing...' : '🔄 Sync Product Limits'}
+              </button>
               {order.customer_lat && order.customer_lon && (
                 <div className="order-tracking-info-item order-tracking-location-item">
                   <strong>Location:</strong>
@@ -1592,29 +1703,30 @@ const OrderModal = ({ order, onClose, onStatusUpdate, normalizeStatus, formatCur
               {order.driver_name ? 'Change Driver' : 'Assign Driver'}
             </button>
 
-            {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped') && (
-              <>
-                <button
-                  onClick={() => onMarkAsDelivered(order)}
-                  className="order-tracking-action-btn order-tracking-success"
-                  style={{ backgroundColor: '#10b981', color: 'white' }}
-                >
-                  <span style={{ marginRight: '8px' }}>✅</span>
-                  Mark as Delivered
-                </button>
-                <button
-                  onClick={() => {
-                    if (window.confirm('Are you sure you want to cancel this order?')) {
-                      onStatusUpdate(order.id, 'cancelled');
-                      onClose();
-                    }
-                  }}
-                  className="order-tracking-action-btn order-tracking-danger"
-                >
-                  <span style={{ marginRight: '8px' }}>❌</span>
-                  Cancel Order
-                </button>
-              </>
+            {(normalizeStatus(order.status) === 'processing' || normalizeStatus(order.status) === 'shipped' || normalizeStatus(order.status) === 'pending') && (
+              <button
+                onClick={() => onMarkAsDelivered(order)}
+                className="order-tracking-action-btn order-tracking-success"
+                style={{ backgroundColor: '#10b981', color: 'white' }}
+              >
+                <span style={{ marginRight: '8px' }}>✅</span>
+                Mark as Delivered
+              </button>
+            )}
+
+            {normalizeStatus(order.status) !== 'cancelled' && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to cancel this order? This will also reset product purchase limits for this user.')) {
+                    onStatusUpdate(order.id, 'cancelled');
+                    onClose();
+                  }
+                }}
+                className="order-tracking-action-btn order-tracking-danger"
+              >
+                <span style={{ marginRight: '8px' }}>❌</span>
+                Cancel Order
+              </button>
             )}
 
             <button onClick={onClose} className="order-tracking-action-btn order-tracking-secondary">
@@ -2322,8 +2434,67 @@ const OrderTracking = () => {
     }
   };
 
+  const updateProductUsage = async (rawUserId, items, action) => {
+    const userId = normalizeUserId(rawUserId);
+    if (!userId) return { success: false, error: 'No user ID' };
+
+    try {
+      const orderItems = typeof items === 'string' ? JSON.parse(items) : items;
+      
+      for (const item of orderItems) {
+        const productId = (item.product_id || item.id || item.productId)?.toString();
+        const quantity = parseInt(item.quantity || 1);
+
+        if (productId) {
+          const { data: usageData } = await supabase
+            .from('user_product_usage')
+            .select('total_purchased')
+            .eq('user_id', userId)
+            .eq('product_id', productId)
+            .single();
+
+          let currentTotal = usageData?.total_purchased || 0;
+          let newTotal = currentTotal;
+
+          if (action === 'increment') {
+            newTotal = currentTotal + quantity;
+          } else if (action === 'decrement') {
+            newTotal = Math.max(0, currentTotal - quantity);
+          }
+
+          if (usageData) {
+            await supabase
+              .from('user_product_usage')
+              .update({ total_purchased: newTotal })
+              .eq('user_id', userId)
+              .eq('product_id', productId);
+          } else if (action === 'increment') {
+            await supabase
+              .from('user_product_usage')
+              .insert({ user_id: userId, product_id: productId, total_purchased: newTotal });
+          }
+        }
+      }
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating product usage:', err);
+      return { success: false, error: err };
+    }
+  };
+
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
+      // 1. Fetch current order state to compare status and get items
+      const { data: oldOrder } = await supabase
+        .from('orders')
+        .select('user_id, customer_phone, items, status')
+        .eq('id', orderId)
+        .single();
+
+      if (!oldOrder) throw new Error('Order not found');
+      if (oldOrder.status === newStatus) return;
+
+      // 2. Update status
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
@@ -2331,13 +2502,31 @@ const OrderTracking = () => {
 
       if (error) throw error;
 
+      // 3. Handle Limit Logic
+      const userIdForUsage = oldOrder.customer_phone || oldOrder.user_id;
+
+      // Increment if becoming 'delivered'
+      if (newStatus === 'delivered' && oldOrder.status !== 'delivered') {
+        await updateProductUsage(userIdForUsage, oldOrder.items, 'increment');
+        console.log('✅ Product limits incremented for delivered order');
+      }
+      // Decrement if becoming 'cancelled'
+      else if (newStatus === 'cancelled' && oldOrder.status !== 'cancelled') {
+        await updateProductUsage(userIdForUsage, oldOrder.items, 'decrement');
+        console.log('✅ Product limits reset for cancelled order');
+      }
+      // Revert if moving AWAY from 'delivered' (rare but for consistency)
+      else if (oldOrder.status === 'delivered' && newStatus !== 'delivered' && newStatus !== 'cancelled') {
+        await updateProductUsage(userIdForUsage, oldOrder.items, 'decrement');
+        console.log('✅ Product limits decremented (un-delivered)');
+      }
+
       setOrders(prevOrders =>
         prevOrders.map(order =>
           order.id === orderId ? { ...order, status: newStatus } : order
         )
       );
 
-      // Also update selected order if it's open
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(prev => ({ ...prev, status: newStatus }));
       }
@@ -2363,6 +2552,13 @@ const OrderTracking = () => {
         .eq('id', orderId);
 
       if (error) throw error;
+
+      // Handle Limit Increment
+      const userIdForUsage = selectedOrder.customer_phone || selectedOrder.user_id;
+      if (userIdForUsage && selectedOrder.items && selectedOrder.status !== 'delivered') {
+        await updateProductUsage(userIdForUsage, selectedOrder.items, 'increment');
+        console.log('✅ Product limits incremented via handleMarkAsDelivered');
+      }
 
       setOrders(prevOrders =>
         prevOrders.map(order =>
@@ -2400,6 +2596,13 @@ const OrderTracking = () => {
         .eq('id', orderId);
 
       if (error) throw error;
+
+      // Handle Limit Increment
+      const userIdForUsage = selectedOrder.customer_phone || selectedOrder.user_id;
+      if (userIdForUsage && selectedOrder.items && selectedOrder.status !== 'delivered') {
+        await updateProductUsage(userIdForUsage, selectedOrder.items, 'increment');
+        console.log('✅ Product limits incremented via handleMarkAsDeliveredDirectly');
+      }
 
       setOrders(prevOrders =>
         prevOrders.map(order =>

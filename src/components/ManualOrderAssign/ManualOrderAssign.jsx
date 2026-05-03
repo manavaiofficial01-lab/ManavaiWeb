@@ -28,6 +28,16 @@ const ManualOrderAssign = () => {
   const [newOrdersCount, setNewOrdersCount] = useState(0);
 
   const audioRef = useRef(null);
+  
+  // Helper to normalize user IDs (especially phone numbers) for consistent limit tracking
+  const normalizeUserId = (id) => {
+    if (!id || typeof id !== 'string') return id;
+    // If it looks like a UUID, keep it as is
+    if (id.includes('-') && id.length > 20) return id;
+    // Strip all non-numeric characters and keep last 10 digits for Indian phone numbers
+    const clean = id.replace(/\D/g, '');
+    return clean.length >= 10 ? clean.slice(-10) : clean;
+  };
   const pollingRef = useRef(null);
   const isFirstLoadRef = useRef(true);
   const soundTimeoutRef = useRef(null);
@@ -638,9 +648,26 @@ const ManualOrderAssign = () => {
     }
 
     try {
+      setAssigning(true);
       setError(null);
 
-      const { error } = await supabase
+      // 1. Fetch order details to get items and user ID
+      const { data: order, error: fetchError } = await supabase
+        .from('orders')
+        .select('user_id, customer_phone, items, status')
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      
+      // Don't do anything if it's already cancelled
+      if (order.status === 'cancelled') {
+        alert('Order is already cancelled');
+        return;
+      }
+
+      // 2. Update order status to cancelled
+      const { error: updateError } = await supabase
         .from('orders')
         .update({
           status: 'cancelled',
@@ -648,13 +675,49 @@ const ManualOrderAssign = () => {
         })
         .eq('id', orderId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // 3. Reset Product Limits (Decrement usage)
+      const rawUserId = order.customer_phone || order.user_id;
+      const userIdForUsage = normalizeUserId(rawUserId);
+      if (order && order.items && userIdForUsage) {
+        const orderItems = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        
+        for (const item of orderItems) {
+          const productId = (item.product_id || item.id || item.productId)?.toString();
+          const quantity = parseInt(item.quantity || 1);
+
+          if (productId) {
+            // Get current usage
+            const { data: usageData } = await supabase
+              .from('user_product_usage')
+              .select('total_purchased')
+              .eq('user_id', userIdForUsage)
+              .eq('product_id', productId)
+              .single();
+
+            if (usageData) {
+              // Decrement usage
+              const newTotal = Math.max(0, (usageData.total_purchased || 0) - quantity);
+              await supabase
+                .from('user_product_usage')
+                .update({ total_purchased: newTotal })
+                .eq('user_id', userIdForUsage)
+                .eq('product_id', productId);
+              
+              console.log(`✅ Reset limit for product ${productId}: -${quantity}`);
+            }
+          }
+        }
+      }
 
       setOrders(prev => prev.filter(order => order.id !== orderId));
-      alert('Order cancelled successfully');
+      alert('Order cancelled successfully and product limits reset for the user.');
     } catch (error) {
       console.error('Error cancelling order:', error);
-      setError('Failed to cancel order. Please try again.');
+      setError('Failed to cancel order and reset limits. Please try again.');
+    } finally {
+      setAssigning(false);
     }
   };
 
