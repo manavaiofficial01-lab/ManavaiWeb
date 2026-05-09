@@ -910,224 +910,244 @@ const FoodManagement = () => {
                       ) : (
                         filteredFoodItems.map(item => (
                           <tr key={item.id} className={editingFood?.id === item.id || editingCategory === item.id ? 'editing-row' : ''}>
-                            <td className="food-info">
-                              {editingFood?.id === item.id ? (
-                                <div className="edit-input-container">
-                                  <input
-                                    type="text"
-                                    value={editingFood.name}
-                                    onChange={(e) => handleFieldChange('name', e.target.value)}
-                                    className="edit-input"
-                                    placeholder="Food item name"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="food-details">
-                                  <div className="food-name">{item.name}</div>
-                                  {item.prep_time && (
-                                    <div className="prep-time">Prep: {item.prep_time}</div>
-                                  )}
-                                  {item.calories && (
-                                    <div className="calories">Calories: {item.calories}</div>
-                                  )}
-                                </div>
-                              )}
-                            </td>
-
-                            <td className="category-cell">
-                              {editingCategory === item.id ? (
-                                <div className="category-edit-container">
-                                  <select
-                                    value={item.category}
-                                    onChange={(e) => handleCategorySave(item, e.target.value)}
-                                    className="category-edit-select"
-                                    autoFocus
-                                  >
-                                    <option value="">Select Category</option>
-                                    {foodCategories.map(category => (
-                                      <option key={category} value={category}>
-                                        {category}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <div className="category-edit-actions">
-                                    <button
-                                      className="category-save-btn"
-                                      onClick={() => setEditingCategory(null)}
-                                    >
-                                      ✓
-                                    </button>
-                                    <button
-                                      className="category-cancel-btn"
-                                      onClick={handleCategoryCancel}
-                                    >
-                                      ×
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="category-display">
-                                  <span
-                                    className="category-value"
-                                    onClick={() => handleCategoryEdit(item)}
-                                    title="Click to edit category"
-                                  >
-                                    {item.category}
-                                  </span>
-                                </div>
-                              )}
-                            </td>
-
                             {editingFood?.id === item.id ? (
-                              <>
-                                <td>
-                                  <div className="edit-input-container">
-                                    <span className="currency-symbol">₹</span>
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={editingFood.price}
-                                      onChange={(e) => handleFieldChange('price', e.target.value)}
-                                      className="edit-input"
-                                    />
+                              <td colSpan="13" className="edit-form-cell">
+                                <div className="edit-form-card">
+                                  <div className="edit-form-header">
+                                    <h3>Edit Food Item: {item.name}</h3>
+                                    <div className="edit-form-actions-top">
+                                      <button className="cancel-btn-large" onClick={handleCancelClick}>Cancel</button>
+                                      <button className="save-btn-large" onClick={handleSaveClick} disabled={loading}>
+                                        {loading ? 'Saving...' : 'Save Changes'}
+                                      </button>
+                                    </div>
                                   </div>
-                                </td>
-                                <td>
-                                  <div className="edit-input-container">
-                                    <span className="currency-symbol">₹</span>
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={editingFood.original_price}
-                                      onChange={(e) => handleFieldChange('original_price', e.target.value)}
-                                      className="edit-input"
-                                    />
-                                  </div>
-                                </td>
-                                <td>
-                                  <div className="edit-input-container">
-                                    <span className="currency-symbol">₹</span>
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={editingFood.profit}
-                                      onChange={(e) => handleFieldChange('profit', e.target.value)}
-                                      className="edit-input"
-                                    />
-                                  </div>
-                                </td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    max="5"
-                                    value={editingFood.rating}
-                                    onChange={(e) => handleFieldChange('rating', e.target.value)}
-                                    className="edit-input"
-                                  />
-                                </td>
-                                <td>
-                                  <select
-                                    value={editingFood.veg}
-                                    onChange={(e) => handleFieldChange('veg', e.target.value === 'true')}
-                                    className="edit-select"
-                                  >
-                                    <option value={true}>Veg</option>
-                                    <option value={false}>Non-Veg</option>
-                                  </select>
-                                </td>
-                                <td className="time-slots-cell">
-                                  <div className="time-slots-checkboxes">
-                                    {timeSlots.map(slot => (
-                                      <label key={slot.id} className="time-slot-checkbox">
+
+                                  <div className="edit-form-grid">
+                                    {/* Basic Info Section */}
+                                    <div className="form-section">
+                                      <h4>Basic Information</h4>
+                                      <div className="form-group">
+                                        <label>Food Name</label>
                                         <input
-                                          type="checkbox"
-                                          checked={editingFood[slot.id]}
-                                          onChange={(e) => handleFieldChange(slot.id, e.target.checked)}
-                                          className="time-slot-input"
+                                          type="text"
+                                          value={editingFood.name}
+                                          onChange={(e) => handleFieldChange('name', e.target.value)}
+                                          placeholder="Enter food name"
                                         />
-                                        <span className="time-slot-label">{slot.icon} {slot.label}</span>
-                                      </label>
-                                    ))}
+                                      </div>
+                                      <div className="form-group">
+                                        <label>Category</label>
+                                        <select
+                                          value={editingFood.category}
+                                          onChange={(e) => handleFieldChange('category', e.target.value)}
+                                        >
+                                          <option value="">Select Category</option>
+                                          {foodCategories.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <div className="form-row">
+                                        <div className="form-group">
+                                          <label>Food Type</label>
+                                          <div className="radio-group">
+                                            <label className={`radio-label ${editingFood.veg ? 'active-veg' : ''}`}>
+                                              <input
+                                                type="radio"
+                                                name="veg"
+                                                checked={editingFood.veg === true}
+                                                onChange={() => handleFieldChange('veg', true)}
+                                              />
+                                              Veg
+                                            </label>
+                                            <label className={`radio-label ${!editingFood.veg ? 'active-nonveg' : ''}`}>
+                                              <input
+                                                type="radio"
+                                                name="veg"
+                                                checked={editingFood.veg === false}
+                                                onChange={() => handleFieldChange('veg', false)}
+                                              />
+                                              Non-Veg
+                                            </label>
+                                          </div>
+                                        </div>
+                                        <div className="form-group">
+                                          <label>Position</label>
+                                          <input
+                                            type="number"
+                                            value={editingFood.food_position}
+                                            onChange={(e) => handleFieldChange('food_position', e.target.value)}
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Pricing Section */}
+                                    <div className="form-section">
+                                      <h4>Pricing & Profit</h4>
+                                      <div className="form-row">
+                                        <div className="form-group">
+                                          <label>Price (₹)</label>
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            value={editingFood.price}
+                                            onChange={(e) => handleFieldChange('price', e.target.value)}
+                                          />
+                                        </div>
+                                        <div className="form-group">
+                                          <label>Original Price (₹)</label>
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            value={editingFood.original_price}
+                                            onChange={(e) => handleFieldChange('original_price', e.target.value)}
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="form-row">
+                                        <div className="form-group">
+                                          <label>Profit (₹)</label>
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            value={editingFood.profit}
+                                            onChange={(e) => handleFieldChange('profit', e.target.value)}
+                                          />
+                                        </div>
+                                        <div className="form-group">
+                                          <label>User Limit</label>
+                                          <input
+                                            type="number"
+                                            value={editingFood.limit_per_user_total || 0}
+                                            onChange={(e) => handleFieldChange('limit_per_user_total', e.target.value)}
+                                          />
+                                          <small>0 = Unlimited</small>
+                                        </div>
+                                      </div>
+                                      <div className="form-group">
+                                        <label>Rating</label>
+                                        <input
+                                          type="number"
+                                          step="0.1"
+                                          min="0"
+                                          max="5"
+                                          value={editingFood.rating}
+                                          onChange={(e) => handleFieldChange('rating', e.target.value)}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Availability & Status Section */}
+                                    <div className="form-section">
+                                      <h4>Availability & Badges</h4>
+                                      <div className="form-group">
+                                        <label>Time Slots</label>
+                                        <div className="time-slots-grid">
+                                          {timeSlots.map(slot => (
+                                            <label key={slot.id} className={`slot-checkbox ${editingFood[slot.id] ? 'checked' : ''}`}>
+                                              <input
+                                                type="checkbox"
+                                                checked={editingFood[slot.id]}
+                                                onChange={(e) => handleFieldChange(slot.id, e.target.checked)}
+                                              />
+                                              <span>{slot.icon} {slot.label}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <div className="form-group">
+                                        <label>Stock Status</label>
+                                        <button
+                                          type="button"
+                                          className={`stock-status-btn-large ${editingFood.stock ? 'in-stock' : 'out-of-stock'}`}
+                                          onClick={() => handleFieldChange('stock', !editingFood.stock)}
+                                        >
+                                          {editingFood.stock ? '✅ In Stock' : '❌ Out of Stock'}
+                                        </button>
+                                      </div>
+                                      <div className="form-group">
+                                        <label>Badges</label>
+                                        <div className="badge-toggles-large">
+                                          <button
+                                            type="button"
+                                            className={`badge-toggle-large ${editingFood.popular ? 'active' : ''}`}
+                                            onClick={() => handleFieldChange('popular', !editingFood.popular)}
+                                          >
+                                            Popular
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className={`badge-toggle-large ${editingFood.bestseller ? 'active' : ''}`}
+                                            onClick={() => handleFieldChange('bestseller', !editingFood.bestseller)}
+                                          >
+                                            Bestseller
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
-                                </td>
-                                <td className="stock-cell">
-                                  <label className="stock-checkbox">
-                                    <input
-                                      type="checkbox"
-                                      checked={editingFood.stock}
-                                      onChange={(e) => handleFieldChange('stock', e.target.checked)}
-                                      className="stock-input"
-                                    />
-                                    <span className={`stock-status ${editingFood.stock ? 'in-stock' : 'out-of-stock'}`}>
-                                      {editingFood.stock ? 'In Stock' : 'Out of Stock'}
-                                    </span>
-                                  </label>
-                                </td>
-                                <td>
-                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '70px' }}>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      value={editingFood.limit_per_user_total !== undefined ? editingFood.limit_per_user_total : 0}
-                                      onChange={(e) => handleFieldChange('limit_per_user_total', e.target.value)}
-                                      className="edit-input"
-                                      title="0 = Unlimited"
-                                      style={{ width: '60px', textAlign: 'center' }}
-                                    />
-                                    <div style={{ fontSize: '10px', color: '#666', marginTop: '4px', whiteSpace: 'nowrap' }}>0 = Unlimited</div>
-                                  </div>
-                                </td>
-                                <td className="status-actions">
-                                  <div className="toggle-buttons">
-                                    <button
-                                      className={`toggle-btn ${editingFood.popular ? 'active' : ''}`}
-                                      onClick={() => handleFieldChange('popular', !editingFood.popular)}
-                                      type="button"
-                                    >
-                                      Popular
-                                    </button>
-                                    <button
-                                      className={`toggle-btn ${editingFood.bestseller ? 'active' : ''}`}
-                                      onClick={() => handleFieldChange('bestseller', !editingFood.bestseller)}
-                                      type="button"
-                                    >
-                                      Bestseller
-                                    </button>
-                                  </div>
-                                </td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={editingFood.food_position}
-                                    onChange={(e) => handleFieldChange('food_position', e.target.value)}
-                                    className="edit-input"
-                                  />
-                                </td>
-                                <td className="action-buttons">
-                                  <button
-                                    className="save-btn"
-                                    onClick={handleSaveClick}
-                                    disabled={loading}
-                                  >
-                                    {loading ? 'Saving...' : 'Save'}
-                                  </button>
-                                  <button
-                                    className="cancel-btn"
-                                    onClick={handleCancelClick}
-                                    disabled={loading}
-                                  >
-                                    Cancel
-                                  </button>
-                                </td>
-                              </>
+                                </div>
+                              </td>
                             ) : (
                               <>
+                                <td className="food-info">
+                                  <div className="food-details">
+                                    <div className="food-name">{item.name}</div>
+                                    {item.prep_time && (
+                                      <div className="prep-time">Prep: {item.prep_time}</div>
+                                    )}
+                                    {item.calories && (
+                                      <div className="calories">Calories: {item.calories}</div>
+                                    )}
+                                  </div>
+                                </td>
+
+                                <td className="category-cell">
+                                  {editingCategory === item.id ? (
+                                    <div className="category-edit-container">
+                                      <select
+                                        value={item.category}
+                                        onChange={(e) => handleCategorySave(item, e.target.value)}
+                                        className="category-edit-select"
+                                        autoFocus
+                                      >
+                                        <option value="">Select Category</option>
+                                        {foodCategories.map(category => (
+                                          <option key={category} value={category}>
+                                            {category}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <div className="category-edit-actions">
+                                        <button
+                                          className="category-save-btn"
+                                          onClick={() => setEditingCategory(null)}
+                                        >
+                                          ✓
+                                        </button>
+                                        <button
+                                          className="category-cancel-btn"
+                                          onClick={handleCategoryCancel}
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="category-display">
+                                      <span
+                                        className="category-value"
+                                        onClick={() => handleCategoryEdit(item)}
+                                        title="Click to edit category"
+                                      >
+                                        {item.category}
+                                      </span>
+                                    </div>
+                                  )}
+                                </td>
+
                                 <td className="price-cell">
                                   <span className="price-amount">₹{item.price}</span>
                                 </td>
