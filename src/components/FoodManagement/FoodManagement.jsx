@@ -913,15 +913,6 @@ const FoodManagement = () => {
                             {editingFood?.id === item.id ? (
                               <td colSpan="13" className="edit-form-cell">
                                 <div className="edit-form-card">
-                                  <div className="edit-form-header">
-                                    <h3>Edit Food Item: {item.name}</h3>
-                                    <div className="edit-form-actions-top">
-                                      <button className="cancel-btn-large" onClick={handleCancelClick}>Cancel</button>
-                                      <button className="save-btn-large" onClick={handleSaveClick} disabled={loading}>
-                                        {loading ? 'Saving...' : 'Save Changes'}
-                                      </button>
-                                    </div>
-                                  </div>
 
                                   <div className="edit-form-rows-container">
                                     {/* Row 1: Main Data Fields */}
