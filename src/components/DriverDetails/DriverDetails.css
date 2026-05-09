@@ -353,16 +353,6 @@
   font-weight: 700;
 }
 
-.driver-revenue-badge {
-  background: #ecfdf5;
-  color: #059669;
-  padding: 2px 10px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 700;
-  border: 1px solid #d1fae5;
-}
-
 .driver-phone {
   margin: 0 0 10px 0;
   color: #64748b;

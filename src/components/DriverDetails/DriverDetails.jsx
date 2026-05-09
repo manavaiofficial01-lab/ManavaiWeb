@@ -924,9 +924,6 @@ function DriverDetails() {
                   <div className="driver-info">
                     <div className="driver-header-flex">
                       <h3>{driver.driver_name}</h3>
-                      <div className="driver-revenue-badge">
-                        {formatCurrency(driver.total_revenue)}
-                      </div>
                     </div>
                     <p className="driver-phone">{driver.driver_phone}</p>
                     <div className="driver-meta">
