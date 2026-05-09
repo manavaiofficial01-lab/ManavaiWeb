@@ -923,141 +923,139 @@ const FoodManagement = () => {
                                     </div>
                                   </div>
 
-                                  <div className="edit-form-grid">
-                                    {/* Main Details Section */}
-                                    <div className="form-section">
-                                      <div className="form-group">
-                                        <label>Food Name</label>
+                                  <div className="edit-form-rows-container">
+                                    {/* Row 1: Main Data Fields */}
+                                    <div className="edit-form-row">
+                                      <div className="form-group-compact" style={{ flex: 2 }}>
+                                        <label>Name</label>
                                         <input
                                           type="text"
                                           value={editingFood.name}
                                           onChange={(e) => handleFieldChange('name', e.target.value)}
                                         />
                                       </div>
-                                      <div className="form-row">
-                                        <div className="form-group">
-                                          <label>Category</label>
-                                          <select
-                                            value={editingFood.category}
-                                            onChange={(e) => handleFieldChange('category', e.target.value)}
-                                          >
-                                            {foodCategories.map(cat => (
-                                              <option key={cat} value={cat}>{cat}</option>
-                                            ))}
-                                          </select>
-                                        </div>
-                                        <div className="form-group">
-                                          <label>Food Type</label>
-                                          <div className="radio-group">
-                                            <label className={`radio-label ${editingFood.veg ? 'active-veg' : ''}`}>
-                                              <input type="radio" checked={editingFood.veg} onChange={() => handleFieldChange('veg', true)} />
-                                              Veg
-                                            </label>
-                                            <label className={`radio-label ${!editingFood.veg ? 'active-nonveg' : ''}`}>
-                                              <input type="radio" checked={!editingFood.veg} onChange={() => handleFieldChange('veg', false)} />
-                                              Non-Veg
-                                            </label>
-                                          </div>
+                                      <div className="form-group-compact">
+                                        <label>Category</label>
+                                        <select
+                                          value={editingFood.category}
+                                          onChange={(e) => handleFieldChange('category', e.target.value)}
+                                        >
+                                          {foodCategories.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <div className="form-group-compact">
+                                        <label>Price</label>
+                                        <input
+                                          type="number"
+                                          value={editingFood.price}
+                                          onChange={(e) => handleFieldChange('price', e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="form-group-compact">
+                                        <label>Orig. Price</label>
+                                        <input
+                                          type="number"
+                                          value={editingFood.original_price}
+                                          onChange={(e) => handleFieldChange('original_price', e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="form-group-compact">
+                                        <label>Profit</label>
+                                        <input
+                                          type="number"
+                                          value={editingFood.profit}
+                                          onChange={(e) => handleFieldChange('profit', e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="form-group-compact">
+                                        <label>Type</label>
+                                        <div className="radio-group-compact">
+                                          <label className={`radio-label-compact ${editingFood.veg ? 'active-veg' : ''}`}>
+                                            <input type="radio" checked={editingFood.veg} onChange={() => handleFieldChange('veg', true)} />
+                                            Veg
+                                          </label>
+                                          <label className={`radio-label-compact ${!editingFood.veg ? 'active-nonveg' : ''}`}>
+                                            <input type="radio" checked={!editingFood.veg} onChange={() => handleFieldChange('veg', false)} />
+                                            N-Veg
+                                          </label>
                                         </div>
                                       </div>
-                                      <div className="form-row">
-                                        <div className="form-group">
-                                          <label>Price (₹)</label>
-                                          <input
-                                            type="number"
-                                            value={editingFood.price}
-                                            onChange={(e) => handleFieldChange('price', e.target.value)}
-                                          />
-                                        </div>
-                                        <div className="form-group">
-                                          <label>Profit (₹)</label>
-                                          <input
-                                            type="number"
-                                            value={editingFood.profit}
-                                            onChange={(e) => handleFieldChange('profit', e.target.value)}
-                                          />
-                                        </div>
+                                      <div className="form-group-compact" style={{ flex: 0.5 }}>
+                                        <label>Pos</label>
+                                        <input
+                                          type="number"
+                                          value={editingFood.food_position}
+                                          onChange={(e) => handleFieldChange('food_position', e.target.value)}
+                                        />
                                       </div>
-                                      <div className="form-row">
-                                        <div className="form-group">
-                                          <label>Rating</label>
-                                          <input
-                                            type="number"
-                                            step="0.1"
-                                            value={editingFood.rating}
-                                            onChange={(e) => handleFieldChange('rating', e.target.value)}
-                                          />
-                                        </div>
-                                        <div className="form-group">
-                                          <label>User Limit</label>
-                                          <input
-                                            type="number"
-                                            value={editingFood.limit_per_user_total || 0}
-                                            onChange={(e) => handleFieldChange('limit_per_user_total', e.target.value)}
-                                          />
-                                        </div>
+                                      <div className="form-group-compact" style={{ flex: 0.5 }}>
+                                        <label>Rating</label>
+                                        <input
+                                          type="number"
+                                          step="0.1"
+                                          value={editingFood.rating}
+                                          onChange={(e) => handleFieldChange('rating', e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="form-group-compact" style={{ flex: 0.5 }}>
+                                        <label>Limit</label>
+                                        <input
+                                          type="number"
+                                          value={editingFood.limit_per_user_total || 0}
+                                          onChange={(e) => handleFieldChange('limit_per_user_total', e.target.value)}
+                                        />
                                       </div>
                                     </div>
 
-                                    {/* Availability & Settings */}
-                                    <div className="form-section">
-                                      <div className="form-group">
-                                        <label>Time Slots</label>
-                                        <div className="time-slots-grid">
-                                          {timeSlots.map(slot => (
-                                            <label key={slot.id} className={`slot-checkbox ${editingFood[slot.id] ? 'checked' : ''}`}>
-                                              <input
-                                                type="checkbox"
-                                                checked={editingFood[slot.id]}
-                                                onChange={(e) => handleFieldChange(slot.id, e.target.checked)}
-                                              />
-                                              <span>{slot.icon} {slot.label}</span>
-                                            </label>
-                                          ))}
-                                        </div>
+                                    {/* Row 2: Toggles & Actions */}
+                                    <div className="edit-form-row">
+                                      <div className="time-slots-row">
+                                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', marginRight: '5px' }}>SLOTS:</span>
+                                        {timeSlots.map(slot => (
+                                          <label key={slot.id} className={`slot-toggle-compact ${editingFood[slot.id] ? 'checked' : ''}`}>
+                                            <input
+                                              type="checkbox"
+                                              hidden
+                                              checked={editingFood[slot.id]}
+                                              onChange={(e) => handleFieldChange(slot.id, e.target.checked)}
+                                            />
+                                            <span>{slot.icon} {slot.label}</span>
+                                          </label>
+                                        ))}
                                       </div>
-                                      <div className="form-group">
-                                        <label>Inventory & Badges</label>
+
+                                      <div className="row-actions-group">
                                         <button
                                           type="button"
-                                          className={`stock-status-btn-large ${editingFood.stock ? 'in-stock' : 'out-of-stock'}`}
+                                          className={`stock-toggle-compact ${editingFood.stock ? 'in-stock' : 'out-of-stock'}`}
                                           onClick={() => handleFieldChange('stock', !editingFood.stock)}
                                         >
-                                          {editingFood.stock ? '✅ In Stock' : '❌ Out of Stock'}
+                                          {editingFood.stock ? '✅ In Stock' : '❌ Out Stock'}
                                         </button>
-                                        <div className="badge-toggles-large" style={{ marginTop: '8px' }}>
-                                          <button
-                                            type="button"
-                                            className={`badge-toggle-large ${editingFood.popular ? 'active' : ''}`}
-                                            onClick={() => handleFieldChange('popular', !editingFood.popular)}
-                                          >
-                                            Popular
-                                          </button>
-                                          <button
-                                            type="button"
-                                            className={`badge-toggle-large ${editingFood.bestseller ? 'active' : ''}`}
-                                            onClick={() => handleFieldChange('bestseller', !editingFood.bestseller)}
-                                          >
-                                            Bestseller
-                                          </button>
-                                        </div>
-                                      </div>
-                                      <div className="form-group">
-                                        <label>Original Price & Position</label>
-                                        <div className="form-row">
-                                          <input
-                                            type="number"
-                                            placeholder="Orig. Price"
-                                            value={editingFood.original_price}
-                                            onChange={(e) => handleFieldChange('original_price', e.target.value)}
-                                          />
-                                          <input
-                                            type="number"
-                                            placeholder="Position"
-                                            value={editingFood.food_position}
-                                            onChange={(e) => handleFieldChange('food_position', e.target.value)}
-                                          />
-                                        </div>
+                                        
+                                        <button
+                                          type="button"
+                                          className={`badge-compact ${editingFood.popular ? 'active' : ''}`}
+                                          onClick={() => handleFieldChange('popular', !editingFood.popular)}
+                                        >
+                                          Popular
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className={`badge-compact ${editingFood.bestseller ? 'active' : ''}`}
+                                          onClick={() => handleFieldChange('bestseller', !editingFood.bestseller)}
+                                        >
+                                          Bestseller
+                                        </button>
+
+                                        <div style={{ width: '20px' }}></div>
+
+                                        <button className="cancel-btn-compact" onClick={handleCancelClick}>Cancel</button>
+                                        <button className="save-btn-compact" onClick={handleSaveClick} disabled={loading}>
+                                          {loading ? 'Saving...' : 'Save'}
+                                        </button>
                                       </div>
                                     </div>
                                   </div>
