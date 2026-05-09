@@ -7,6 +7,10 @@ const RestaurantManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingTimeId, setEditingTimeId] = useState(null);
+  const [newOpenTime, setNewOpenTime] = useState('');
+  const [newCloseTime, setNewCloseTime] = useState('');
+  const [isUpdatingTime, setIsUpdatingTime] = useState(false);
 
   useEffect(() => {
     fetchRestaurants();
@@ -46,6 +50,46 @@ const RestaurantManagement = () => {
     } catch (err) {
       console.error('Error updating status:', err);
       alert('Failed to update status');
+    }
+  };
+
+  const startEditingTime = (restaurant) => {
+    setEditingTimeId(restaurant.id);
+    setNewOpenTime(restaurant.open_time || '');
+    setNewCloseTime(restaurant.close_time || '');
+  };
+
+  const cancelEditingTime = () => {
+    setEditingTimeId(null);
+    setNewOpenTime('');
+    setNewCloseTime('');
+  };
+
+  const updateOperatingHours = async (id) => {
+    if (!newOpenTime || !newCloseTime) return;
+    
+    setIsUpdatingTime(true);
+    try {
+      const { error } = await supabase
+        .from('restaurants')
+        .update({ 
+          open_time: newOpenTime,
+          close_time: newCloseTime 
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setRestaurants(prev =>
+        prev.map(r => r.id === id ? { ...r, open_time: newOpenTime, close_time: newCloseTime } : r)
+      );
+      setEditingTimeId(null);
+      alert('Operating hours updated successfully');
+    } catch (err) {
+      console.error('Error updating hours:', err);
+      alert('Failed to update operating hours');
+    } finally {
+      setIsUpdatingTime(false);
     }
   };
 
@@ -90,7 +134,46 @@ const RestaurantManagement = () => {
               <h3 title={restaurant.name}>{restaurant.name}</h3>
               <p className="resto-id">ID: {restaurant.id}</p>
               <div className="resto-meta">
-                <span>🕒 {restaurant.open_time} - {restaurant.close_time}</span>
+                <div className="time-display-wrapper">
+                  {editingTimeId === restaurant.id ? (
+                    <div className="time-edit-form">
+                      <div className="time-inputs">
+                        <div className="time-input-group">
+                          <label>Open</label>
+                          <input 
+                            type="text" 
+                            value={newOpenTime} 
+                            onChange={(e) => setNewOpenTime(e.target.value)}
+                            placeholder="11:00 AM"
+                            className="time-edit-input"
+                          />
+                        </div>
+                        <span className="time-sep">-</span>
+                        <div className="time-input-group">
+                          <label>Close</label>
+                          <input 
+                            type="text" 
+                            value={newCloseTime} 
+                            onChange={(e) => setNewCloseTime(e.target.value)}
+                            placeholder="11:00 PM"
+                            className="time-edit-input"
+                          />
+                        </div>
+                      </div>
+                      <div className="time-edit-actions">
+                        <button onClick={() => updateOperatingHours(restaurant.id)} disabled={isUpdatingTime} className="save-time-btn" title="Save">
+                          {isUpdatingTime ? '...' : '✅'}
+                        </button>
+                        <button onClick={cancelEditingTime} className="cancel-time-btn" title="Cancel">❌</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="time-text" onClick={() => startEditingTime(restaurant)} title="Click to edit operating hours">
+                      🕒 {restaurant.open_time} - {restaurant.close_time}
+                      <span className="edit-icon-small">✏️</span>
+                    </span>
+                  )}
+                </div>
                 <span>⭐ {restaurant.rating}</span>
               </div>
             </div>

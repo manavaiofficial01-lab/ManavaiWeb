@@ -285,3 +285,105 @@ input:checked + .slider:before {
     width: 100%;
   }
 }
+
+/* Time Editing Styles */
+.time-display-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-text {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.time-text:hover {
+  background-color: #f1f5f9;
+}
+
+.edit-icon-small {
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.time-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #f8fafc;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  width: 100%;
+}
+
+.time-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.time-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.time-input-group label {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.time-edit-input {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  outline: none;
+}
+
+.time-sep {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.time-edit-input:focus {
+  border-color: #3b82f6;
+}
+
+.time-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.time-edit-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.time-edit-actions button:hover:not(:disabled) {
+  background-color: #e2e8f0;
+}
+
+.time-edit-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
